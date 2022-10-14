@@ -1,17 +1,18 @@
 #[derive(Debug)]
 pub struct TokenCursor {
-    index: i64,
+    index: usize,
     src: Vec<char>
 }
+
 impl TokenCursor {
-    pub from(&str source) -> Self {
+    pub fn from(source: &str) -> Self {
         Self {
             index: 0,
-            src: source.chars().collecct(),
+            src: source.chars().collect(),
         }
     }
-    pub is_eos(&self) -> bool {
-        (self.src.len() < self.index)
+    pub fn is_eos(&self) -> bool {
+        self.src.len() >=  self.index
     }
 }
 
@@ -20,7 +21,7 @@ mod tests {
     use super::*;
     #[test]
     fn testa() {
-        let cur = TokenCursor("l8cde");
+        let cur = TokenCursor::from("l8cde");
         assert_eq!(cur.is_eol(), false);
     }
 }

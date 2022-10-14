@@ -1,5 +1,3 @@
-mod token_cursor;
-
 #[derive(Debug)]
 pub enum TokenType {
     Number,
@@ -13,7 +11,7 @@ pub struct Token {
 }
 
 pub fn lex(src: &str) -> Vec<Token> {
-    let cur = token_cursor::TokenCursor::from(src);
+    // let cur = token_cursor::TokenCursor::from(src);
 
     let n = Token {
         ttype: TokenType::Number,
