@@ -18,7 +18,7 @@ impl TokenCursor {
         if self.is_eos() { return None; }
         let c = self.src[self.index];
         self.index += 1;
-        Ok(c)
+        Some(c)
     }
 }
 
@@ -27,9 +27,9 @@ mod tests {
     use super::*;
     #[test]
     fn testa() {
-        let cur = TokenCursor::from("l16cde");
+        let mut cur = TokenCursor::from("l16cde");
         assert_eq!(cur.is_eos(), false);
-        assert_eq!(cur.next(), 'l');
-        assert_eq!(cur.next(), '1');
+        assert_eq!(cur.next(), Some('l'));
+        assert_eq!(cur.next(), Some('1'));
     }
 }
