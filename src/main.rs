@@ -1,7 +1,6 @@
-mod lexer;
-use crate::lexer::token::lex;
+use sakuramml;
 
 fn main() {
-    let tok = lex("l8cde");
+    let tok = sakuramml::token::lex("l8cde");
     println!("lex= {:?}", tok); 
 }
