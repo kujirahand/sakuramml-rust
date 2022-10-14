@@ -46,7 +46,6 @@ impl TokenCursor {
         let s2: Vec<char> = s.chars().collect();
         for i in 0..s2.len() {
             let idx = self.index + i;
-            println!("{}={}", self.src[idx], s2[i]);
             if self.src[idx] != s2[i] {
                 return false;
             }
@@ -86,6 +85,35 @@ impl TokenCursor {
         }
         s
     }
+    pub fn cur2end(&self) -> String {
+        let mut res = String::new();
+        for i in self.index..self.src.len() {
+            res.push(self.src[i]);
+        }
+        res
+    }
+    pub fn skip_space_ret(&mut self) {
+        while !self.is_eos() {
+            let ch = self.peek_n(0);
+            match ch {
+                '\r' | '\n' | '\t' | ' ' => {
+                    self.index += 1;
+                },
+                _ => { break; }
+            }
+        }
+    }
+    pub fn skip_space(&mut self) {
+        while !self.is_eos() {
+            let ch = self.peek_n(0);
+            match ch {
+                '\t' | ' ' => {
+                    self.index += 1;
+                },
+                _ => { break; }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -108,6 +136,12 @@ mod tests {
         assert_eq!(cur.eq("16"), true);
         cur.index += 2;
         assert_eq!(cur.eq("cde"), true);
+    }
+    #[test]
+    fn test_skip() {
+        let mut cur = TokenCursor::from("   cde");
+        cur.skip_space();
+        assert_eq!(cur.cur2end(), String::from("cde"));
     }
     #[test]
     fn test_get_token_ch() {
