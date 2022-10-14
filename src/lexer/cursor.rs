@@ -14,6 +14,12 @@ impl TokenCursor {
     pub fn is_eos(&self) -> bool {
         self.src.len() <=  self.index
     }
+    pub fn next(&mut self) -> Option<char> {
+        if self.is_eos() { return None; }
+        let c = self.src[self.index];
+        self.index += 1;
+        Ok(c)
+    }
 }
 
 #[cfg(test)]
@@ -21,7 +27,9 @@ mod tests {
     use super::*;
     #[test]
     fn testa() {
-        let cur = TokenCursor::from("l8cde");
+        let cur = TokenCursor::from("l16cde");
         assert_eq!(cur.is_eos(), false);
+        assert_eq!(cur.next(), 'l');
+        assert_eq!(cur.next(), '1');
     }
 }
