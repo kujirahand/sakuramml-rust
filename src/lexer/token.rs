@@ -1,9 +1,11 @@
+#[warn(dead_code)]
 #[derive(Debug)]
 pub enum TokenType {
     Number,
     Word,
 }
 
+#[warn(dead_code)]
 #[derive(Debug)]
 pub struct Token {
     ttype: TokenType,

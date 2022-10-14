@@ -12,7 +12,7 @@ impl TokenCursor {
         }
     }
     pub fn is_eos(&self) -> bool {
-        self.src.len() >=  self.index
+        self.src.len() <=  self.index
     }
 }
 
@@ -22,6 +22,6 @@ mod tests {
     #[test]
     fn testa() {
         let cur = TokenCursor::from("l8cde");
-        assert_eq!(cur.is_eol(), false);
+        assert_eq!(cur.is_eos(), false);
     }
 }
