@@ -65,7 +65,7 @@ pub fn convert(src: &str) -> String {
                 if cur.peek_n(0) != '{' { continue; }
                 let name = cur.get_token_nest('{', '}');
                 cur.skip_space();
-                let ch = cur.next().unwrap_or('\0');
+                let ch = cur.get_char();
                 if ch != '=' { continue; }
                 cur.skip_space();
                 if cur.peek_n(0) != '{' { continue; }

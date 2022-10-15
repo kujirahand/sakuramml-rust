@@ -1,29 +1,38 @@
 use super::cursor::TokenCursor;
+use super::svalue::SValue;
 
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum TokenType {
-    Number,
-    Flag,
-    String,
-    CommandUpper,
-    CommandLower,
+    Unknown,
+    Note,
+    Track,
+    Channel,
+    NoteNo,
+    Length,
 }
 
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct Token {
-    ttype: TokenType,
-    value: i64,
-    data: Option<String>,
-    args: Option<Vec<Token>>,
+    pub ttype: TokenType,
+    pub value: i64,
+    pub data: Vec<SValue>,
+}
+
+impl Token {
+    pub fn new(ttype: TokenType, value: i64, data: Vec<SValue>) -> Self {
+        Self { ttype, value, data }
+    }
+    pub fn new_unknown() -> Self {
+        Self::new(TokenType::Unknown, 0, vec![])
+    }
 }
 
 pub fn char_from_u32(i: u32, def: char) -> char {
     char::from_u32(i).unwrap_or(def)
 }
 /// 全角記号を半角記号に変換
-// https://en.wikipedia.org/wiki/Halfwidth_and_Fullwidth_Forms_(Unicode_block)
 pub fn zen2han(c: char) -> char {
     match c {
         // half ascii code
@@ -39,36 +48,75 @@ pub fn zen2han(c: char) -> char {
     }
 }
 
-pub fn han2zen(c: char) -> char {
-    match c {
-        // digit
-        '0'..='9' => char_from_u32(c as u32 + 0xFF10 - 0x30, c),
-        // alphabet
-        'A'..='Z' | 'a'..='z' => char_from_u32(c as u32 + 0xFF21 - 0x41 , c),
-        // flag
-        '!'..='/' | ':'..='@' | '['..='`' | '{'..='~' => 
-            char_from_u32(c as u32 + 0xFF01 - 0x21, c),
-        _ => c
+fn read_arg(cur: &mut TokenCursor) -> SValue {
+    cur.skip_space();
+    let ch = cur.peek_n(0);
+    match ch {
+        '(' => {
+            cur.index += 1;
+            let r = read_arg(cur);
+            cur.skip_space();
+            if cur.peek_n(0) == ')' { cur.next(); }
+            return r;
+        },
+        '=' => {
+            cur.index += 1;
+            read_arg(cur)
+        },
+        // number
+        '0'..='9' => {
+            SValue::from_i(cur.get_int(0))
+        },
+        '{' => {
+            SValue::from_s(cur.get_token_nest('{', '}'))
+        }
+        _ => {
+            SValue::None
+        }
     }
 }
 
-pub fn read_digit(cur: &mut TokenCursor, ch1: char) -> Token {
-    let mut s = String::new();
-    s.push(ch1);
-    while !cur.is_eos() {
-        let ch = cur.peek().unwrap_or('\0');
-        if '0' <= ch && ch <= '9' {
-            s.push(ch);
-            cur.index += 1;
-            continue;
+fn read_command(cur: &mut TokenCursor) -> Token {
+    let cmd = cur.get_word();
+    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" {
+        let v = read_arg(cur);
+        return Token {
+            ttype: TokenType::Track,
+            value: 0,
+            data: vec![v],
         }
-        break;
+    }
+    if cmd == "CH" || cmd == "Channel" {
+        let v = read_arg(cur);
+        return Token {
+            ttype: TokenType::Channel,
+            value: 0,
+            data: vec![v],
+        }
     }
     Token {
-        ttype: TokenType::Number,
-        value: s.parse().unwrap_or(0),
-        data: None,
-        args: None,
+        ttype: TokenType::Unknown,
+        value: 0,
+        data: vec![],
+    }
+}
+
+fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
+    // flag
+    let note_flag = match cur.peek_n(0) {
+        '+' | '#' => 1,
+        '-' => -1,
+        _ => 0,
+    };
+    // length
+    let note_len = cur.get_note_length();
+    Token {
+        ttype: TokenType::Note,
+        value: ch as i64,
+        data: vec![
+            SValue::from_i(note_flag),
+            SValue::from_s(note_len),
+        ],
     }
 }
 
@@ -76,8 +124,7 @@ pub fn lex(src: &str) -> Vec<Token> {
     let mut result: Vec<Token> = vec![];
     let mut cur = TokenCursor::from(src);
     while !cur.is_eos() {
-        let ch = zen2han(cur.next().unwrap_or('\0'));
-        println!("{:?}", ch);
+        let ch = zen2han(cur.get_char());
         match ch {
             // space
             ' ' | '\t' | '\r' => { /* skip */}
@@ -85,30 +132,18 @@ pub fn lex(src: &str) -> Vec<Token> {
             '\n' => {
                 cur.line += 1;
             }
-            // digit
-            '0'..='9' => {
-                let tok = read_digit(&mut cur, ch);
-                result.push(tok);
-            }
             // lower command
-            'a'..='z' | '_' => {
-                result.push(Token{
-                    ttype: TokenType::CommandLower,
-                    value: ch as i64,
-                    data: None,
-                    args: None,
-                })
+            'a'..='g' => { result.push(read_note(&mut cur, ch)); },
+            'h'..='z' | '_' => { },
+            // uppwer command
+            'A'..='G' => {
+                cur.prev(); 
+                result.push(read_command(&mut cur)); 
             },
             // string
             '{' => {
                 cur.prev();
-                let s = cur.get_token_nest('{', '}');
-                result.push(Token {
-                    ttype: TokenType::String,
-                    value: s.len() as i64,
-                    data: Some(s),
-                    args: None,
-                })
+                cur.get_token_nest('{', '}');
             }
             _ => {
                 // skip
@@ -126,11 +161,5 @@ mod tests {
         assert_eq!(zen2han('Ａ'), 'A');
         assert_eq!(zen2han('３'), '3');
         assert_eq!(zen2han('　'), ' ');
-    }
-    #[test]
-    fn test_han2zen() {
-        assert_eq!(han2zen('A'), 'Ａ');
-        assert_eq!(han2zen('3'), '３');
-        assert_eq!(han2zen('!'), '！');
     }
 }

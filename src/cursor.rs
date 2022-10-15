@@ -16,11 +16,15 @@ impl TokenCursor {
     pub fn is_eos(&self) -> bool {
         self.src.len() <=  self.index
     }
-    pub fn next(&mut self) -> Option<char> {
-        if self.is_eos() { return None; }
-        let c = self.src[self.index];
+    pub fn get_char(&mut self) -> char {
+        if self.is_eos() { return '\0'; }
+        let ch = self.src[self.index];
         self.index += 1;
-        Some(c)
+        return ch;
+    }
+    pub fn next(&mut self) {
+        if self.is_eos() { return }
+        self.index += 1;
     }
     pub fn prev(&mut self) {
         if self.index > 0 {
@@ -32,7 +36,7 @@ impl TokenCursor {
         let c = self.src[self.index];
         Some(c)
     }
-    pub fn peek_n(&mut self, n: usize) -> char {
+    pub fn peek_n(&self, n: usize) -> char {
         let idx = self.index + n;
         if self.src.len() <= idx { return '\0'; }
         self.src[idx]
@@ -52,10 +56,15 @@ impl TokenCursor {
         }
         true
     }
+    pub fn eq_char(&self, ch1: char) -> bool {
+        if self.is_eos() { return false; }
+        let ch2 = self.peek_n(0);
+        return ch2 == ch1;
+    }
     pub fn get_token_ch(&mut self, splitter: char) -> String {
         let mut s = String::new();
         while !self.is_eos() {
-            let ch = self.next().unwrap_or('\0');
+            let ch = self.get_char();
             if ch == splitter {
                 break
             }
@@ -72,7 +81,7 @@ impl TokenCursor {
             self.index += 1;
         }
         while !self.is_eos() {
-            let ch = self.next().unwrap_or('\0');
+            let ch = self.get_char();
             if ch == open_ch {
                 level += 1;
             }
@@ -114,6 +123,49 @@ impl TokenCursor {
             }
         }
     }
+    pub fn get_note_length(&mut self) -> String {
+        let mut res = String::new();
+        while !self.is_eos() {
+            let ch = self.peek_n(0);
+            match ch {
+                '0'..='9' | '.' | '^' => {
+                    res.push(ch);
+                    self.index += 1;
+                    continue;
+                }
+                _ => { break; }
+            }
+        }
+        res
+    }
+    pub fn get_word(&mut self) -> String {
+        let mut res = String::new();
+        while !self.is_eos() {
+            let ch = self.peek_n(0);
+            match ch {
+                'A'..='Z' | 'a'..='z' | '_' | '0'..='9' => {
+                    res.push(ch);
+                    self.index += 1;
+                    continue;
+                }
+                _ => { break; }
+            }
+        }
+        res
+    }
+    pub fn get_int(&mut self, def: i64) -> i64 {
+        let mut s = String::new();
+        while !self.is_eos() {
+            let ch = self.peek().unwrap_or('\0');
+            if '0' <= ch && ch <= '9' {
+                s.push(ch);
+                self.index += 1;
+                continue;
+            }
+            break;
+        }
+        s.parse().unwrap_or(def)
+    }
 }
 
 #[cfg(test)]
@@ -121,17 +173,26 @@ mod tests {
     use super::*;
     #[test]
     fn test_basic() {
+        // 
         let mut cur = TokenCursor::from("l16cde");
         assert_eq!(cur.is_eos(), false);
-        assert_eq!(cur.next(), Some('l'));
-        assert_eq!(cur.next(), Some('1'));
-        assert_eq!(cur.next(), Some('6'));
-        assert_eq!(cur.eq("cde"), true);
+        assert_eq!(cur.get_char(), 'l');
+        assert_eq!(cur.get_char(), '1');
+        assert_eq!(cur.get_char(), '6');
+        assert_eq!(cur.get_char(), 'c');
+        assert_eq!(cur.get_char(), 'd');
+        assert_eq!(cur.get_char(), 'e');
+        assert_eq!(cur.get_char(), '\0');
+        assert_eq!(cur.get_char(), '\0');
+        //
+        let mut cur = TokenCursor::from("l16cde");
+        assert_eq!(cur.get_char(), 'l');
+        assert_eq!(cur.eq("16"), true);
     }
     #[test]
     fn test_basic2() {
         let mut cur = TokenCursor::from("l16cde");
-        assert_eq!(cur.next(), Some('l'));
+        assert_eq!(cur.get_char(), 'l');
         assert_eq!(cur.is_numeric(), true);
         assert_eq!(cur.eq("16"), true);
         cur.index += 2;
