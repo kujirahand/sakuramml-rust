@@ -62,7 +62,7 @@ fn main() {
     }
 
     // read file
-    let mut src = String::new();
+    let mut src: String;
     if eval_mml != "" {
         src = eval_mml;
     } else {

@@ -102,6 +102,19 @@ impl Song {
     }
 }
 
+#[derive(Debug)]
+pub struct LoopItem {
+    pub start_pos: usize,
+    pub end_pos: usize,
+    pub index: usize,
+    pub count: usize,
+}
+impl LoopItem {
+    fn new() -> Self {
+        LoopItem { start_pos: 0, end_pos: 0, index: 0, count: 0 }
+    }
+}
+
 fn data_get_int(data: &Vec<SValue>) -> isize {
     if data.len() == 0 { return 0; }
     data[0].to_i()
@@ -155,7 +168,7 @@ fn exec_note(song: &mut Song, t: &Token) {
     let notelen_real = (notelen as f32 * data_note_qlen as f32 / 100.0) as isize;
     if data_note_vel <= 0 { data_note_vel = trk.velocity; }
     let event = Event::note(trk.timepos, trk.channel, noteno, notelen_real, data_note_vel);
-    println!("- {}: note(no={},len={},vel={})", trk.timepos, noteno, notelen_real, data_note_vel);
+    // println!("- {}: note(no={},len={},vel={})", trk.timepos, noteno, notelen_real, data_note_vel);
     trk.events.push(event);
     trk.timepos += notelen;
 }
@@ -184,10 +197,54 @@ pub fn value_range(min_v: isize, value: isize, max_v: isize) -> isize {
 
 pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
     let mut pos = 0;
+    let mut loop_stack: Vec<LoopItem> = vec![];
     while pos < tokens.len() {
         let t = &tokens[pos];
-        println!("{:3}:exec:{:?}", pos, t);
+        if song.debug {
+            println!("{:3}:exec:{:?}", pos, t);
+        }
         match t.ttype {
+            // Loop controll
+            TokenType::LoopBegin => {
+                let mut it = LoopItem::new();
+                it.start_pos = pos + 1;
+                it.count = t.value as usize;
+                loop_stack.push(it);
+            },
+            TokenType::LoopBreak => {
+                let mut it = loop_stack.pop().unwrap();
+                if it.index == (it.count-1) {
+                    if it.end_pos == 0 {
+                        for i  in pos..tokens.len() {
+                            match &tokens[i].ttype {
+                                TokenType::LoopEnd => {
+                                    it.end_pos = i;
+                                    break;
+                                },
+                                _ => {}
+                            }
+                        }
+                    }
+                    if it.end_pos > 0 {
+                        pos = it.end_pos;
+                        continue;
+                    }
+                } else {
+                    loop_stack.push(it);
+                }
+            },
+            TokenType::LoopEnd => {
+                if loop_stack.len() > 0 {
+                    let mut it = loop_stack.pop().unwrap();
+                    it.end_pos = pos + 1;
+                    it.index += 1;
+                    if it.index < it.count {
+                        pos = it.start_pos;
+                        loop_stack.push(it);
+                        continue;
+                    }
+                }
+            },
             TokenType::Track => exec_track(song, t),
             TokenType::Channel => {
                 let v = value_range(1, data_get_int(&t.data), 16) - 1; // CH(1 to 16)

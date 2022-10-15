@@ -22,6 +22,9 @@ pub enum TokenType {
     MetaText,
     TimeSignature,
     PitchBend,
+    LoopBegin,
+    LoopEnd,
+    LoopBreak,
 }
 
 #[allow(dead_code)]
@@ -226,6 +229,11 @@ fn read_cc(cur: &mut TokenCursor) -> Token {
     Token::new(TokenType::ControllChange, 0, vec![no, val])
 }
 
+fn read_loop(cur: &mut TokenCursor) -> Token {
+    let value = read_arg(cur);
+    Token::new(TokenType::LoopBegin, value.to_i(), vec![])
+}
+
 fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
     // flag
     let note_flag = match cur.peek_n(0) {
@@ -276,7 +284,7 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
         let ch = zen2han(cur.get_char());
         match ch {
             // space
-            ' ' | '\t' | '\r' => { },
+            ' ' | '\t' | '\r' | '|' => { },
             // ret
             '\n' => { cur.line += 1; },
             // lower command
@@ -299,7 +307,10 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
                 } else if cur.eq_char('*') {
                     cur.get_token_s("*/");
                 }
-            }
+            },
+            '[' => result.push(read_loop(&mut cur)),
+            ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)),
+            ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)),
             // string
             '{' => {
                 cur.prev();
