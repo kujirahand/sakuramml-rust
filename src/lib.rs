@@ -3,3 +3,4 @@ pub mod token;
 pub mod sutoton;
 pub mod song;
 pub mod svalue;
+pub mod midi;

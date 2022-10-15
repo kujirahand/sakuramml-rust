@@ -153,7 +153,7 @@ impl TokenCursor {
         }
         res
     }
-    pub fn get_int(&mut self, def: i64) -> i64 {
+    pub fn get_int(&mut self, def: isize) -> isize {
         let mut s = String::new();
         while !self.is_eos() {
             let ch = self.peek().unwrap_or('\0');

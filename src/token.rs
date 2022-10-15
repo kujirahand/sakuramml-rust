@@ -16,12 +16,12 @@ pub enum TokenType {
 #[derive(Debug)]
 pub struct Token {
     pub ttype: TokenType,
-    pub value: i64,
+    pub value: isize,
     pub data: Vec<SValue>,
 }
 
 impl Token {
-    pub fn new(ttype: TokenType, value: i64, data: Vec<SValue>) -> Self {
+    pub fn new(ttype: TokenType, value: isize, data: Vec<SValue>) -> Self {
         Self { ttype, value, data }
     }
     pub fn new_unknown() -> Self {
@@ -110,12 +110,36 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
     };
     // length
     let note_len = cur.get_note_length();
+    cur.skip_space();
+    // qlen
+    let qlen = if !cur.eq_char(',') { 0 } else {
+        cur.next();
+        cur.skip_space();
+        cur.get_int(0)
+    };
+    // veolocity
+    let vel = if !cur.eq_char(',') { 0 } else {
+        cur.next();
+        cur.skip_space();
+        cur.get_int(0)
+    };
     Token {
         ttype: TokenType::Note,
-        value: ch as i64,
+        value: match ch {
+            'c' => 0,
+            'd' => 2,
+            'e' => 4,
+            'f' => 5,
+            'g' => 7,
+            'a' => 9,
+            'b' => 11,
+            _ => 0,
+        },
         data: vec![
             SValue::from_i(note_flag),
             SValue::from_s(note_len),
+            SValue::from_i(qlen),
+            SValue::from_i(vel),
         ],
     }
 }
