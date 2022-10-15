@@ -61,6 +61,17 @@ impl TokenCursor {
         let ch2 = self.peek_n(0);
         return ch2 == ch1;
     }
+    pub fn get_token_s(&mut self, splitter: &str) -> String {
+        let mut s = String::new();
+        while !self.is_eos() {
+            if self.eq(splitter) {
+                self.index += splitter.chars().count();
+                break;
+            }
+            s.push(self.get_char());
+        }
+        s
+    }
     pub fn get_token_ch(&mut self, splitter: char) -> String {
         let mut s = String::new();
         while !self.is_eos() {
@@ -214,6 +225,14 @@ mod tests {
         //
         let mut cur = TokenCursor::from("123,456,789");
         assert_eq!(cur.get_token_ch('*'), String::from("123,456,789"));
+    }
+    #[test]
+    fn test_get_token_s() {
+        //
+        let mut cur = TokenCursor::from("123::456::789");
+        assert_eq!(cur.get_token_s("::"), String::from("123"));
+        assert_eq!(cur.get_token_s("::"), String::from("456"));
+        assert_eq!(cur.get_token_s("::"), String::from("789"));
     }
     #[test]
     fn test_get_token_nest() {

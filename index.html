@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html><meta charset="utf-8"><body>
+<script src="https://unpkg.com/picoaudio/dist/browser/PicoAudio.js"></script>
+<script type="module">
+  // WebAssemblyを読み込む --- (*1)
+  import init, {compile} from './pkg/sakuramml.js';
+  // Promiseの仕組みでライブラリを読み込む --- (*2)
+  init().then(() => {
+    console.log('ok')
+    document.getElementById('player').style.display = 'block'
+  });
+  // これが必要
+  window.sakura_log = function (s) {
+    console.log(s)
+    document.getElementById('msg').innerHTML = s
+  }
+  const picoAudio = new PicoAudio();
+  picoAudio.init();
+  function playMML() {
+    const txt = document.getElementById('txt')
+    const a = compile(txt.value)
+    const smfData = new Uint8Array(a);
+    // SMF形式のバイナリのパースを行う
+    const parsedData = picoAudio.parseSMF(smfData);
+    // パースしたデータをセット
+    picoAudio.setData(parsedData);
+    // 再生
+    picoAudio.play();
+  }
+  document.getElementById('btnPlay').onclick = () => {
+    playMML()
+  }
+</script>
+  <h1>テキスト音楽「ピコサクラ」</h1>
+  <div id="player" style="display:none;">
+    <button id="btnPlay">PLAY</button> &nbsp;
+  </div>
+  <textarea id="txt" cols="80" rows="8">// テキスト音楽サクラ
+トラック1 @1 音階5 音符4 ドミソミドー
+トラック2 @1 音階4 音符4 ドミソミドー
+トラック3 @1 音階3 音符4 ドミソミドー
+  </textarea>
+  <div id="msg" style="padding:0.5em; color: red;"></div>
+</body></html>
+

@@ -20,6 +20,7 @@ impl SutotonItem {
 
 fn init_items() -> Vec<SutotonItem> {
     let mut items: Vec<SutotonItem> = vec![];
+    items.push(SutotonItem::from("テンポ", "TEMPO="));
     items.push(SutotonItem::from("トラック", "TR="));
     items.push(SutotonItem::from("音長", "l"));
     items.push(SutotonItem::from("音階", "o"));
@@ -49,13 +50,19 @@ pub fn convert(src: &str) -> String {
         // string ?
         match ch {
             '{' => {
-                let s = cur.get_token_nest('{', '}');
-                res.push_str(&s);
+                if cur.eq("{\"") {
+                    let s = cur.get_token_s("\"}");
+                    res.push_str(&s);
+                    res.push_str("\"}");
+                    continue;
+                }
+                res.push(ch);
+                cur.next();
                 continue;
             },
             '\u{0020}'..='\u{007D}' => {
                 res.push(ch);
-                cur.index += 1;
+                cur.next();
                 continue;
             },
             // add item

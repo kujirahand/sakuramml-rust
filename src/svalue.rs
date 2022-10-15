@@ -1,6 +1,6 @@
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum SValue {
     Int(isize),
     Str(String),
@@ -17,6 +17,9 @@ impl SValue {
     }
     pub fn from_s(s: String) -> Self {
         Self::Str(s)
+    }
+    pub fn from_str(s: &str) -> Self {
+        Self::Str(String::from(s))
     }
     pub fn to_i(&self) -> isize {
         match self {

@@ -60,8 +60,32 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 timepos = e.time;
                 res.push(0xC0 + e.channel as u8);
                 res.push(e.v1 as u8);
-            }
-            _ => {
+            },
+            EventType::ControllChange => {
+                array_push_delta(&mut res, e.time - timepos);
+                timepos = e.time;
+                res.push(0xB0 + e.channel as u8);
+                res.push(e.v1 as u8);
+                res.push(e.v2 as u8);
+            },
+            EventType::Meta => {
+                array_push_delta(&mut res, e.time - timepos);
+                timepos = e.time;
+                res.push(e.v1 as u8);
+                res.push(e.v2 as u8);
+                res.push(e.v3 as u8);
+                let data = e.data.clone().unwrap();
+                for b in data.iter() {
+                    res.push(*b);
+                }
+            },
+            EventType::PitchBend => {
+                array_push_delta(&mut res, e.time - timepos);
+                timepos = e.time;
+                let v = e.v1;
+                res.push(0xE0 + e.channel as u8);
+                res.push((v >> 7 | 0x7F) as u8);
+                res.push((v >> 0 | 0x7F) as u8);
             }
         }
     }
