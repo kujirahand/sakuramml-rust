@@ -1,4 +1,4 @@
-use super::song::{Song, Track, Event};
+use super::song::{Song, Track, EventType};
 
 fn array_push_str(res: &mut Vec<u8>, s: &str) {
     for b in s.as_bytes() {
@@ -7,15 +7,15 @@ fn array_push_str(res: &mut Vec<u8>, s: &str) {
 }
 
 fn array_push_u16(res: &mut Vec<u8>, v: isize) {
-    res.push(((v >> 1) & 0xFF) as u8);
+    res.push(((v >> 8) & 0xFF) as u8);
     res.push(((v >> 0) & 0xFF) as u8);
 }
 
 fn array_push_u32(res: &mut Vec<u8>, v: isize) {
-    res.push(((v >> 3) & 0xFF) as u8);
-    res.push(((v >> 2) & 0xFF) as u8);
-    res.push(((v >> 1) & 0xFF) as u8);
-    res.push(((v >> 0) & 0xFF) as u8);
+    res.push(((v >> 24) & 0xFF) as u8);
+    res.push(((v >> 16) & 0xFF) as u8);
+    res.push(((v >>  8) & 0xFF) as u8);
+    res.push(((v >>  0) & 0xFF) as u8);
 }
 
 fn array_push_delta(res: &mut Vec<u8>, time: isize) {
@@ -38,24 +38,38 @@ fn generate_track(track: &Track) -> Vec<u8> {
     let mut res: Vec<u8> = vec![];
     let mut timepos = 0;
     for e in &track.events {
-        // event
-        match e {
-            Event::Note(time, note_no, note_len, note_vel) => {
+        match e.etype {
+            EventType::NoteNo => {
+                let note_no = e.v1;
+                let note_len = e.v2;
+                let note_vel = e.v3;
                 // note on
-                array_push_delta(&mut res, time - timepos);
-                res.push(0x90 + track.channel as u8);
-                res.push(*note_no as u8);
-                res.push(*note_vel as u8);
+                array_push_delta(&mut res, e.time - timepos);
+                res.push(0x90 + e.channel as u8);
+                res.push(note_no as u8); // note_no
+                res.push(note_vel as u8); // velocity
                 // note off
-                timepos = time + *note_len;
-                array_push_delta(&mut res, *note_len);
-                res.push(*note_no as u8);
-                res.push(*note_vel as u8);
+                timepos = e.time + note_len;
+                array_push_delta(&mut res, note_len);
+                res.push(0x80 + e.channel as u8);
+                res.push(note_no as u8);
+                res.push(note_vel as u8);
             },
+            EventType::Voice => {
+                array_push_delta(&mut res, e.time - timepos);
+                timepos = e.time;
+                res.push(0xC0 + e.channel as u8);
+                res.push(e.v1 as u8);
+            }
             _ => {
             }
         }
     }
+    // end of track
+    res.push(00);
+    res.push(0xFF);
+    res.push(0x2F);
+    res.push(00);
     res
 }
 

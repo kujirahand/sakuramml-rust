@@ -8,8 +8,13 @@ pub enum TokenType {
     Note,
     Track,
     Channel,
+    Voice,
     NoteNo,
     Length,
+    Octave,
+    OctaveRel,
+    QLen,
+    Velocity,
 }
 
 #[allow(dead_code)]
@@ -21,6 +26,9 @@ pub struct Token {
 }
 
 impl Token {
+    pub fn new_value(ttype: TokenType, value: isize) -> Self {
+        Self { ttype, value, data: vec![] }
+    }
     pub fn new(ttype: TokenType, value: isize, data: Vec<SValue>) -> Self {
         Self { ttype, value, data }
     }
@@ -53,19 +61,20 @@ fn read_arg(cur: &mut TokenCursor) -> SValue {
     let ch = cur.peek_n(0);
     match ch {
         '(' => {
-            cur.index += 1;
+            cur.next();
             let r = read_arg(cur);
             cur.skip_space();
             if cur.peek_n(0) == ')' { cur.next(); }
             return r;
         },
         '=' => {
-            cur.index += 1;
+            cur.next();
             read_arg(cur)
         },
         // number
         '0'..='9' => {
-            SValue::from_i(cur.get_int(0))
+            let n = cur.get_int(0);
+            SValue::from_i(n)
         },
         '{' => {
             SValue::from_s(cur.get_token_nest('{', '}'))
@@ -77,6 +86,7 @@ fn read_arg(cur: &mut TokenCursor) -> SValue {
 }
 
 fn read_command(cur: &mut TokenCursor) -> Token {
+    cur.prev(); // back 1char
     let cmd = cur.get_word();
     if cmd == "TR" || cmd == "TRACK" || cmd == "Track" {
         let v = read_arg(cur);
@@ -99,6 +109,31 @@ fn read_command(cur: &mut TokenCursor) -> Token {
         value: 0,
         data: vec![],
     }
+}
+
+fn read_voice(cur: &mut TokenCursor) -> Token {
+    let value = read_arg(cur);
+    Token::new(TokenType::Voice, value.to_i(), vec![])
+}
+
+fn read_length(cur: &mut TokenCursor) -> Token {
+    let s = cur.get_note_length();
+    Token::new(TokenType::Length, 0, vec![SValue::from_s(s)])
+}
+
+fn read_octave(cur: &mut TokenCursor) -> Token {
+    let value = read_arg(cur);
+    Token::new(TokenType::Octave, value.to_i(), vec![])
+}
+
+fn read_qlen(cur: &mut TokenCursor) -> Token {
+    let value = read_arg(cur);
+    Token::new(TokenType::QLen, value.to_i(), vec![])
+}
+
+fn read_velocity(cur: &mut TokenCursor) -> Token {
+    let value = read_arg(cur);
+    Token::new(TokenType::Velocity, value.to_i(), vec![])
 }
 
 fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
@@ -151,19 +186,21 @@ pub fn lex(src: &str) -> Vec<Token> {
         let ch = zen2han(cur.get_char());
         match ch {
             // space
-            ' ' | '\t' | '\r' => { /* skip */}
+            ' ' | '\t' | '\r' => { },
             // ret
-            '\n' => {
-                cur.line += 1;
-            }
+            '\n' => { cur.line += 1; },
             // lower command
-            'a'..='g' => { result.push(read_note(&mut cur, ch)); },
-            'h'..='z' | '_' => { },
+            'a'..='g' => result.push(read_note(&mut cur, ch)),
+            'l' => result.push(read_length(&mut cur)),
+            'o' => result.push(read_octave(&mut cur)),
+            'q' => result.push(read_qlen(&mut cur)),
+            'v' => result.push(read_velocity(&mut cur)),
             // uppwer command
-            'A'..='G' => {
-                cur.prev(); 
-                result.push(read_command(&mut cur)); 
-            },
+            'A'..='Z' => result.push(read_command(&mut cur)), 
+            // flag
+            '@' => result.push(read_voice(&mut cur)),
+            '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)),
+            '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)),
             // string
             '{' => {
                 cur.prev();

@@ -224,4 +224,13 @@ mod tests {
         let mut cur = TokenCursor::from("{aaa{bbb}ccc}");
         assert_eq!(cur.get_token_nest('{', '}'), String::from("aaa{bbb}ccc"));
     }
+    #[test]
+    fn test_get_int() {
+        let mut cur = TokenCursor::from("345");
+        assert_eq!(cur.get_int(-1), 345);
+        //
+        let mut cur = TokenCursor::from("l8");
+        cur.next();
+        assert_eq!(cur.get_int(-1), 8);
+    }
 }
