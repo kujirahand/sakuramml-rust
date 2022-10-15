@@ -8,6 +8,7 @@ pub enum TokenType {
     Error,
     Unknown,
     Note,
+    NoteN,
     Track,
     Channel,
     Voice,
@@ -234,6 +235,38 @@ fn read_loop(cur: &mut TokenCursor) -> Token {
     Token::new(TokenType::LoopBegin, value.to_i(), vec![])
 }
 
+fn read_note_n(cur: &mut TokenCursor) -> Token {
+    // note no
+    let note_no = read_arg(cur);
+    cur.skip_space();
+    if cur.eq_char(',') { cur.next(); }
+    // length
+    let note_len = cur.get_note_length();
+    cur.skip_space();
+    // qlen
+    let qlen = if !cur.eq_char(',') { 0 } else {
+        cur.next();
+        cur.skip_space();
+        cur.get_int(0)
+    };
+    // veolocity
+    let vel = if !cur.eq_char(',') { 0 } else {
+        cur.next();
+        cur.skip_space();
+        cur.get_int(0)
+    };
+    Token {
+        ttype: TokenType::NoteN,
+        value: 0,
+        data: vec![
+            note_no,
+            SValue::from_s(note_len),
+            SValue::from_i(qlen),
+            SValue::from_i(vel),
+        ],
+    }
+}
+
 fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
     // flag
     let note_flag = match cur.peek_n(0) {
@@ -289,6 +322,7 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
             '\n' => { cur.line += 1; },
             // lower command
             'a'..='g' => result.push(read_note(&mut cur, ch)),
+            'n' => result.push(read_note_n(&mut cur)),
             'l' => result.push(read_length(&mut cur)),
             'o' => result.push(read_octave(&mut cur)),
             'p' => result.push(read_pitch_bend(&mut cur)),

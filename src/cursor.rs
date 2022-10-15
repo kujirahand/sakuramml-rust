@@ -143,7 +143,10 @@ impl TokenCursor {
                     res.push(ch);
                     self.index += 1;
                     continue;
-                }
+                },
+                ' ' | '|' => {
+                    self.next();
+                },
                 _ => { break; }
             }
         }

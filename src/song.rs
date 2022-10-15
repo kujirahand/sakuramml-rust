@@ -173,6 +173,21 @@ fn exec_note(song: &mut Song, t: &Token) {
     trk.timepos += notelen;
 }
 
+fn exec_note_n(song: &mut Song, t: &Token) {
+    let trk = &mut song.tracks[song.cur_track];
+    let data_note_no = t.data[0].to_i();
+    let data_note_len = t.data[1].to_s();
+    let mut data_note_qlen = t.data[2].to_i();
+    let mut data_note_vel = t.data[3].to_i();
+    let notelen = calc_length(&data_note_len, song.timebase, trk.length);
+    if data_note_qlen <= 0 { data_note_qlen = trk.qlen; }
+    let notelen_real = (notelen as f32 * data_note_qlen as f32 / 100.0) as isize;
+    if data_note_vel <= 0 { data_note_vel = trk.velocity; }
+    let event = Event::note(trk.timepos, trk.channel, data_note_no, notelen_real, data_note_vel);
+    trk.events.push(event);
+    trk.timepos += notelen;
+}
+
 fn exec_track(song: &mut Song, t: &Token) {
     let mut v = data_get_int(&t.data) - 1; // TR(1 to xxx)
     if v < 0 { v = 0; }
@@ -255,6 +270,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.add_event(Event::voice(trk.timepos, trk.channel, t.value));
             },
             TokenType::Note => exec_note(song, t),
+            TokenType::NoteN => exec_note_n(song, t),
             TokenType::Length => {
                 let mut trk = &mut song.tracks[song.cur_track];
                 trk.length = calc_length(&t.data[0].to_s(), song.timebase, song.timebase);
