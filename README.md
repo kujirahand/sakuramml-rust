@@ -9,9 +9,9 @@ Sakuramml for Rust
 
 ## 未実装
 
+- 和音 c0e0g ←　サポートしない
 - Rythm
 - マクロ
-- 和音 c0e0g
 - Div
 - Sub
 - Play

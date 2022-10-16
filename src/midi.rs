@@ -43,16 +43,21 @@ fn generate_track(track: &Track) -> Vec<u8> {
         match e.etype {
             EventType::NoteNo => {
                 let note_no = e.v1;
-                let note_len = e.v2;
+                // note_len = e.v2 // not use
                 let note_vel = e.v3;
                 // note on
                 array_push_delta(&mut res, e.time - timepos);
+                timepos = e.time;
                 res.push(0x90 + e.channel as u8);
                 res.push(note_no as u8); // note_no
                 res.push(note_vel as u8); // velocity
-                // note off
-                timepos = e.time + note_len;
-                array_push_delta(&mut res, note_len);
+            },
+            EventType::NoteOff => {
+                let note_no = e.v1;
+                // note_len = e.v2 // not use
+                let note_vel = e.v3;
+                array_push_delta(&mut res, e.time - timepos);
+                timepos = e.time;
                 res.push(0x80 + e.channel as u8);
                 res.push(note_no as u8);
                 res.push(note_vel as u8);
@@ -102,7 +107,7 @@ fn generate_track(track: &Track) -> Vec<u8> {
 pub fn generate(song: &mut Song) -> Vec<u8> {
     let midi_format = 1;
     let mut res: Vec<u8> = vec![];
-    song.sort_all_events();
+    song.normalize_and_sort();
     // header
     array_push_str(&mut res, "MThd");
     array_push_u32(&mut res, 6);

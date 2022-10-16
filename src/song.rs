@@ -1,8 +1,9 @@
 /// song & track
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum EventType {
     NoteNo,
+    NoteOff,
     ControllChange,
     PitchBend,
     Voice,
@@ -10,7 +11,7 @@ pub enum EventType {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Event {
     pub etype: EventType,
     pub time: isize,
@@ -65,6 +66,25 @@ impl Track {
             events: vec![],
         }
     }
+    pub fn normalize(&mut self) {
+        let mut events: Vec<Event> = vec![];
+        for i in 0..self.events.len() {
+            let e = &self.events[i];
+            match e.etype {
+                EventType::NoteNo => {
+                    events.push(e.clone());
+                    let mut noteoff = e.clone();
+                    noteoff.etype = EventType::NoteOff;
+                    noteoff.time = e.time + e.v2;
+                    events.push(noteoff);
+                },
+                _ => {
+                    events.push(e.clone());
+                }
+            }
+        }
+        self.events = events;
+    }
     pub fn events_sort(&mut self) {
         self.events.sort_by(|a, b| a.time.cmp(&b.time));
     }
@@ -95,6 +115,7 @@ pub struct Song {
     pub timesig_frac: isize, // 分子
     pub timesig_deno: isize, // 分母
     pub flags: Flags,
+    pub rhthm_macro: Vec<String>,
     pub logs: Vec<String>, // ログ
 }
 
@@ -110,17 +131,34 @@ impl Song {
             timesig_frac: 4,
             timesig_deno: 4,
             flags: Flags::new(),
+            rhthm_macro: init_rhythm_macro(),
             logs: vec![],
         }
     }
     pub fn add_event(&mut self, e: Event) {
         self.tracks[self.cur_track].events.push(e);
     }
-    pub fn sort_all_events(&mut self) {
+    pub fn normalize_and_sort(&mut self) {
         for trk in self.tracks.iter_mut() {
+            trk.normalize();
             trk.events_sort();
         }
     }
 }
 
-
+fn init_rhythm_macro() -> Vec<String> {
+    // Rhythm macro ... 1 char macro
+    let mut rhthm_macro: Vec<String> = vec![];
+    for _ in 0x40..=0x7F {
+        rhthm_macro.push(String::new());
+    }
+    // set
+    rhthm_macro['b' as usize - 0x40] = String::from("n36,");
+    rhthm_macro['s' as usize - 0x40] = String::from("n38,");
+    rhthm_macro['h' as usize - 0x40] = String::from("n42,");
+    rhthm_macro['H' as usize - 0x40] = String::from("n44,");
+    rhthm_macro['o' as usize - 0x40] = String::from("n46,");
+    rhthm_macro['c' as usize - 0x40] = String::from("n49,");
+    //
+    rhthm_macro
+}

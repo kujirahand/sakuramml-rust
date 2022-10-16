@@ -7,10 +7,10 @@ pub enum TokenType {
     Unknown,
     Note,
     NoteN,
+    Rest,
     Track,
     Channel,
     Voice,
-    NoteNo,
     Length,
     Octave,
     OctaveRel,
@@ -25,7 +25,9 @@ pub enum TokenType {
     LoopEnd,
     LoopBreak,
     Time,
-    HarmonyFlag,
+    HarmonyBegin,
+    HarmonyEnd,
+    Tokens,
 }
 
 #[allow(dead_code)]
@@ -34,17 +36,18 @@ pub struct Token {
     pub ttype: TokenType,
     pub value: isize,
     pub data: Vec<SValue>,
+    pub children: Option<Vec<Token>>,
 }
 
 impl Token {
-    pub fn new_value(ttype: TokenType, value: isize) -> Self {
-        Self { ttype, value, data: vec![] }
-    }
     pub fn new(ttype: TokenType, value: isize, data: Vec<SValue>) -> Self {
-        Self { ttype, value, data }
+        Self { ttype, value, data, children: None }
     }
-    pub fn new_unknown() -> Self {
-        Self::new(TokenType::Unknown, 0, vec![])
+    pub fn new_value(ttype: TokenType, value: isize) -> Self {
+        Self { ttype, value, data: vec![], children: None }
+    }
+    pub fn new_unknown(cmd: &str) -> Self {
+        Self::new(TokenType::Unknown, 0, vec![SValue::from_s(cmd.to_string())])
     }
 }
 

@@ -34,10 +34,19 @@ fn init_items() -> Vec<SutotonItem> {
     items.push(SutotonItem::from("ソ", "g"));
     items.push(SutotonItem::from("ラ", "a"));
     items.push(SutotonItem::from("シ", "b"));
+    items.push(SutotonItem::from("ン", "r"));
+    items.push(SutotonItem::from("ッ", "r"));
     items.push(SutotonItem::from("「", "'"));
     items.push(SutotonItem::from("」", "'"));
     items.push(SutotonItem::from("↑", ">"));
     items.push(SutotonItem::from("↓", "<"));
+    items.push(SutotonItem::from("ん", "r"));
+    items.push(SutotonItem::from("ど", "n36,"));
+    items.push(SutotonItem::from("た", "n38,"));
+    items.push(SutotonItem::from("つ", "n42,"));
+    items.push(SutotonItem::from("く", "n44,"));
+    items.push(SutotonItem::from("ち", "n46,"));
+    items.push(SutotonItem::from("ぱ", "n49,"));
     sort_items(&mut items);
     items
 }

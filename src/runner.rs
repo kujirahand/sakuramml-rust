@@ -27,6 +27,14 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             println!("{:3}:exec:{:?}", pos, t);
         }
         match t.ttype {
+            TokenType::Unknown => {
+                // unknown
+            },
+            TokenType::Error => {
+                if song.debug {
+                    println!("[ERROR]");
+                }
+            },
             // Loop controll
             TokenType::LoopBegin => {
                 let mut it = LoopItem::new();
@@ -79,6 +87,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Note => exec_note(song, t),
             TokenType::NoteN => exec_note_n(song, t),
+            TokenType::Rest => exec_rest(song, t),
             TokenType::Length => {
                 let mut trk = &mut song.tracks[song.cur_track];
                 trk.length = calc_length(&t.data[0].to_s(), song.timebase, song.timebase);
@@ -153,9 +162,13 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.add_event(e);
             },
             TokenType::Time => exec_time(song, t),
-            TokenType::HarmonyFlag => exec_harmony(song, t),
-            _ => {
-                println!("[TODO] {:?}", t);
+            TokenType::HarmonyBegin => exec_harmony(song, t, true),
+            TokenType::HarmonyEnd => exec_harmony(song, t, false),
+            TokenType::Tokens => {
+                let _ = match &t.children {
+                    Some(tokens) => exec(song, tokens),
+                    None => false,
+                };
             }
         }
         pos += 1;
@@ -163,29 +176,33 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
     true
 }
 
-fn exec_harmony(song: &mut Song, t: &Token) {
-    // off
+fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
+    // begin
+    if flag_begin {
+        song.flags.harmony_flag = true;
+        song.flags.harmony_time = song.tracks[song.cur_track].timepos;
+        return;
+    }
+    // end
     if song.flags.harmony_flag {
         song.flags.harmony_flag = false;
         // get harmony length
         let mut trk = &mut song.tracks[song.cur_track];
         let note_len_s = t.data[0].to_s();
-        let mut note_qlen = t.data[1].to_i();
-        if note_qlen == 0 { note_qlen = trk.qlen; }
+        let note_qlen = t.data[1].to_i();
         let note_len = calc_length(&note_len_s, song.timebase, trk.length);
         // change event length
         while song.flags.harmony_events.len() > 0 {
             let mut e = song.flags.harmony_events.pop().unwrap();
             e.time = song.flags.harmony_time;
-            e.v2 = note_len * note_qlen / 100;
+            if note_qlen != 0 {
+                e.v2 = note_len * note_qlen / 100;
+            }
             trk.events.push(e);
         }
         trk.timepos = song.flags.harmony_time + note_len;
         return;
     }
-    // on
-    song.flags.harmony_flag = true;
-    song.flags.harmony_time = song.tracks[song.cur_track].timepos;
 }
 
 fn exec_time(song: &mut Song, t: &Token) {
@@ -278,6 +295,13 @@ fn exec_note_n(song: &mut Song, t: &Token) {
     let event = Event::note(trk.timepos, trk.channel, data_note_no, notelen_real, data_note_vel);
     trk.events.push(event);
     trk.timepos += notelen;
+}
+
+fn exec_rest(song: &mut Song, t: &Token) {
+    let trk = &mut song.tracks[song.cur_track];
+    let data_note_len = t.data[0].to_s();
+    let notelen = calc_length(&data_note_len, song.timebase, trk.length);
+    trk.timepos += notelen * t.value;
 }
 
 fn exec_track(song: &mut Song, t: &Token) {

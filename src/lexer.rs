@@ -7,6 +7,7 @@ use super::token::{Token, TokenType, zen2han};
 pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
     let mut result: Vec<Token> = vec![];
     let mut cur = TokenCursor::from(src);
+    let mut flag_harmony = false;
     while !cur.is_eos() {
         let ch = zen2han(cur.get_char());
         match ch {
@@ -17,6 +18,7 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
             // lower command
             'a'..='g' => result.push(read_note(&mut cur, ch)),
             'n' => result.push(read_note_n(&mut cur)),
+            'r' | '_' => result.push(read_rest(&mut cur)),
             'l' => result.push(read_length(&mut cur)),
             'o' => result.push(read_octave(&mut cur)),
             'p' => result.push(read_pitch_bend(&mut cur)),
@@ -24,7 +26,7 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
             'v' => result.push(read_velocity(&mut cur)),
             'y' => result.push(read_cc(&mut cur)),
             // uppwer command
-            'A'..='Z' => result.push(read_upper_command(&mut cur)), 
+            'A'..='Z' => result.push(read_upper_command(&mut cur, song)), 
             // flag
             '@' => result.push(read_voice(&mut cur)),
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)),
@@ -39,7 +41,8 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
             '[' => result.push(read_loop(&mut cur)),
             ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)),
             ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)),
-            '\'' => result.push(read_harmony_flag(&mut cur)),
+            '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)),
+            '$' => read_def_rhythm_macro(&mut cur, song),
             // string
             '{' => {
                 cur.prev();
@@ -54,28 +57,22 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
 }
 
 /// read Upper case commands
-fn read_upper_command(cur: &mut TokenCursor) -> Token {
+fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.prev(); // back 1char
     let cmd = cur.get_word();
 
     // Track & Channel
     if cmd == "TR" || cmd == "TRACK" || cmd == "Track" {
         let v = read_arg(cur);
-        return Token {
-            ttype: TokenType::Track,
-            value: 0,
-            data: vec![v],
-        }
+        return Token::new(TokenType::Track, 0, vec![v]);
     }
     if cmd == "CH" || cmd == "Channel" {
         let v = read_arg(cur);
-        return Token {
-            ttype: TokenType::Channel,
-            value: 0,
-            data: vec![v],
-        }
+        return Token::new(TokenType::Channel, 0, vec![v]);
     }
     if cmd == "TIME" || cmd == "Time" { return read_command_time(cur); }
+    if cmd == "RHYTHM" || cmd == "Rhythm" || cmd == "R" { return read_command_rhythm(cur, song) }
+    if cmd == "RYTHM" || cmd == "Rythm" { return read_command_rhythm(cur, song) } // v1の綴りミス 😆
     
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1); }
@@ -90,11 +87,7 @@ fn read_upper_command(cur: &mut TokenCursor) -> Token {
     // meta events
     if cmd == "TEMPO" || cmd == "Tempo" || cmd == "T" {
         let v = read_arg(cur);
-        return Token {
-            ttype: TokenType::Tempo,
-            value: 0,
-            data: vec![v],
-        }
+        return Token::new(TokenType::Tempo, 0, vec![v]);
     }
     if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" {
         let frac = read_arg(cur);
@@ -103,41 +96,22 @@ fn read_upper_command(cur: &mut TokenCursor) -> Token {
             cur.next();
             read_arg(cur)
         } else { frac.clone() };
-        return Token {
-            ttype: TokenType::TimeSignature,
-            value: 0,
-            data: vec![frac, deno],
-        }
+        return Token::new(TokenType::TimeSignature, 0, vec![frac, deno]);
     }
     if cmd == "MetaText" || cmd == "TEXT" || cmd == "Text" {
         let v = read_arg(cur);
-        return Token {
-            ttype: TokenType::MetaText,
-            value: 1,
-            data: vec![v],
-        }
+        return Token::new(TokenType::MetaText, 1, vec![v]);
     }
     if cmd == "COPYRIGHT" || cmd == "Copyright" {
         let v = read_arg(cur);
-        return Token {
-            ttype: TokenType::MetaText,
-            value: 2,
-            data: vec![v],
-        }
+        return Token::new(TokenType::MetaText, 2, vec![v]);
     }
     if cmd == "LYRIC" || cmd == "Lyric" {
         let v = read_arg(cur);
-        return Token {
-            ttype: TokenType::MetaText,
-            value: 5,
-            data: vec![v],
-        }
+        return Token::new(TokenType::MetaText, 5, vec![v]);
     }
-    Token {
-        ttype: TokenType::Unknown,
-        value: 0,
-        data: vec![],
-    }
+    song.logs.push(format!("[ERROR] Unknown command: {}", cmd));
+    return Token::new_unknown(&cmd);
 }
 
 fn read_arg(cur: &mut TokenCursor) -> SValue {
@@ -169,19 +143,63 @@ fn read_arg(cur: &mut TokenCursor) -> SValue {
     }
 }
 
-fn read_harmony_flag(cur: &mut TokenCursor) -> Token {
+fn read_harmony_flag(cur: &mut TokenCursor, flag_harmony: &mut bool) -> Token {
+    // begin
+    if !*flag_harmony {
+        *flag_harmony = true;
+        return Token::new(TokenType::HarmonyBegin, 0, vec![])
+    }
+    // end
+    *flag_harmony = false;
     let mut len_s = SValue::None;
     let mut qlen = SValue::None;
     if cur.is_numeric() || cur.eq_char('^') {
         len_s = SValue::from_s(cur.get_note_length());
-        cur.skip_space();
-        if cur.eq_char(',') { cur.next(); }
+    }
+    cur.skip_space();
+    if cur.eq_char(',') {
+        cur.next();
         qlen = read_arg(cur);
     }
-    Token::new(TokenType::HarmonyFlag, 0, vec![
+    Token::new(TokenType::HarmonyEnd, 0, vec![
         len_s,
         qlen,
     ])
+}
+
+fn read_command_rhythm(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let mut result = String::new();
+    cur.skip_space();
+    let block = cur.get_token_nest('{', '}');
+    // extract macro
+    for ch in block.chars() {
+        match ch {
+            '\u{0040}'..='\u{007f}' => {
+                let m = &song.rhthm_macro[ch as usize - 0x40];
+                if m == "" {
+                    result.push(ch);
+                } else {
+                    result.push_str(m);
+                }
+            },
+            _ => {
+                result.push(ch);
+            }
+        }
+    }
+    let mut t = Token::new_value(TokenType::Tokens, 0);
+    println!("rythm={:?}", result);
+    t.children = Some(lex(song, &result));
+    t
+}
+
+fn read_def_rhythm_macro(cur: &mut TokenCursor, song: &mut Song) {
+    let ch = cur.get_char(); // macro char
+    cur.skip_space();
+    if cur.eq_char('=') { cur.next(); }
+    cur.skip_space();
+    let s = cur.get_token_nest('{', '}');
+    song.rhthm_macro[ch as usize - 0x40] = s;
 }
 
 fn read_command_time(cur: &mut TokenCursor) -> Token {
@@ -200,20 +218,12 @@ fn read_command_time(cur: &mut TokenCursor) -> Token {
     cur.skip_space();
     if cur.eq_char(')') { cur.next(); }
 
-    return Token {
-        ttype: TokenType::Time,
-        value: 0, 
-        data: vec![v1, v2, v3]
-    }
+    return Token::new(TokenType::Time, 0, vec![v1, v2, v3]);
 }
 
 fn read_command_cc(cur: &mut TokenCursor, no: isize) -> Token {
     let v = read_arg(cur);
-    return Token {
-        ttype: TokenType::ControllChange,
-        value: 0, 
-        data: vec![SValue::from_i(no), v]
-    }
+    return Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(no), v]);
 }
 
 fn read_voice(cur: &mut TokenCursor) -> Token {
@@ -263,6 +273,18 @@ fn read_loop(cur: &mut TokenCursor) -> Token {
     Token::new(TokenType::LoopBegin, value.to_i(), vec![])
 }
 
+fn read_rest(cur: &mut TokenCursor) -> Token {
+    // length
+    let mut dir = 1;
+    if cur.eq_char('-') {
+        cur.next();
+        dir = -1;
+    }
+    let note_len = cur.get_note_length();
+    cur.skip_space();
+    Token::new(TokenType::Rest, dir, vec![SValue::from_s(note_len)])
+}
+
 fn read_note_n(cur: &mut TokenCursor) -> Token {
     // note no
     let note_no = read_arg(cur);
@@ -283,16 +305,16 @@ fn read_note_n(cur: &mut TokenCursor) -> Token {
         cur.skip_space();
         cur.get_int(0)
     };
-    Token {
-        ttype: TokenType::NoteN,
-        value: 0,
-        data: vec![
+    Token::new(
+        TokenType::NoteN,
+        0,
+        vec![
             note_no,
             SValue::from_s(note_len),
             SValue::from_i(qlen),
             SValue::from_i(vel),
-        ],
-    }
+        ]
+    )
 }
 
 fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
@@ -317,9 +339,9 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
         cur.skip_space();
         cur.get_int(0)
     };
-    Token {
-        ttype: TokenType::Note,
-        value: match ch {
+    Token::new(
+        TokenType::Note,
+        match ch {
             'c' => 0,
             'd' => 2,
             'e' => 4,
@@ -329,12 +351,12 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
             'b' => 11,
             _ => 0,
         },
-        data: vec![
+        vec![
             SValue::from_i(note_flag),
             SValue::from_s(note_len),
             SValue::from_i(qlen),
             SValue::from_i(vel),
-        ],
-    }
+        ]
+    )
 }
 
