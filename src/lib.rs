@@ -1,13 +1,17 @@
+pub mod sakura_version;
 pub mod cursor;
 pub mod token;
-pub mod sutoton;
+pub mod lexer;
 pub mod song;
 pub mod svalue;
 pub mod midi;
-pub mod sakura_version;
+pub mod sutoton;
+pub mod runner;
 
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
+
+
 
 // JavaScriptの関数をRustで使う
 #[wasm_bindgen]
@@ -21,9 +25,10 @@ extern {
 pub fn compile(source: &str) -> Vec<u8> {
     let mut song = song::Song::new();
     let source_mml = sutoton::convert(source);
-    let tokens = token::lex(&mut song, &source_mml);
-    song::exec(&mut song, &tokens);
+    let tokens = lexer::lex(&mut song, &source_mml);
+    runner::exec(&mut song, &tokens);
     let bin = midi::generate(&song);
-    sakura_log("hoge");
+    let log_text = song.logs.join("\n");
+    sakura_log(&log_text);
     return bin;
 }

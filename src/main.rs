@@ -1,9 +1,10 @@
 use std::fs::{File, read_to_string};
 use std::io::{Write};
 
-use sakuramml::token::lex;
-use sakuramml::song::{exec, Song};
+use sakuramml::lexer::lex;
+use sakuramml::song::Song;
 use sakuramml::midi::generate;
+use sakuramml::runner::exec;
 
 fn usage() {
     println!("=== sakuramml ver.{} ===\n{}{}{}{}{}{}{}",
@@ -37,7 +38,7 @@ fn main() {
             version();
             return;
         }
-        else if arg == "--debug" || arg == "-d" {
+        else if arg == "--debug" || arg == "-d" || arg == "debug" {
             song.debug = true;
         }
         else if arg == "--eval" || arg == "-e" || arg == "eval" {
