@@ -95,6 +95,7 @@ pub struct Flags {
     pub harmony_flag: bool,
     pub harmony_time: isize,
     pub harmony_events: Vec<Event>,
+    pub octave_once: isize,
 }
 impl Flags {
     pub fn new() -> Self {
@@ -102,6 +103,7 @@ impl Flags {
             harmony_flag: false,
             harmony_time: 0,
             harmony_events: vec![],
+            octave_once: 0,
         }
     }
 }

@@ -14,6 +14,7 @@ pub enum TokenType {
     Length,
     Octave,
     OctaveRel,
+    OctaveOnce,
     QLen,
     Velocity,
     ControllChange,

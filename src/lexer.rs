@@ -46,7 +46,9 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
             '{' => { // Div
                 cur.prev();
                 result.push(read_command_div(&mut cur, song));
-            }
+            },
+            '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)),
+            '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)),
             _ => {
                 song.logs.push(format!("[ERROR] {}", ch));
             }

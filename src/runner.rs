@@ -100,6 +100,12 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let mut trk = &mut song.tracks[song.cur_track];
                 trk.octave = value_range(0, trk.octave + t.value, 10);
             },
+            TokenType::OctaveOnce => {
+                let mut trk = &mut song.tracks[song.cur_track];
+                trk.octave = value_range(0, trk.octave + t.value, 10);
+                song.flags.octave_once += t.value;
+                println!("@@@o={}", trk.octave);
+            },
             TokenType::QLen => {
                 let mut trk = &mut song.tracks[song.cur_track];
                 trk.qlen = value_range(0, t.value, 100);
@@ -307,6 +313,12 @@ fn exec_note(song: &mut Song, t: &Token) {
         song.flags.harmony_events.push(event);
     } else {
         trk.events.push(event);
+    }
+
+    // octave_once?
+    if song.flags.octave_once != 0 {
+        trk.octave = trk.octave - song.flags.octave_once;
+        song.flags.octave_once = 0;
     }
 }
 

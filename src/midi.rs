@@ -241,17 +241,38 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
     }
 }
 
+pub fn note_no_dec(no: u8) -> String {
+    format!("o{}{}",
+        no / 12,
+        match no % 12 {
+            0 => "c",
+            1 => "c#",
+            2 => "d",
+            3 => "d#",
+            4 => "e",
+            5 => "f",
+            6 => "f#",
+            7 => "g",
+            8 => "g#",
+            9 => "a",
+            10 => "a#",
+            11 => "b",
+            _ => ""
+        }
+    )
+}
+
 pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo) -> String {
     let p = *pos;
     let event_type = bin[p] & 0xF0;
     match event_type {
         0x80 => { // note on
-            let msg = format!("NoteOff\t{:2x} {:2x} {:2x}", bin[p], bin[p+1], bin[p+2]);
+            let msg = format!("NoteOff\t{:2x} {:2x} {:2x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
             *pos += 3;
             msg
         },
         0x90 => { // note off
-            let msg = format!("NoteOn\t{:2x} {:2x} {:2x}", bin[p], bin[p+1], bin[p+2]);
+            let msg = format!("NoteOn\t{:2x} {:2x} {:2x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
             *pos += 3;
             msg
         },
