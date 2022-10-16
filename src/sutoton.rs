@@ -33,6 +33,7 @@ fn init_items() -> Vec<SutotonItem> {
     items.push(SutotonItem::from("音階", "o"));
     items.push(SutotonItem::from("音色", "@"));
     items.push(SutotonItem::from("音量", "v"));
+    items.push(SutotonItem::from("ゲート", "q"));
     items.push(SutotonItem::from("連符", "Div"));
     items.push(SutotonItem::from("ド", "c"));
     items.push(SutotonItem::from("レ", "d"));
@@ -47,6 +48,8 @@ fn init_items() -> Vec<SutotonItem> {
     items.push(SutotonItem::from("ー", "^"));
     items.push(SutotonItem::from("「", "'"));
     items.push(SutotonItem::from("」", "'"));
+    items.push(SutotonItem::from("【", "'"));
+    items.push(SutotonItem::from("】", "'"));
     items.push(SutotonItem::from("↑", ">"));
     items.push(SutotonItem::from("↓", "<"));
     items.push(SutotonItem::from("ん", "r"));

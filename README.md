@@ -10,8 +10,6 @@ Sakuramml for Rust
 
 - 和音 c0e0g ←　今回はサポートしない
 - マクロ
-- Div
-- Sub
 - Play
 - Print
 - FOR IF WHILE
@@ -39,6 +37,8 @@ l4 `ceg` `dfa`8 `egb`8 `ceg`
 
 ## タイムの移動
 
+TIME(小節:拍:ステップ)を使うと任意の小節に移動できます。
+
 ```
 // 先頭に移動
 TIME(1:1:0) cdef
@@ -46,6 +46,14 @@ TIME(1:1:0) efga
 
 // 2小節目に移動
 TIME(2:1:0) cdef
+```
+
+SUB{...}を使うと、タイムポインタをSUBの直前に戻すことが可能です。気軽に和音を演奏できます。
+
+```
+SUB{ cdef  c }
+SUB{ efga  e }
+     rrrr  g
 ```
 
 ## Rhythm macro

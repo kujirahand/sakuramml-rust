@@ -30,6 +30,7 @@ pub enum TokenType {
     HarmonyEnd,
     Tokens, // should run children toknes
     Div,
+    Sub,
 }
 
 #[allow(dead_code)]

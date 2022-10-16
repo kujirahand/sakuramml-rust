@@ -74,7 +74,8 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "TIME" || cmd == "Time" { return read_command_time(cur); }
     if cmd == "RHYTHM" || cmd == "Rhythm" || cmd == "R" { return read_command_rhythm(cur, song) }
     if cmd == "RYTHM" || cmd == "Rythm" { return read_command_rhythm(cur, song) } // v1の綴りミス 😆
-    if cmd == "DIV" || cmd == "Div" || cmd == "D" { return read_command_div(cur, song) }
+    if cmd == "DIV" || cmd == "Div" { return read_command_div(cur, song) }
+    if cmd == "SUB" || cmd == "Sub" { return read_command_sub(cur, song) }
     
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1); }
@@ -175,6 +176,16 @@ fn scan_chars(s: &str, c: char) -> isize {
         if ch == c { cnt += 1; }
     }
     cnt
+}
+
+
+fn read_command_sub(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    cur.skip_space();
+    let block = cur.get_token_nest('{', '}');
+    let tokens = lex(song, &block);
+    let mut tok = Token::new(TokenType::Sub, 0, vec![]);
+    tok.children = Some(tokens);
+    tok
 }
 
 fn read_command_div(cur: &mut TokenCursor, song: &mut Song) -> Token {

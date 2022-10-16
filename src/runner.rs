@@ -104,7 +104,6 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let mut trk = &mut song.tracks[song.cur_track];
                 trk.octave = value_range(0, trk.octave + t.value, 10);
                 song.flags.octave_once += t.value;
-                println!("@@@o={}", trk.octave);
             },
             TokenType::QLen => {
                 let mut trk = &mut song.tracks[song.cur_track];
@@ -177,10 +176,29 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 };
             },
             TokenType::Div => exec_div(song, t),
+            TokenType::Sub => exec_sub(song, t),
         }
         pos += 1;
     }
     true
+}
+
+fn exec_sub(song: &mut Song, t: &Token) {
+    let timepos_tmp: isize;
+    {
+        let trk = &song.tracks[song.cur_track];
+        timepos_tmp = trk.timepos;
+    }
+    {
+        let _ = match &t.children {
+            Some(tokens) => exec(song, tokens),
+            None => false,
+        };
+    }
+    {
+        let trk = &mut song.tracks[song.cur_track];
+        trk.timepos = timepos_tmp;
+    }
 }
 
 fn exec_div(song: &mut Song, t: &Token) {
