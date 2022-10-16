@@ -65,10 +65,28 @@ impl Track {
             events: vec![],
         }
     }
+    pub fn events_sort(&mut self) {
+        self.events.sort_by(|a, b| a.time.cmp(&b.time));
+    }
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
+pub struct Flags {
+    pub harmony_flag: bool,
+    pub harmony_time: isize,
+    pub harmony_events: Vec<Event>,
+}
+impl Flags {
+    pub fn new() -> Self {
+        Flags {
+            harmony_flag: false,
+            harmony_time: 0,
+            harmony_events: vec![],
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Song {
     pub debug: bool,
     pub tracks: Vec<Track>,
@@ -76,6 +94,7 @@ pub struct Song {
     pub cur_track: usize,
     pub timesig_frac: isize, // 分子
     pub timesig_deno: isize, // 分母
+    pub flags: Flags,
     pub logs: Vec<String>, // ログ
 }
 
@@ -88,13 +107,19 @@ impl Song {
             timebase,
             tracks: vec![trk],
             cur_track: 0,
-            logs: vec![],
             timesig_frac: 4,
             timesig_deno: 4,
+            flags: Flags::new(),
+            logs: vec![],
         }
     }
     pub fn add_event(&mut self, e: Event) {
         self.tracks[self.cur_track].events.push(e);
+    }
+    pub fn sort_all_events(&mut self) {
+        for trk in self.tracks.iter_mut() {
+            trk.events_sort();
+        }
     }
 }
 

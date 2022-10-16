@@ -27,7 +27,7 @@ pub fn compile(source: &str) -> Vec<u8> {
     let source_mml = sutoton::convert(source);
     let tokens = lexer::lex(&mut song, &source_mml);
     runner::exec(&mut song, &tokens);
-    let bin = midi::generate(&song);
+    let bin = midi::generate(&mut song);
     let log_text = song.logs.join("\n");
     sakura_log(&log_text);
     return bin;

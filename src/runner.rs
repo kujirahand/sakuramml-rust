@@ -140,6 +140,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.add_event(e);
             },
             TokenType::Time => exec_time(song, t),
+            TokenType::HarmonyFlag => exec_harmony(song, t),
             _ => {
                 println!("[TODO] {:?}", t);
             }
@@ -147,6 +148,31 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
         pos += 1;
     }
     true
+}
+
+fn exec_harmony(song: &mut Song, t: &Token) {
+    // off
+    if song.flags.harmony_flag {
+        song.flags.harmony_flag = false;
+        // get harmony length
+        let mut trk = &mut song.tracks[song.cur_track];
+        let note_len_s = t.data[0].to_s();
+        let mut note_qlen = t.data[1].to_i();
+        if note_qlen == 0 { note_qlen = trk.qlen; }
+        let note_len = calc_length(&note_len_s, song.timebase, trk.length);
+        // change event length
+        while song.flags.harmony_events.len() > 0 {
+            let mut e = song.flags.harmony_events.pop().unwrap();
+            e.time = song.flags.harmony_time;
+            e.v2 = note_len * note_qlen / 100;
+            trk.events.push(e);
+        }
+        trk.timepos = song.flags.harmony_time + note_len;
+        return;
+    }
+    // on
+    song.flags.harmony_flag = true;
+    song.flags.harmony_time = song.tracks[song.cur_track].timepos;
 }
 
 fn exec_time(song: &mut Song, t: &Token) {
@@ -215,8 +241,15 @@ fn exec_note(song: &mut Song, t: &Token) {
     if data_note_vel <= 0 { data_note_vel = trk.velocity; }
     let event = Event::note(trk.timepos, trk.channel, noteno, notelen_real, data_note_vel);
     // println!("- {}: note(no={},len={},vel={})", trk.timepos, noteno, notelen_real, data_note_vel);
-    trk.events.push(event);
     trk.timepos += notelen;
+    
+    // harmony?
+    if notelen == 0 || song.flags.harmony_flag {
+        trk.timepos = song.flags.harmony_time;
+        song.flags.harmony_events.push(event);
+    } else {
+        trk.events.push(event);
+    }
 }
 
 fn exec_note_n(song: &mut Song, t: &Token) {

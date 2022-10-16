@@ -39,6 +39,7 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
             '[' => result.push(read_loop(&mut cur)),
             ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)),
             ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)),
+            '\'' => result.push(read_harmony_flag(&mut cur)),
             // string
             '{' => {
                 cur.prev();
@@ -166,6 +167,21 @@ fn read_arg(cur: &mut TokenCursor) -> SValue {
             SValue::None
         }
     }
+}
+
+fn read_harmony_flag(cur: &mut TokenCursor) -> Token {
+    let mut len_s = SValue::None;
+    let mut qlen = SValue::None;
+    if cur.is_numeric() || cur.eq_char('^') {
+        len_s = SValue::from_s(cur.get_note_length());
+        cur.skip_space();
+        if cur.eq_char(',') { cur.next(); }
+        qlen = read_arg(cur);
+    }
+    Token::new(TokenType::HarmonyFlag, 0, vec![
+        len_s,
+        qlen,
+    ])
 }
 
 fn read_command_time(cur: &mut TokenCursor) -> Token {

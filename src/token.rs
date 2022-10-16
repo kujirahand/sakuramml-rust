@@ -25,6 +25,7 @@ pub enum TokenType {
     LoopEnd,
     LoopBreak,
     Time,
+    HarmonyFlag,
 }
 
 #[allow(dead_code)]

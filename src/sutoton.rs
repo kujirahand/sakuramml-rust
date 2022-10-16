@@ -34,6 +34,10 @@ fn init_items() -> Vec<SutotonItem> {
     items.push(SutotonItem::from("ソ", "g"));
     items.push(SutotonItem::from("ラ", "a"));
     items.push(SutotonItem::from("シ", "b"));
+    items.push(SutotonItem::from("「", "'"));
+    items.push(SutotonItem::from("」", "'"));
+    items.push(SutotonItem::from("↑", ">"));
+    items.push(SutotonItem::from("↓", "<"));
     sort_items(&mut items);
     items
 }

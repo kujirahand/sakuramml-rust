@@ -97,9 +97,10 @@ fn generate_track(track: &Track) -> Vec<u8> {
     res
 }
 
-pub fn generate(song: &Song) -> Vec<u8> {
+pub fn generate(song: &mut Song) -> Vec<u8> {
     let midi_format = 1;
     let mut res: Vec<u8> = vec![];
+    song.sort_all_events();
     // header
     array_push_str(&mut res, "MThd");
     array_push_u32(&mut res, 6);
@@ -108,8 +109,11 @@ pub fn generate(song: &Song) -> Vec<u8> {
     array_push_u16(&mut res, song.timebase);
     // tracks
     for track_no in 0..song.tracks.len() {
+        if song.debug {
+            println!("TR={}", track_no);
+        }
         let trk = &song.tracks[track_no];
-        let block = generate_track(trk);
+        let block = generate_track(&trk);
         array_push_str(&mut res, "MTrk");
         array_push_u32(&mut res, block.len() as isize);
         for b in block { res.push(b); }

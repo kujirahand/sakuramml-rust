@@ -82,11 +82,11 @@ fn main() {
     // println!("lex= {:?}", tokens); 
     exec(&mut song, &tokens);
     // println!("song= {:?}", song);
-    save_to_file(&song, &outfile);
+    save_to_file(&mut song, &outfile);
     println!("ok.");
 }
 
-fn save_to_file(song: &Song, path: &str) {
+fn save_to_file(song: &mut Song, path: &str) {
     let mut file = File::create(path).unwrap();
     let buf = generate(song);
     file.write(buf.as_ref()).unwrap();
