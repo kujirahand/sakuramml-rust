@@ -131,9 +131,22 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let trk = &song.tracks[song.cur_track];
                 song.timesig_frac = t.data[0].to_i();
                 song.timesig_deno = t.data[1].to_i();
+                song.timesig_deno = match song.timesig_deno {
+                    4 => 4,
+                    8 => 8,
+                    _ => {
+                        song.logs.push(String::from("[TimeSignature] value must be 4,4 or 6,8"));
+                        4
+                    }
+                };
+                let deno_v = match song.timesig_deno {
+                    4 => 2,
+                    8 => 3,
+                    _ => 2,
+                };
                 let e = Event::meta(trk.timepos, 0xFF, 0x58, 0x04, vec![
                     song.timesig_frac as u8,
-                    (song.timesig_deno as f32).sqrt() as u8,
+                    deno_v as u8,
                     0x18,
                     0x08
                 ]);

@@ -3,7 +3,7 @@ use std::io::{Write};
 
 use sakuramml::lexer::lex;
 use sakuramml::song::Song;
-use sakuramml::midi::generate;
+use sakuramml::midi::{generate, dump_midi};
 use sakuramml::runner::exec;
 
 fn usage() {
@@ -89,6 +89,9 @@ fn main() {
 fn save_to_file(song: &mut Song, path: &str) {
     let mut file = File::create(path).unwrap();
     let buf = generate(song);
+    if song.debug {
+        dump_midi(&buf);
+    }
     file.write(buf.as_ref()).unwrap();
     file.flush().unwrap();
 }
