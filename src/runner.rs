@@ -169,11 +169,39 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     Some(tokens) => exec(song, tokens),
                     None => false,
                 };
-            }
+            },
+            TokenType::Div => exec_div(song, t),
         }
         pos += 1;
     }
     true
+}
+
+fn exec_div(song: &mut Song, t: &Token) {
+    let len_s = &t.data[0].to_s();
+    let cnt = t.value;
+    let length_org: isize;
+    let timepos_end: isize;
+    {
+        let mut trk = &mut song.tracks[song.cur_track];
+        let div_len = calc_length(len_s, song.timebase, trk.length);
+        let note_len = div_len / cnt;
+        timepos_end = trk.timepos + div_len;
+        length_org = trk.length;
+        trk.length = note_len;
+    }
+    let _ = match &t.children {
+        None => false,
+        Some(tokens) => {
+            exec(song, tokens)
+        },
+    };
+    // clean
+    {
+        let mut trk = &mut song.tracks[song.cur_track];
+        trk.timepos = timepos_end;
+        trk.length = length_org;
+    }
 }
 
 fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {

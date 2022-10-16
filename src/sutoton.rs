@@ -22,10 +22,18 @@ fn init_items() -> Vec<SutotonItem> {
     let mut items: Vec<SutotonItem> = vec![];
     items.push(SutotonItem::from("テンポ", "TEMPO="));
     items.push(SutotonItem::from("トラック", "TR="));
+    items.push(SutotonItem::from("全音符", "l1"));
+    items.push(SutotonItem::from("二分音符", "l2"));
+    items.push(SutotonItem::from("四分音符", "l4"));
+    items.push(SutotonItem::from("八分音符", "l8"));
+    items.push(SutotonItem::from("十六音符", "l16"));
+    items.push(SutotonItem::from("付点四分音符", "l4."));
     items.push(SutotonItem::from("音長", "l"));
+    items.push(SutotonItem::from("音符", "l"));
     items.push(SutotonItem::from("音階", "o"));
     items.push(SutotonItem::from("音色", "@"));
     items.push(SutotonItem::from("音量", "v"));
+    items.push(SutotonItem::from("連符", "Div"));
     items.push(SutotonItem::from("ド", "c"));
     items.push(SutotonItem::from("レ", "d"));
     items.push(SutotonItem::from("ミ", "e"));
@@ -36,6 +44,7 @@ fn init_items() -> Vec<SutotonItem> {
     items.push(SutotonItem::from("シ", "b"));
     items.push(SutotonItem::from("ン", "r"));
     items.push(SutotonItem::from("ッ", "r"));
+    items.push(SutotonItem::from("ー", "^"));
     items.push(SutotonItem::from("「", "'"));
     items.push(SutotonItem::from("」", "'"));
     items.push(SutotonItem::from("↑", ">"));

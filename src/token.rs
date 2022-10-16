@@ -27,7 +27,8 @@ pub enum TokenType {
     Time,
     HarmonyBegin,
     HarmonyEnd,
-    Tokens,
+    Tokens, // should run children toknes
+    Div,
 }
 
 #[allow(dead_code)]

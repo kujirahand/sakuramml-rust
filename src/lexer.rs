@@ -43,10 +43,9 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
             ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)),
             '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)),
             '$' => read_def_rhythm_macro(&mut cur, song),
-            // string
-            '{' => {
+            '{' => { // Div
                 cur.prev();
-                cur.get_token_nest('{', '}');
+                result.push(read_command_div(&mut cur, song));
             }
             _ => {
                 song.logs.push(format!("[ERROR] {}", ch));
@@ -73,6 +72,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "TIME" || cmd == "Time" { return read_command_time(cur); }
     if cmd == "RHYTHM" || cmd == "Rhythm" || cmd == "R" { return read_command_rhythm(cur, song) }
     if cmd == "RYTHM" || cmd == "Rythm" { return read_command_rhythm(cur, song) } // v1の綴りミス 😆
+    if cmd == "DIV" || cmd == "Div" || cmd == "D" { return read_command_div(cur, song) }
     
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1); }
@@ -165,6 +165,47 @@ fn read_harmony_flag(cur: &mut TokenCursor, flag_harmony: &mut bool) -> Token {
         len_s,
         qlen,
     ])
+}
+
+fn scan_chars(s: &str, c: char) -> isize {
+    let mut cnt = 0;
+    for ch in s.chars() {
+        if ch == c { cnt += 1; }
+    }
+    cnt
+}
+
+fn read_command_div(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    cur.skip_space();
+    let block = cur.get_token_nest('{', '}');
+    let len_s = cur.get_note_length();
+    let tokens = lex(song, &block);
+    // count note 
+    let mut cnt = 0;
+    for t in tokens.iter() {
+        match t.ttype {
+            TokenType::Note => {
+                cnt += 1;
+                cnt += scan_chars(&t.data[1].to_s(), '^');
+            },
+            TokenType::NoteN => {
+                cnt += 1;
+                cnt += scan_chars(&t.data[1].to_s(), '^');
+            },
+            TokenType::Div => {
+                cnt += 1;
+                cnt += scan_chars(&t.data[0].to_s(), '^');
+            },
+            TokenType::Rest => {
+                cnt += 1;
+                cnt += scan_chars(&t.data[0].to_s(), '^');
+            },
+            _ => {},
+        }
+    }
+    let mut tok = Token::new(TokenType::Div, cnt, vec![SValue::from_s(len_s)]);
+    tok.children = Some(tokens);
+    tok
 }
 
 fn read_command_rhythm(cur: &mut TokenCursor, song: &mut Song) -> Token {
