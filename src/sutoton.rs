@@ -20,6 +20,7 @@ impl SutotonItem {
 
 fn init_items() -> Vec<SutotonItem> {
     let mut items: Vec<SutotonItem> = vec![];
+    // <SUTOTON>
     items.push(SutotonItem::from("テンポ", "TEMPO="));
     items.push(SutotonItem::from("トラック", "TR="));
     items.push(SutotonItem::from("全音符", "l1"));
@@ -59,6 +60,7 @@ fn init_items() -> Vec<SutotonItem> {
     items.push(SutotonItem::from("く", "n44,"));
     items.push(SutotonItem::from("ち", "n46,"));
     items.push(SutotonItem::from("ぱ", "n49,"));
+    // </SUTOTON>
     sort_items(&mut items);
     items
 }

@@ -1,12 +1,34 @@
 RES=""
-L=「lexer.rs」を開く。
 # ------
+L=「lexer.rs」を開く。
 Lから「<CHAR_COMMANDS>」を切り取る。
 CMD_LIST=対象から「</CHAR_COMMANDS>」を切り取る。
 CMD_LIST=CMD_LIST&改行。
 Lから「<UPPER_COMMANDS>」を切り取る。
 CMD_LIST_U=対象から「</UPPER_COMMANDS>」を切り取る。
+
+L=「sutoton.rs」を開く。
+Lから「<SUTOTON>」を切り取る。
+S_LIST=対象から「</SUTOTON>」を切り取る。
+S_LISTを改行で区切って反復
+　　S=対象。
+　　Ｓで「SutotonItem::from」が何文字目。
+　　もし、それ＝0ならば、続ける。
+　　それはＳ。
+　　「items.push(SutotonItem::from(」を「」に置換
+　　「));」を「」に置換。
+　　トリム
+　　Ｓ＝それ
+　　SS=Ｓを「,」で区切る。
+　　Ｓ名前＝トリム（SS[0]）
+　　Ｓ定義＝トリム(ＳＳ[1])
+　　Ｓ＝S名前＆「=> // @ 定義: {S定義}」
+　　Ｓを表示。
+　　CMD_LIST=CMD_LIST&S&改行。
+ここまで。
+
 # ------
+# UPPER COMMANDS
 CMD_LIST_Uを改行で区切って反復
 　　対象で「// @」が何文字目
 　　もし、それ=0ならば続ける。
@@ -20,6 +42,8 @@ CMD_LIST_Uを改行で区切って反復
 　　LINEを表示。
 ここまで。
 
+# --------
+# LOWER COMMANDS
 CMD_LISTを改行で区切って反復
 　　トリム。LINE=それ
 　　LINEで「// @」が何文字目
