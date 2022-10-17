@@ -11,26 +11,30 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
     while !cur.is_eos() {
         let ch = zen2han(cur.get_char());
         match ch {
+            // <CHAR_COMMANDS>
             // space
-            ' ' | '\t' | '\r' | '|' => { },
+            ' ' | '\t' | '\r' | '|' => { }, // @ 空白文字
             // ret
             '\n' => { cur.line += 1; },
             // lower command
-            'a'..='g' => result.push(read_note(&mut cur, ch)),
-            'n' => result.push(read_note_n(&mut cur)),
-            'r' | '_' => result.push(read_rest(&mut cur)),
-            'l' => result.push(read_length(&mut cur)),
-            'o' => result.push(read_octave(&mut cur)),
-            'p' => result.push(read_pitch_bend(&mut cur)),
-            'q' => result.push(read_qlen(&mut cur)),
-            'v' => result.push(read_velocity(&mut cur)),
-            'y' => result.push(read_cc(&mut cur)),
+            'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ ドレミファソラシ c(音長),(ゲート),(音量)
+            'n' => result.push(read_note_n(&mut cur)), // @ 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量)
+            'r' | '_' => result.push(read_rest(&mut cur)), // @ 休符
+            'l' => result.push(read_length(&mut cur)), // @ 音長の指定(例 l4)
+            'o' => result.push(read_octave(&mut cur)), // @ 音階の指定(例 o5) 範囲:0-10
+            'p' => result.push(read_pitch_bend(&mut cur)), // @ ピッチベンドの指定 範囲:0-127 (63が中央)
+            'q' => result.push(read_qlen(&mut cur)), // @ ゲートの指定 (例 q90) 範囲:0-100
+            'v' => result.push(read_velocity(&mut cur)), // @ ベロシティ音量の指定 範囲:0-127
+            'y' => result.push(read_cc(&mut cur)), // @ コントロールチェンジの指定 (例 y1,100) 範囲:0-127
             // uppwer command
             'A'..='Z' => result.push(read_upper_command(&mut cur, song)), 
             // flag
-            '@' => result.push(read_voice(&mut cur)),
-            '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)),
-            '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)),
+            '@' => result.push(read_voice(&mut cur)), // @ 音色の指定 範囲:1-128
+            '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ 音階を1つ上げる
+            '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)), // @ 音階を1つ下げる
+            // comment
+            // "//" // @ 一行コメント
+            // "/*" .. "*/" @ 範囲コメント
             '/' => {
                 if cur.eq_char('/') {
                     cur.get_token_ch('\n');
@@ -38,17 +42,18 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
                     cur.get_token_s("*/");
                 }
             },
-            '[' => result.push(read_loop(&mut cur)),
-            ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)),
-            ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)),
-            '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)),
-            '$' => read_def_rhythm_macro(&mut cur, song),
-            '{' => { // Div
+            '[' => result.push(read_loop(&mut cur)), // @ ループ開始 (例 [4 cdeg])
+            ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)), // @ ループ最終回に脱出 (例　[4 cde:g]e)
+            ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)), // @ ループ終了
+            '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)), // @ 和音 (例 'ceg') 'ceg'(音長),(ゲート)
+            '$' => read_def_rhythm_macro(&mut cur, song), // @ リズムマクロ定義 $文字{定義内容}
+            '{' => { // @ 連符 (例 {ceg}4) {c^d}(音長) 
                 cur.prev();
                 result.push(read_command_div(&mut cur, song));
             },
-            '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)),
-            '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)),
+            '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)), // @ 一度だけ音階を+1する
+            '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)), // @ 一度だけ音階を-1する
+            // </CHAR_COMMANDS>
             _ => {
                 song.logs.push(format!("[ERROR] {}", ch));
             }
@@ -62,37 +67,38 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.prev(); // back 1char
     let cmd = cur.get_word();
 
+    // <UPPER_COMMANDS>
     // Track & Channel
-    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" {
+    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" { // @ トラック変更　TR=番号 範囲:1-
         let v = read_arg(cur);
         return Token::new(TokenType::Track, 0, vec![v]);
     }
-    if cmd == "CH" || cmd == "Channel" {
+    if cmd == "CH" || cmd == "Channel" { // @ チャンネル変更 CH=番号 範囲:1-16
         let v = read_arg(cur);
         return Token::new(TokenType::Channel, 0, vec![v]);
     }
-    if cmd == "TIME" || cmd == "Time" { return read_command_time(cur); }
-    if cmd == "RHYTHM" || cmd == "Rhythm" || cmd == "R" { return read_command_rhythm(cur, song) }
-    if cmd == "RYTHM" || cmd == "Rythm" { return read_command_rhythm(cur, song) } // v1の綴りミス 😆
-    if cmd == "DIV" || cmd == "Div" { return read_command_div(cur, song) }
-    if cmd == "SUB" || cmd == "Sub" { return read_command_sub(cur, song) }
+    if cmd == "TIME" || cmd == "Time" { return read_command_time(cur); } // @ タイム変更 TIME(節:拍:ステップ)
+    if cmd == "RHYTHM" || cmd == "Rhythm" || cmd == "R" { return read_command_rhythm(cur, song) } // @ リズムモード
+    if cmd == "RYTHM" || cmd == "Rythm" { return read_command_rhythm(cur, song) } // @ リズムモード(v1の綴りミス対処[^^;])
+    if cmd == "DIV" || cmd == "Div" { return read_command_div(cur, song) } // @ 連符 (例 DIV{ceg} )
+    if cmd == "SUB" || cmd == "Sub" { return read_command_sub(cur, song) } // @ タイムポインタを戻す (例 SUB{ceg} egb)
     
     // controll change
-    if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1); }
-    if cmd == "PT" || cmd == "PortamentoTime" { return read_command_cc(cur, 5); }
-    if cmd == "V" || cmd == "MainVolume" { return read_command_cc(cur, 7); }
-    if cmd == "P" || cmd == "Panpot	" { return read_command_cc(cur, 10); }
-    if cmd == "EP" || cmd == "Expression" { return read_command_cc(cur, 11); }
-    if cmd == "PS" || cmd == "PortamentoSwitch" { return read_command_cc(cur, 65); }
-    if cmd == "REV" || cmd == "Reverb" { return read_command_cc(cur, 91); }
-    if cmd == "CHO" || cmd == "Chorus" { return read_command_cc(cur, 93); }
+    if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1); } // @ モジュレーション 範囲: 0-127
+    if cmd == "PT" || cmd == "PortamentoTime" { return read_command_cc(cur, 5); } // @ ポルタメント 範囲: 0-127
+    if cmd == "V" || cmd == "MainVolume" { return read_command_cc(cur, 7); } // @ メインボリューム 範囲: 0-127
+    if cmd == "P" || cmd == "Panpot	" { return read_command_cc(cur, 10); } // @ パンポット 範囲: 0-63-127
+    if cmd == "EP" || cmd == "Expression" { return read_command_cc(cur, 11); } // @ エクスプレッション音量 範囲: 0-127
+    if cmd == "PS" || cmd == "PortamentoSwitch" { return read_command_cc(cur, 65); } // @ ポルタメントスイッチ
+    if cmd == "REV" || cmd == "Reverb" { return read_command_cc(cur, 91); } // @ リバーブ 範囲: 0-127
+    if cmd == "CHO" || cmd == "Chorus" { return read_command_cc(cur, 93); } // @ コーラス 範囲: 0-127
 
     // meta events
-    if cmd == "TEMPO" || cmd == "Tempo" || cmd == "T" {
+    if cmd == "TEMPO" || cmd == "Tempo" || cmd == "T" { // @ テンポの指定
         let v = read_arg(cur);
         return Token::new(TokenType::Tempo, 0, vec![v]);
     }
-    if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" {
+    if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" { // @ 拍子の指定
         let frac = read_arg(cur);
         cur.skip_space();
         let deno = if cur.eq_char(',') {
@@ -101,18 +107,19 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         } else { frac.clone() };
         return Token::new(TokenType::TimeSignature, 0, vec![frac, deno]);
     }
-    if cmd == "MetaText" || cmd == "TEXT" || cmd == "Text" {
+    if cmd == "MetaText" || cmd == "TEXT" || cmd == "Text" { // @ メタテキスト (例 TEXT{"abcd"})
         let v = read_arg(cur);
         return Token::new(TokenType::MetaText, 1, vec![v]);
     }
-    if cmd == "COPYRIGHT" || cmd == "Copyright" {
+    if cmd == "COPYRIGHT" || cmd == "Copyright" { // @ メタテキスト著作権 (例 COPYRIGHT{"aaa"})
         let v = read_arg(cur);
         return Token::new(TokenType::MetaText, 2, vec![v]);
     }
-    if cmd == "LYRIC" || cmd == "Lyric" {
+    if cmd == "LYRIC" || cmd == "Lyric" { // @ メタテキスト歌詞 (例 LYRIC{"aaa"})
         let v = read_arg(cur);
         return Token::new(TokenType::MetaText, 5, vec![v]);
     }
+    // </UPPER_COMMANDS>
     song.logs.push(format!("[ERROR] Unknown command: {}", cmd));
     return Token::new_unknown(&cmd);
 }
