@@ -33,6 +33,8 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '@' => result.push(read_voice(&mut cur, song)), // @ 音色の指定 範囲:1-128
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ 音階を1つ上げる
             '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)), // @ 音階を1つ下げる
+            ')' => result.push(Token::new_value(TokenType::VelocityRel, 8)), // @ 音量を8つ上げる
+            '(' => result.push(Token::new_value(TokenType::VelocityRel, -8)), // @ 音量を8つ下げる
             // comment
             /*
                 "//" => // @ 一行コメント

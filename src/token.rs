@@ -17,6 +17,7 @@ pub enum TokenType {
     OctaveOnce,
     QLen,
     Velocity,
+    VelocityRel,
     ControllChange,
     Tempo,
     MetaText,

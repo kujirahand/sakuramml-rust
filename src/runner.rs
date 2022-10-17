@@ -101,6 +101,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let mut trk = &mut song.tracks[song.cur_track];
                 trk.octave = value_range(0, trk.octave + t.value, 10);
             },
+            TokenType::VelocityRel => {
+                let mut trk = &mut song.tracks[song.cur_track];
+                trk.velocity = value_range(0, trk.velocity + t.value, 127);
+            },
             TokenType::OctaveOnce => {
                 let mut trk = &mut song.tracks[song.cur_track];
                 trk.octave = value_range(0, trk.octave + t.value, 10);
