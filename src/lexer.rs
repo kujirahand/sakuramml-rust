@@ -4,9 +4,10 @@ use super::svalue::SValue;
 use super::token::{Token, TokenType, zen2han};
 
 /// split source code to tokens
-pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
+pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
     let mut result: Vec<Token> = vec![];
     let mut cur = TokenCursor::from(src);
+    cur.line = lineno;
     let mut flag_harmony = false;
     while !cur.is_eos() {
         let ch = zen2han(cur.get_char());
@@ -57,7 +58,7 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
             '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)), // @ 一度だけ音階を-1する
             // </CHAR_COMMANDS>
             _ => {
-                song.logs.push(format!("[ERROR] {}", ch));
+                song.logs.push(format!("[ERROR]({}) Unknown char: '{}'", cur.line, ch));
             }
         }
     }
@@ -97,6 +98,11 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "REV" || cmd == "Reverb" { return read_command_cc(cur, 91, song); } // @ リバーブ 範囲: 0-127
     if cmd == "CHO" || cmd == "Chorus" { return read_command_cc(cur, 93, song); } // @ コーラス 範囲: 0-127
 
+    // SysEx
+    if cmd == "ResetGM" { return Token::new_sysex(vec![0x7E,0x7F,0x9,0x1,0xF7]) } // @ GMリセットを送信
+    if cmd == "ResetGS" { return Token::new_sysex(vec![0x41,0x10,0x42,0x12,0x40,0x00,0x7F,0x00,0x41,0xF7]) } // @ GSリセットを送信
+    if cmd == "ResetXG" { return Token::new_sysex(vec![0x43,0x10,0x4c,0x00,0x00,0x7e,0x00,0xf7]) } // @ XGリセットを送信
+
     // meta events
     if cmd == "TEMPO" || cmd == "Tempo" || cmd == "T" { // @ テンポの指定
         let v = read_arg_int(cur, song);
@@ -124,7 +130,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new(TokenType::MetaText, 5, vec![v]);
     }
     // </UPPER_COMMANDS>
-    song.logs.push(format!("[ERROR] Unknown command: {}", cmd));
+    song.logs.push(format!("[ERROR]({}) Unknown command: {}", cur.line, cmd));
     return Token::new_unknown(&cmd);
 }
 
@@ -142,6 +148,17 @@ fn read_arg_value(cur: &mut TokenCursor, song: &mut Song) -> SValue {
         '0'..='9' => {
             let v = cur.get_int(0);
             SValue::from_i(v)
+        },
+        '=' => {
+            cur.next(); // skip =
+            read_arg_value(cur, song)
+        },
+        '(' => {
+            cur.next(); // skip (
+            let v = read_arg_value(cur, song);
+            cur.skip_space();
+            if cur.eq_char(')') { cur.next(); }
+            v
         },
         _ => {
             SValue::None   
@@ -168,6 +185,17 @@ fn read_arg_value_str(cur: &mut TokenCursor, song: &mut Song) -> SValue {
             let s = cur.get_token_nest('{', '}');
             SValue::from_s(s)
         },
+        '=' => {
+            cur.next(); // skip =
+            read_arg_value_str(cur, song)
+        },
+        '(' => {
+            cur.next(); // skip (
+            let v = read_arg_value_str(cur, song);
+            cur.skip_space();
+            if cur.eq_char(')') { cur.next(); }
+            v
+        },
         _ => {
             SValue::None   
         }
@@ -179,6 +207,7 @@ fn read_arg_int(cur: &mut TokenCursor, song: &mut Song) -> SValue {
     let ch = cur.peek_n(0);
     match ch {
         '(' => {
+            cur.next(); // skip '('
             let sv = read_arg_value(cur, song);
             cur.skip_space();
             if cur.peek_n(0) == ')' { cur.next(); }
@@ -199,6 +228,7 @@ fn read_arg_str(cur: &mut TokenCursor, song: &mut Song) -> SValue {
     let ch = cur.peek_n(0);
     match ch {
         '(' => {
+            cur.next(); // skip '('
             let sv = read_arg_value_str(cur, song);
             cur.skip_space();
             if cur.peek_n(0) == ')' { cur.next(); }
@@ -266,7 +296,7 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
 fn read_command_sub(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     let block = cur.get_token_nest('{', '}');
-    let tokens = lex(song, &block);
+    let tokens = lex(song, &block, cur.line);
     let mut tok = Token::new(TokenType::Sub, 0, vec![]);
     tok.children = Some(tokens);
     tok
@@ -276,7 +306,7 @@ fn read_command_div(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     let block = cur.get_token_nest('{', '}');
     let len_s = cur.get_note_length();
-    let tokens = lex(song, &block);
+    let tokens = lex(song, &block, cur.line);
     // count note 
     let mut cnt = 0;
     for t in tokens.iter() {
@@ -308,9 +338,18 @@ fn read_command_div(cur: &mut TokenCursor, song: &mut Song) -> Token {
 fn read_command_rhythm(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let mut result = String::new();
     cur.skip_space();
+    let line_start = cur.line;
     let block = cur.get_token_nest('{', '}');
     // extract macro
-    for ch in block.chars() {
+    let mut macro_cur = TokenCursor::from(&block);
+    macro_cur.line = line_start;
+    while !macro_cur.is_eos() {
+        let ch = macro_cur.get_char();
+        if macro_cur.eq("Sub") || macro_cur.eq("SUB") {
+            result.push_str("SUB");
+            macro_cur.index += 3;
+            continue;
+        }
         match ch {
             '\u{0040}'..='\u{007f}' => {
                 let m = &song.rhthm_macro[ch as usize - 0x40];
@@ -326,8 +365,7 @@ fn read_command_rhythm(cur: &mut TokenCursor, song: &mut Song) -> Token {
         }
     }
     let mut t = Token::new_value(TokenType::Tokens, 0);
-    println!("rythm={:?}", result);
-    t.children = Some(lex(song, &result));
+    t.children = Some(lex(song, &result, cur.line));
     t
 }
 
@@ -425,7 +463,7 @@ fn read_rest(cur: &mut TokenCursor) -> Token {
 
 fn read_note_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // note no
-    let note_no = read_arg_int(cur, song);
+    let note_no = read_arg_value(cur, song);
     cur.skip_space();
     if cur.eq_char(',') { cur.next(); }
     // length

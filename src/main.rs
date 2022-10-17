@@ -78,12 +78,12 @@ fn main() {
     // sutoton
     src = sakuramml::sutoton::convert(&src);
     // println!("{}", src);
-    let tokens = lex(&mut song, &src);
+    let tokens = lex(&mut song, &src, 0);
     // println!("lex= {:?}", tokens); 
     exec(&mut song, &tokens);
     // println!("song= {:?}", song);
     save_to_file(&mut song, &outfile);
-    println!("ok.");
+    println!("{}\nok.", song.logs.join("\n").trim());
 }
 
 fn save_to_file(song: &mut Song, path: &str) {

@@ -23,7 +23,7 @@ extern {
 pub fn compile(source: &str) -> Vec<u8> {
     let mut song = song::Song::new();
     let source_mml = sutoton::convert(source);
-    let tokens = lexer::lex(&mut song, &source_mml);
+    let tokens = lexer::lex(&mut song, &source_mml, 0);
     runner::exec(&mut song, &tokens);
     let bin = midi::generate(&mut song);
     let log_text = song.logs.join("\n");

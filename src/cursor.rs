@@ -2,7 +2,7 @@
 pub struct TokenCursor {
     pub index: usize,
     src: Vec<char>,
-    pub line: usize
+    pub line: isize,
 }
 
 impl TokenCursor {
@@ -50,6 +50,7 @@ impl TokenCursor {
         let s2: Vec<char> = s.chars().collect();
         for i in 0..s2.len() {
             let idx = self.index + i;
+            if idx >= self.src.len() { return false; }
             if self.src[idx] != s2[i] {
                 return false;
             }
@@ -76,6 +77,7 @@ impl TokenCursor {
         let mut s = String::new();
         while !self.is_eos() {
             let ch = self.get_char();
+            if ch == '\n' { self.line += 1; }
             if ch == splitter {
                 break
             }
@@ -93,6 +95,7 @@ impl TokenCursor {
         }
         while !self.is_eos() {
             let ch = self.get_char();
+            if ch == '\n' { self.line += 1; }
             if ch == open_ch {
                 level += 1;
             }
@@ -117,6 +120,7 @@ impl TokenCursor {
             let ch = self.peek_n(0);
             match ch {
                 '\r' | '\n' | '\t' | ' ' => {
+                    if ch == '\n' { self.line += 1; }
                     self.index += 1;
                 },
                 _ => { break; }

@@ -12,6 +12,13 @@ impl SValue {
     pub fn new() -> Self {
         Self::None
     }
+    pub fn new_int_array(a: Vec<isize>) -> SValue {
+        let mut sa: Vec<SValue> = vec![];
+        for v in a.iter() {
+            sa.push(SValue::from_i(*v));
+        }
+        SValue::Array(sa)
+    }
     pub fn from_i(v: isize) -> Self {
         Self::Int(v)
     }

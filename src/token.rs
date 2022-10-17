@@ -20,6 +20,7 @@ pub enum TokenType {
     ControllChange,
     Tempo,
     MetaText,
+    SysEx,
     TimeSignature,
     PitchBend,
     LoopBegin,
@@ -52,6 +53,14 @@ impl Token {
     }
     pub fn new_unknown(cmd: &str) -> Self {
         Self::new(TokenType::Unknown, 0, vec![SValue::from_s(cmd.to_string())])
+    }
+    pub fn new_sysex(a: Vec<isize>) -> Self {
+        let mut sa: Vec<SValue> = vec![];
+        for (i, v) in a.iter().enumerate() {
+            if i == 0 && *v == 0xF0 { continue; }
+            sa.push(SValue::from_i(*v));
+        }
+        Self::new(TokenType::SysEx, 0, sa)
     }
 }
 

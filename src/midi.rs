@@ -86,6 +86,23 @@ fn generate_track(track: &Track) -> Vec<u8> {
                     res.push(*b);
                 }
             },
+            EventType::SysEx => {
+                let data = e.data.clone().unwrap();
+                if data.len() == 0 { continue; }
+                array_push_delta(&mut res, e.time - timepos);
+                timepos = e.time;
+                // 1st byte must be 0xF0
+                if data[0] != 0xF0 {
+                    res.push(0xF0); // SysEx
+                }
+                for b in data.iter() {
+                    res.push(*b);
+                }
+                // last byte must be 0xF7
+                if data[data.len()-1] != 0xF7 {
+                    res.push(0xF7);
+                }
+            },
             EventType::PitchBend => {
                 array_push_delta(&mut res, e.time - timepos);
                 timepos = e.time;
@@ -227,9 +244,10 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
         0xF0 => { // SysEx = 0xF0 ... 0xF7
             let mut m = String::new();
             loop {
-                m.push_str(&format!("{:02x} ", bin[p]));
-                if bin[p] == 0xf7 {
-                    *pos += 1; break;
+                m.push_str(&format!("{:02x} ", bin[*pos]));
+                if bin[*pos] == 0xf7 {
+                    *pos += 1;
+                    break;
                 }
                 *pos += 1;
             }

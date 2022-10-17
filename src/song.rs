@@ -11,6 +11,7 @@ pub enum EventType {
     PitchBend,
     Voice,
     Meta,
+    SysEx,
 }
 
 #[allow(dead_code)]
@@ -33,6 +34,13 @@ impl Event {
     }
     pub fn meta(time: isize, v1: isize, v2: isize, v3: isize, data_v: Vec<u8>) -> Self {
         Self { etype: EventType::Meta, time, channel: 0, v1, v2, v3, data: Some(data_v) }
+    }
+    pub fn sysex(time: isize, data_v: &Vec<SValue>) -> Self {
+        let mut a: Vec<u8> = vec![];
+        for v in data_v.iter() {
+            a.push(v.to_i() as u8);
+        }
+        Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(a) }
     }
     pub fn cc(time: isize, channel: isize, no: isize, value: isize) -> Self {
         Self { etype: EventType::ControllChange, time, channel, v1: no, v2: value, v3:0, data: None }
@@ -177,6 +185,7 @@ fn init_variables() -> HashMap<String, SValue> {
     let version = sakura_version::version_str();
     //<VARIABLES>
     var.insert(String::from("SAKURA_VERSION"), SValue::from_s(version));
+    //
     var.insert(String::from("GrandPiano"), SValue::from_i(1));
     var.insert(String::from("BrightPiano"), SValue::from_i(2));
     var.insert(String::from("ElectricGrandPiano"), SValue::from_i(3));
@@ -307,6 +316,79 @@ fn init_variables() -> HashMap<String, SValue> {
     var.insert(String::from("Helicopter"), SValue::from_i(126));
     var.insert(String::from("Applause"), SValue::from_i(127));
     var.insert(String::from("Gunshot"), SValue::from_i(128));
-    //</VARIABLES>
+    var.insert(String::from("StandardSet"), SValue::from_i(1));
+    var.insert(String::from("StandardSet2"), SValue::from_i(2));
+    var.insert(String::from("RoomSet"), SValue::from_i(9));
+    var.insert(String::from("PowerSet"), SValue::from_i(17));
+    var.insert(String::from("ElectronicSet"), SValue::from_i(25));
+    var.insert(String::from("AnalogSet"), SValue::from_i(26));
+    var.insert(String::from("DanceSet"), SValue::from_i(27));
+    var.insert(String::from("JazzSet"), SValue::from_i(33));
+    var.insert(String::from("BrushSet"), SValue::from_i(41));
+    var.insert(String::from("OrchestraSet"), SValue::from_i(49));
+    var.insert(String::from("SnareRoll"), SValue::from_i(25));
+    var.insert(String::from("FingerSnap"), SValue::from_i(26));
+    var.insert(String::from("HighQ"), SValue::from_i(27));
+    var.insert(String::from("Slap"), SValue::from_i(28));
+    var.insert(String::from("ScratchPush"), SValue::from_i(29));
+    var.insert(String::from("ScratchPull"), SValue::from_i(30));
+    var.insert(String::from("Sticks"), SValue::from_i(31));
+    var.insert(String::from("SquareClick"), SValue::from_i(32));
+    var.insert(String::from("MetronomeClick"), SValue::from_i(33));
+    var.insert(String::from("MetronomeBell"), SValue::from_i(34));
+    var.insert(String::from("Kick2"), SValue::from_i(35));
+    var.insert(String::from("Kick1"), SValue::from_i(36));
+    var.insert(String::from("SideStick"), SValue::from_i(37));
+    var.insert(String::from("Snare1"), SValue::from_i(38));
+    var.insert(String::from("HandClap"), SValue::from_i(39));
+    var.insert(String::from("Snare2"), SValue::from_i(40));
+    var.insert(String::from("LowTom2"), SValue::from_i(41));
+    var.insert(String::from("ClosedHiHat"), SValue::from_i(42));
+    var.insert(String::from("LowTom1"), SValue::from_i(43));
+    var.insert(String::from("PedalHiHat"), SValue::from_i(44));
+    var.insert(String::from("MidTom2"), SValue::from_i(45));
+    var.insert(String::from("OpenHiHat"), SValue::from_i(46));
+    var.insert(String::from("MidTom1"), SValue::from_i(47));
+    var.insert(String::from("HighTom2"), SValue::from_i(48));
+    var.insert(String::from("CrashCymbal1"), SValue::from_i(49));
+    var.insert(String::from("HighTom1"), SValue::from_i(50));
+    var.insert(String::from("RideCymbal1"), SValue::from_i(51));
+    var.insert(String::from("ChineseCymbal"), SValue::from_i(52));
+    var.insert(String::from("RideBell"), SValue::from_i(53));
+    var.insert(String::from("Tambourine"), SValue::from_i(54));
+    var.insert(String::from("SplashCymbal"), SValue::from_i(55));
+    var.insert(String::from("Cowbell"), SValue::from_i(56));
+    var.insert(String::from("CrashCymbal2"), SValue::from_i(57));
+    var.insert(String::from("VibraSlap"), SValue::from_i(58));
+    var.insert(String::from("RideCymbal2"), SValue::from_i(59));
+    var.insert(String::from("HighBongo"), SValue::from_i(60));
+    var.insert(String::from("LowBongo"), SValue::from_i(61));
+    var.insert(String::from("MuteHighConga"), SValue::from_i(62));
+    var.insert(String::from("OpenHighConga"), SValue::from_i(63));
+    var.insert(String::from("LowConga"), SValue::from_i(64));
+    var.insert(String::from("HighTimbale"), SValue::from_i(65));
+    var.insert(String::from("LowTimbale"), SValue::from_i(66));
+    var.insert(String::from("HighAgogo"), SValue::from_i(67));
+    var.insert(String::from("LowAgogo"), SValue::from_i(68));
+    var.insert(String::from("Cabasa"), SValue::from_i(69));
+    var.insert(String::from("Maracas"), SValue::from_i(70));
+    var.insert(String::from("ShortHiWhistle"), SValue::from_i(71));
+    var.insert(String::from("LongLowWhistle"), SValue::from_i(72));
+    var.insert(String::from("ShortGuiro"), SValue::from_i(73));
+    var.insert(String::from("LongGuiro"), SValue::from_i(74));
+    var.insert(String::from("Claves"), SValue::from_i(75));
+    var.insert(String::from("HighWoodBlock"), SValue::from_i(76));
+    var.insert(String::from("LowWoodBlock"), SValue::from_i(77));
+    var.insert(String::from("MuteCuica"), SValue::from_i(78));
+    var.insert(String::from("OpenCuica"), SValue::from_i(79));
+    var.insert(String::from("MuteTriangle"), SValue::from_i(80));
+    var.insert(String::from("OpenTriangle"), SValue::from_i(81));
+    var.insert(String::from("Shaker"), SValue::from_i(82));
+    var.insert(String::from("JingleBell"), SValue::from_i(83));
+    var.insert(String::from("BellTree"), SValue::from_i(84));
+    var.insert(String::from("Castanets"), SValue::from_i(85));
+    var.insert(String::from("MuteSurdo"), SValue::from_i(86));
+    var.insert(String::from("OpenSurdo"), SValue::from_i(87));
+   //</VARIABLES>
     var
 }
