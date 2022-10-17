@@ -3,11 +3,12 @@
 <script src="https://unpkg.com/picoaudio/dist/browser/PicoAudio.js"></script>
 <script type="module">
   // WebAssemblyを読み込む --- (*1)
-  import init, {compile} from './pkg/sakuramml.js';
+  import init, {compile, get_version} from './pkg/sakuramml.js';
   // Promiseの仕組みでライブラリを読み込む --- (*2)
   init().then(() => {
     console.log('ok')
     document.getElementById('player').style.display = 'block'
+    document.getElementById('sakura_version').innerHTML = 'ver.' + get_version()
   });
   // これが必要
   window.sakura_log = function (s) {
@@ -33,7 +34,7 @@
 </script>
   <h1>テキスト音楽「ピコサクラ」</h1>
   <div id="player" style="display:none;">
-    <button id="btnPlay">PLAY</button> &nbsp;
+    <button id="btnPlay">PLAY</button> <span id="sakura_version"></span>&nbsp;
   </div>
   <textarea id="txt" cols="80" rows="8">// テキスト音楽サクラ
 トラック1 @1 音階5 音符4 ドミソミドー

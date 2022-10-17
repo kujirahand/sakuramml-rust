@@ -194,10 +194,8 @@ fn var_extract(val: &SValue, song: &Song) -> SValue {
         SValue::Str(s) => {
             if s.starts_with('=') && s.len() >= 2 {
                 let key = &s[1..];
-                println!("@@@{:?}", key);
                 match song.variables.get(key) {
                     Some(v) => {
-                        println!("@@@f{:?}", v);
                         v.clone()
                     },
                     None => SValue::None,

@@ -457,11 +457,14 @@ fn read_note_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
     // flag
-    let note_flag = match cur.peek_n(0) {
-        '+' | '#' => 1,
-        '-' => -1,
-        _ => 0,
-    };
+    let mut note_flag = 0;
+    loop {
+        match cur.peek_n(0) {
+            '+' | '#' => { note_flag += 1; cur.next(); },
+            '-' => { note_flag += 1; cur.next(); },
+            _ => break,
+        }
+    }
     // length
     let note_len = cur.get_note_length();
     cur.skip_space();

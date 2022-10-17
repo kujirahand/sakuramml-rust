@@ -11,8 +11,6 @@ pub mod runner;
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 
-
-
 // JavaScriptの関数をRustで使う
 #[wasm_bindgen]
 extern {
@@ -31,4 +29,10 @@ pub fn compile(source: &str) -> Vec<u8> {
     let log_text = song.logs.join("\n");
     sakura_log(&log_text);
     return bin;
+}
+
+// RustでJavaScriptから使える関数を定義
+#[wasm_bindgen]
+pub fn get_version() -> String {
+    sakura_version::version_str()
 }
