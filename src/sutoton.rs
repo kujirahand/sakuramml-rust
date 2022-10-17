@@ -18,8 +18,41 @@ impl SutotonItem {
     }
 }
 
-fn init_items() -> Vec<SutotonItem> {
-    let mut items: Vec<SutotonItem> = vec![];
+struct SutotonList {
+    items: Vec<SutotonItem>,
+    sorted: bool,
+}
+impl SutotonList {
+    fn new() -> Self {
+        Self {
+            items: vec![],
+            sorted: false,
+        }
+    }
+    fn push(&mut self, it: SutotonItem) {
+        self.items.push(it);
+        self.sorted = false;
+    }
+    fn sort_items(&mut self) {
+        if self.sorted { return; }
+        self.items.sort_by(|a, b| b.name.len().cmp(&a.name.len()));
+        self.sorted = true;
+    }
+    fn set_item(&mut self, name: &str, value: &str) {
+        let len = name.chars().count();
+        for it in self.items.iter_mut() {
+            if it.length != len { continue; }
+            if it.name == name {
+                it.value = value.to_string();
+                return;
+            }
+        }
+        self.items.push(SutotonItem::from(name, value));
+    }
+}
+
+fn init_items() -> SutotonList {
+    let mut items = SutotonList::new();
     // <SUTOTON>
     items.push(SutotonItem::from("テンポ", "TEMPO="));
     items.push(SutotonItem::from("トラック", "TR="));
@@ -54,6 +87,8 @@ fn init_items() -> Vec<SutotonItem> {
     items.push(SutotonItem::from("↑", ">"));
     items.push(SutotonItem::from("↓", "<"));
     items.push(SutotonItem::from("ん", "r"));
+    items.push(SutotonItem::from("♭", "-"));
+    items.push(SutotonItem::from("♯", "#"));
     items.push(SutotonItem::from("ど", "n36,"));
     items.push(SutotonItem::from("た", "n38,"));
     items.push(SutotonItem::from("つ", "n42,"));
@@ -61,11 +96,8 @@ fn init_items() -> Vec<SutotonItem> {
     items.push(SutotonItem::from("ち", "n46,"));
     items.push(SutotonItem::from("ぱ", "n49,"));
     // </SUTOTON>
-    sort_items(&mut items);
+    items.sort_items();
     items
-}
-fn sort_items(items: &mut Vec<SutotonItem>) {
-    items.sort_by(|a, b| b.name.len().cmp(&a.name.len()));
 }
 
 pub fn convert(src: &str) -> String {
@@ -104,8 +136,8 @@ pub fn convert(src: &str) -> String {
                 cur.skip_space();
                 if cur.peek_n(0) != '{' { continue; }
                 let value = cur.get_token_nest('{', '}');
-                items.push(SutotonItem::from(&name, &value));
-                sort_items(&mut items);
+                items.set_item(&name, &value);
+                items.sort_items();
                 continue;
             }
             _ => {
@@ -113,7 +145,7 @@ pub fn convert(src: &str) -> String {
         }
         // check sutoton
         let mut found = false;
-        for cmd in items.iter() {
+        for cmd in items.items.iter() {
             if cur.eq(&cmd.name) {
                 res.push_str(&cmd.value);
                 cur.index += cmd.length;

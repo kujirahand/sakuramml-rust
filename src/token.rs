@@ -31,6 +31,7 @@ pub enum TokenType {
     Tokens, // should run children toknes
     Div,
     Sub,
+    DefInt,
 }
 
 #[allow(dead_code)]

@@ -82,8 +82,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.tracks[song.cur_track].channel = v as isize;
             },
             TokenType::Voice => {
+                let no = var_extract(&t.data[0], song);
                 let trk = &song.tracks[song.cur_track];
-                song.add_event(Event::voice(trk.timepos, trk.channel, t.value));
+                song.add_event(Event::voice(trk.timepos, trk.channel, no.to_i()));
             },
             TokenType::Note => exec_note(song, t),
             TokenType::NoteN => exec_note_n(song, t),
@@ -177,10 +178,38 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Div => exec_div(song, t),
             TokenType::Sub => exec_sub(song, t),
+            TokenType::DefInt => {
+                let var_key = t.data[0].to_s().clone();
+                let var_val = var_extract(&t.data[1], song);
+                song.variables.insert(var_key, var_val);
+            }
         }
         pos += 1;
     }
     true
+}
+
+fn var_extract(val: &SValue, song: &Song) -> SValue {
+    match val {
+        SValue::Str(s) => {
+            if s.starts_with('=') && s.len() >= 2 {
+                let key = &s[1..];
+                println!("@@@{:?}", key);
+                match song.variables.get(key) {
+                    Some(v) => {
+                        println!("@@@f{:?}", v);
+                        v.clone()
+                    },
+                    None => SValue::None,
+                }
+            } else {
+                SValue::from_str(&s)
+            }
+        },
+        _ => {
+            val.clone()
+        }
+    }
 }
 
 fn exec_sub(song: &mut Song, t: &Token) {

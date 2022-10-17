@@ -168,17 +168,76 @@ impl TokenCursor {
         res
     }
     pub fn get_int(&mut self, def: isize) -> isize {
-        let mut s = String::new();
-        while !self.is_eos() {
-            let ch = self.peek().unwrap_or('\0');
-            if '0' <= ch && ch <= '9' {
-                s.push(ch);
-                self.index += 1;
-                continue;
+        let mut no: isize = 0;
+        // Hex integer?
+        if self.eq("0x") {
+            self.index += 2; // skip 0x
+            // Hex chars?
+            let ch = self.peek_n(0);
+            match ch {
+                '0'..='9' | 'a'..='f' | 'A'..='F' => {},
+                _ => { return def; }
             }
-            break;
+            // calc number
+            while !self.is_eos() {
+                let ch = self.peek_n(0);
+                match ch {
+                    '0'..='9' => {
+                        no = no << 4 | ch as isize - '0' as isize;
+                        self.next();
+                        continue;
+                    },
+                    'a'..='f' => {
+                        no = (no << 4) | (0x0a + (ch as isize - 'a' as isize));
+                        self.next();
+                        continue;
+                    },
+                    'A'..='F' => {
+                        no = (no << 4) | (0x0a + (ch as isize - 'A' as isize));
+                        self.next();
+                        continue;
+                    },
+                    _ => { break; }
+                }
+            }
+            return no;
         }
-        s.parse().unwrap_or(def)
+        // Oct integer?
+        if self.eq("0o") {
+            self.index += 2; // skip 0o
+            // Oct chars?
+            let ch = self.peek_n(0);
+            match ch {
+                '0'..='8' => {},
+                _ => { return def; }
+            }
+            // calc number
+            while !self.is_eos() {
+                let ch = self.peek_n(0);
+                match ch {
+                    '0'..='8' => {
+                        no = no * 8 + (ch as isize - '0' as isize);
+                        self.next();
+                        continue;
+                    },
+                    _ => { break; }
+                }
+            }
+            return no;
+        }
+        // check numeric
+        if !self.is_numeric() { return def; }
+        while !self.is_eos() {
+            let ch = self.peek_n(0);
+            match ch {
+                '0'..='9' => {
+                    no = no * 10 + (ch as isize - '0' as isize);
+                    self.next();
+                },
+                _ => break,
+            }
+        }
+        no
     }
 }
 
@@ -254,5 +313,26 @@ mod tests {
         let mut cur = TokenCursor::from("l8");
         cur.next();
         assert_eq!(cur.get_int(-1), 8);
+        //
+        let mut cur = TokenCursor::from("0xFF");
+        assert_eq!(cur.get_int(-1), 0xFF);
+        //
+        let mut cur = TokenCursor::from("0x");
+        assert_eq!(cur.get_int(-1), -1);
+        //
+        let mut cur = TokenCursor::from("0xff");
+        assert_eq!(cur.get_int(-1), 0xff);
+        //
+        let mut cur = TokenCursor::from("0x123");
+        assert_eq!(cur.get_int(-1), 0x123);
+        //
+        let mut cur = TokenCursor::from("a");
+        assert_eq!(cur.get_int(-1), -1);
+        //
+        let mut cur = TokenCursor::from("1234");
+        assert_eq!(cur.get_int(-1), 1234);
+        //
+        let mut cur = TokenCursor::from("0o777");
+        assert_eq!(cur.get_int(-1), 0o777);
     }
 }
