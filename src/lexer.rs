@@ -33,8 +33,10 @@ pub fn lex(song: &mut Song, src: &str) -> Vec<Token> {
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ 音階を1つ上げる
             '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)), // @ 音階を1つ下げる
             // comment
-            // "//" // @ 一行コメント
-            // "/*" .. "*/" @ 範囲コメント
+            /*
+                "//" => // @ 一行コメント
+                "/*" .. "*/" => // @ 範囲コメント
+             */
             '/' => {
                 if cur.eq_char('/') {
                     cur.get_token_ch('\n');
