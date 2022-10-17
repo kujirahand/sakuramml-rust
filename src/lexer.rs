@@ -23,7 +23,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             'r' | '_' => result.push(read_rest(&mut cur)), // @ 休符
             'l' => result.push(read_length(&mut cur)), // @ 音長の指定(例 l4)
             'o' => result.push(read_octave(&mut cur, song)), // @ 音階の指定(例 o5) 範囲:0-10
-            'p' => result.push(read_pitch_bend(&mut cur, song)), // @ ピッチベンドの指定 範囲:0-127 (63が中央)
+            'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ ピッチベンドの指定 範囲:0-127 (63が中央)
             'q' => result.push(read_qlen(&mut cur, song)), // @ ゲートの指定 (例 q90) 範囲:0-100
             'v' => result.push(read_velocity(&mut cur, song)), // @ ベロシティ音量の指定 範囲:0-127
             'y' => result.push(read_cc(&mut cur, song)), // @ コントロールチェンジの指定 (例 y1,100) 範囲:0-127
@@ -99,6 +99,19 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "PS" || cmd == "PortamentoSwitch" { return read_command_cc(cur, 65, song); } // @ ポルタメントスイッチ
     if cmd == "REV" || cmd == "Reverb" { return read_command_cc(cur, 91, song); } // @ リバーブ 範囲: 0-127
     if cmd == "CHO" || cmd == "Chorus" { return read_command_cc(cur, 93, song); } // @ コーラス 範囲: 0-127
+    
+    if cmd == "PB" || cmd == "PitchBend" { return read_command_pitch_bend_big(cur, song); } // @ ピッチベンドを指定 範囲: -8192~0~8191の範囲
+    if cmd == "BR" || cmd == "PitchBendSensitivity" { return read_command_rpn(cur, 0, 0, song); } // @ ピッチベンドの範囲を設定 範囲: 0-12半音
+    if cmd == "FineTune" { return read_command_rpn(cur, 0, 1, song); } // @ チューニングの微調整 範囲:0-64-127 (-100 - 0 - +99.99セント）
+    if cmd == "CoarseTune" { return read_command_rpn(cur, 0, 2, song); } // @ 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音)
+    if cmd == "VibratoRate" { return read_command_nrpn(cur, 1, 8, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "VibratoDepth" { return read_command_nrpn(cur, 1, 9, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "VibratoDelay" { return read_command_nrpn(cur, 1, 10, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "FilterCutoff" { return read_command_nrpn(cur, 1, 0x20, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "FilterResonance" { return read_command_nrpn(cur, 1, 0x21, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "EGAttack" { return read_command_nrpn(cur, 1, 0x63, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "EGDecay" { return read_command_nrpn(cur, 1, 0x64, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "EGRelease" { return read_command_nrpn(cur, 1, 0x66, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
 
     // SysEx
     if cmd == "ResetGM" { return Token::new_sysex(vec![0x7E,0x7F,0x9,0x1,0xF7]) } // @ GMリセットを送信
@@ -147,7 +160,7 @@ fn read_arg_value(cur: &mut TokenCursor, song: &mut Song) -> SValue {
                 None => SValue::from_s(format!("={}", vname)), // 変数への参照
             }
         },
-        '0'..='9' => {
+        '-' | '0'..='9' => {
             let v = cur.get_int(0);
             SValue::from_i(v)
         },
@@ -179,7 +192,7 @@ fn read_arg_value_str(cur: &mut TokenCursor, song: &mut Song) -> SValue {
                 None => SValue::from_s(format!("={}", vname)), // 変数への参照
             }
         },
-        '0'..='9' => {
+        '-' | '0'..='9' => {
             let v = cur.get_int(0);
             SValue::from_i(v)
         },
@@ -404,6 +417,28 @@ fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
     return Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(no), v]);
 }
 
+fn read_command_rpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
+    let val = read_arg_int(cur, song);
+    let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
+    tokens.children = Some(vec![
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(101), SValue::from_i(msb)]),
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(100), SValue::from_i(lsb)]),
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), val]),
+    ]);
+    tokens
+}
+
+fn read_command_nrpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
+    let val = read_arg_int(cur, song);
+    let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
+    tokens.children = Some(vec![
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(99), SValue::from_i(msb)]),
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(98), SValue::from_i(lsb)]),
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), val]),
+    ]);
+    tokens
+}
+
 fn read_voice(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let value = read_arg_value(cur, song);
     Token::new(TokenType::Voice, 0, vec![value])
@@ -429,9 +464,14 @@ fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
     Token::new(TokenType::Velocity, value.to_i(), vec![])
 }
 
-fn read_pitch_bend(cur: &mut TokenCursor, song: &mut Song) -> Token {
+fn read_command_pitch_bend_big(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let value = read_arg_value(cur, song);
-    Token::new(TokenType::PitchBend, value.to_i(), vec![])
+    Token::new(TokenType::PitchBend, 1, vec![value])
+}
+
+fn read_pitch_bend_small(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let value = read_arg_value(cur, song);
+    Token::new(TokenType::PitchBend, 0, vec![value])
 }
 
 fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {

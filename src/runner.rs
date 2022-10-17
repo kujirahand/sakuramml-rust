@@ -125,9 +125,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.add_event(Event::cc(trk.timepos, trk.channel, no, val));
             },
             TokenType::PitchBend => {
-                let trk = &song.tracks[song.cur_track];
-                let val = t.value * 128;
-                song.add_event(Event::pitch_bend(trk.timepos, trk.channel, val));
+                let val = var_extract(&t.data[0], song).to_i();
+                let val = if t.value == 0 { val * 128 } else { val + 8192 };
+                song.add_event(Event::pitch_bend(song.tracks[song.cur_track].timepos, song.tracks[song.cur_track].channel, val));
             },
             TokenType::Tempo => {
                 let trk = &song.tracks[song.cur_track];

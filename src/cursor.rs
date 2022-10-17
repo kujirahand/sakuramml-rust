@@ -173,6 +173,12 @@ impl TokenCursor {
     }
     pub fn get_int(&mut self, def: isize) -> isize {
         let mut no: isize = 0;
+        let mut flag: isize = 1;
+        // minus
+        if self.eq_char('-') {
+            flag = -1;
+            self.next();
+        }
         // Hex integer?
         if self.eq("0x") {
             self.index += 2; // skip 0x
@@ -204,7 +210,7 @@ impl TokenCursor {
                     _ => { break; }
                 }
             }
-            return no;
+            return no * flag;
         }
         // Oct integer?
         if self.eq("0o") {
@@ -227,7 +233,7 @@ impl TokenCursor {
                     _ => { break; }
                 }
             }
-            return no;
+            return no * flag;
         }
         // check numeric
         if !self.is_numeric() { return def; }
@@ -241,7 +247,7 @@ impl TokenCursor {
                 _ => break,
             }
         }
-        no
+        no * flag
     }
 }
 
@@ -338,5 +344,11 @@ mod tests {
         //
         let mut cur = TokenCursor::from("0o777");
         assert_eq!(cur.get_int(-1), 0o777);
+        //
+        let mut cur = TokenCursor::from("-111");
+        assert_eq!(cur.get_int(0), -111);
+        //
+        let mut cur = TokenCursor::from("-0xFF");
+        assert_eq!(cur.get_int(0), -0xFF);
     }
 }

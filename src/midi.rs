@@ -315,8 +315,9 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
             msg
         },
         0xE0 => { // PitchBend
-            let v = (bin[p+1] as usize) << 7 | bin[p+2] as usize - 8192;
-            let msg = format!("PitchBend\t{:2x} ={}", bin[p], v);
+            let vv: isize = ((bin[p+1] as isize) << 7) | bin[p+2] as isize;
+            let pb: isize = vv - 8192;
+            let msg = format!("PitchBend\t{:2x} ={}", bin[p], pb);
             *pos += 3;
             msg
         },
