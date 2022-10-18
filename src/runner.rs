@@ -27,7 +27,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             println!("{:3}:exec:{:?}", pos, t);
         }
         match t.ttype {
-            TokenType::Unknown => {
+            TokenType::Empty => {
                 // unknown
             },
             TokenType::Error => {
@@ -186,12 +186,17 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Div => exec_div(song, t),
             TokenType::Sub => exec_sub(song, t),
+            TokenType::KeyFlag => song.key_flag = t.data[0].to_int_array(),
             TokenType::DefInt => {
                 let var_key = t.data[0].to_s().clone();
                 let var_val = var_extract(&t.data[1], song);
                 song.variables.insert(var_key, var_val);
             },
-            TokenType::KeyFlag => song.key_flag = t.data[0].to_int_array(),
+            TokenType::DefStr => {
+                let var_key = t.data[0].to_s().clone();
+                let var_val = var_extract(&t.data[1], song);
+                song.variables.insert(var_key, var_val);
+            },
         }
         pos += 1;
     }
@@ -200,7 +205,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
 
 fn var_extract(val: &SValue, song: &mut Song) -> SValue {
     match val {
-        SValue::Str(s) => {
+        SValue::Str(s, _) => {
             if s.starts_with('=') && s.len() >= 2 {
                 let key = &s[1..];
                 match song.variables.get(key) {

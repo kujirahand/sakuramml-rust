@@ -72,6 +72,19 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.prev(); // back 1char
     let cmd = cur.get_word();
 
+    // check variables
+    let sval: SValue = match song.variables.get(&cmd) {
+        None => SValue::None,
+        Some(sval) => sval.clone(),
+    };
+    match sval {
+        SValue::Str(src, line_no) => {
+            let tokens = lex(song, &src, line_no);
+            return Token::new_tokens(TokenType::Tokens, line_no, tokens);    
+        },
+        _ => {},
+    }
+
     // <UPPER_COMMANDS>
     // Track & Channel
     if cmd == "TR" || cmd == "TRACK" || cmd == "Track" { // @ トラック変更　TR=番号 範囲:1-
@@ -88,8 +101,9 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "DIV" || cmd == "Div" { return read_command_div(cur, song) } // @ 連符 (例 DIV{ceg} )
     if cmd == "SUB" || cmd == "Sub" { return read_command_sub(cur, song) } // @ タイムポインタを戻す (例 SUB{ceg} egb)
 
-    if cmd == "INT" || cmd == "Int" { return read_def_int(cur, song); } // @ 変数を定義 (例 INT TestValue=30)
     if cmd == "KF" || cmd == "KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    if cmd == "INT" || cmd == "Int" { return read_def_int(cur, song); } // @ 変数を定義 (例 INT TestValue=30)
+    if cmd == "STR" || cmd == "Str" { return read_def_str(cur, song); } // @ 文字列変数を定義 (例 STR A={cde})
     
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1, song); } // @ モジュレーション 範囲: 0-127
@@ -147,7 +161,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
     // </UPPER_COMMANDS>
     song.logs.push(format!("[ERROR]({}) Unknown command: {}", cur.line, cmd));
-    return Token::new_unknown(&cmd);
+    return Token::new_empty(&cmd);
 }
 
 fn read_arg_value(cur: &mut TokenCursor, song: &mut Song) -> SValue {
@@ -332,7 +346,7 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let var_name = cur.get_word();
     if var_name == "" {
         song.logs.push(format!("[ERROR]({}): INT command should use Upper case like \"Test\".", cur.line));
-        return Token::new_unknown("Failed to def INT");
+        return Token::new_empty("Failed to def INT");
     }
     cur.skip_space();
     if cur.eq_char('=') { cur.next(); }
@@ -341,6 +355,28 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
         SValue::from_s(var_name),
         var_value,
     ]);
+    tok
+}
+
+fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    cur.skip_space();
+    let var_name = cur.get_word();
+    if var_name == "" {
+        song.logs.push(format!("[ERROR]({}): STR command should use Upper case like \"Test\"", cur.line));
+        return Token::new_empty("Failed to def STR");
+    }
+    cur.skip_space();
+    if cur.eq_char('=') { cur.next(); }
+    cur.skip_space();
+    if !cur.eq_char('{') {
+        song.logs.push(format!("[ERROR]({}): STR command should set string", cur.line));
+        return Token::new_empty("Failed to def STR");
+    }
+    let line_no = cur.line;
+    let data_str = cur.get_token_nest('{', '}');
+    let var_value = SValue::from_str_and_tag(&data_str, line_no);
+    let tok = Token::new_empty("STR");
+    song.variables.insert(var_name, var_value);
     tok
 }
 

@@ -3,7 +3,7 @@
 #[derive(Debug,Clone)]
 pub enum SValue {
     Int(isize),
-    Str(String),
+    Str(String, isize),
     Array(Vec<SValue>),
     None,
 }
@@ -23,15 +23,18 @@ impl SValue {
         Self::Int(v)
     }
     pub fn from_s(s: String) -> Self {
-        Self::Str(s)
+        Self::Str(s, 0)
     }
     pub fn from_str(s: &str) -> Self {
-        Self::Str(String::from(s))
+        Self::Str(String::from(s), 0)
+    }
+    pub fn from_str_and_tag(s: &str, tag: isize) -> Self {
+        Self::Str(String::from(s), tag)
     }
     pub fn to_i(&self) -> isize {
         match self {
             Self::Int(i) => *i,
-            Self::Str(s) => s.parse().unwrap_or(0), 
+            Self::Str(s, _) => s.parse().unwrap_or(0), 
             Self::None => 0,
             _ => 0,
         }
@@ -39,9 +42,17 @@ impl SValue {
     pub fn to_s(&self) -> String {
         match self {
             Self::Int(i) => i.to_string(),
-            Self::Str(s) => s.clone(),
+            Self::Str(s, _) => s.clone(),
             Self::None => String::new(),
             _ => String::new(),
+        }
+    }
+    pub fn get_str_and_tag(&self) -> (String, isize) {
+        match self {
+            Self::Int(i) => (i.to_string(), 0),
+            Self::Str(s, no) => { (s.clone(), *no) },
+            Self::None => (String::new(), 0),
+            _ => (String::new(), 0),
         }
     }
     pub fn to_int_array(&self) -> Vec<isize> {

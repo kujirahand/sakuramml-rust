@@ -4,7 +4,7 @@ use super::svalue::SValue;
 #[derive(Debug)]
 pub enum TokenType {
     Error,
-    Unknown,
+    Empty,
     Note,
     NoteN,
     Rest,
@@ -33,8 +33,9 @@ pub enum TokenType {
     Tokens, // should run children toknes
     Div,
     Sub,
-    DefInt,
     KeyFlag,
+    DefInt,
+    DefStr,
 }
 
 #[allow(dead_code)]
@@ -53,8 +54,11 @@ impl Token {
     pub fn new_value(ttype: TokenType, value: isize) -> Self {
         Self { ttype, value, data: vec![], children: None }
     }
-    pub fn new_unknown(cmd: &str) -> Self {
-        Self::new(TokenType::Unknown, 0, vec![SValue::from_s(cmd.to_string())])
+    pub fn new_tokens(ttype: TokenType, value: isize, tokens: Vec<Token>) -> Self {
+        Self { ttype, value, data: vec![], children: Some(tokens) }
+    }
+    pub fn new_empty(cmd: &str) -> Self {
+        Self::new(TokenType::Empty, 0, vec![SValue::from_s(cmd.to_string())])
     }
     pub fn new_sysex(a: Vec<isize>) -> Self {
         let mut sa: Vec<SValue> = vec![];
