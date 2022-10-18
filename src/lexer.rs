@@ -20,7 +20,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             // lower command
             'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階)
             'n' => result.push(read_note_n(&mut cur, song)), // @ 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング)
-            'r' | '_' => result.push(read_rest(&mut cur)), // @ 休符
+            'r' => result.push(read_rest(&mut cur)), // @ 休符
             'l' => result.push(read_length(&mut cur)), // @ 音長の指定(例 l4)
             'o' => result.push(read_octave(&mut cur, song)), // @ 音階の指定(例 o5) 範囲:0-10
             'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ ピッチベンドの指定 範囲:0-127 (63が中央)
@@ -105,6 +105,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "KEY" || cmd == "Key" || cmd == "KeyShift" { return read_command_key(cur, song); } // @ ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde)
     if cmd == "INT" || cmd == "Int" { return read_def_int(cur, song); } // @ 変数を定義 (例 INT TestValue=30)
     if cmd == "STR" || cmd == "Str" { return read_def_str(cur, song); } // @ 文字列変数を定義 (例 STR A={cde})
+    if cmd == "PLAY" || cmd == "Play" { return read_play(cur, song); } // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
     
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1, song); } // @ モジュレーション 範囲: 0-127
@@ -357,6 +358,49 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
         var_value,
     ]);
     tok
+}
+
+fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let mut tokens: Vec<Token> = vec![];
+    let mut track_no = 1;
+    cur.skip_space();
+    if cur.eq_char('=') { cur.next(); }
+    cur.skip_space();
+    if cur.eq_char('(') { cur.next(); }
+    loop {
+        let tt = lex(song, &format!("TR={}", track_no), cur.line);
+        for t in tt.into_iter() { tokens.push(t); }
+        cur.skip_space();
+        match cur.peek_n(0) {
+            'A'..='Z' | '_' => {
+                let name = cur.get_word();
+                match song.variables.get(&name) {
+                    None => {},
+                    Some(sv) => {
+                        let (src, lineno) = sv.get_str_and_tag();
+                        let tt = lex(song, &src, lineno);
+                        for t in tt.into_iter() { tokens.push(t); }
+                    },
+                }
+            },
+            '{' .. => {
+                let src = cur.get_token_nest('{', '}');
+                let tt = lex(song, &src, cur.line);
+                for t in tt.into_iter() { tokens.push(t); }
+            },
+            _ => break,
+        }
+        cur.skip_space();
+        if cur.eq_char(',') {
+            cur.next(); // skip ,
+        } else {
+            break;
+        }
+        track_no += 1;
+    }
+    if cur.eq_char(')') { cur.next(); }
+    let tokens_tok = Token::new_tokens(TokenType::Tokens, 0, tokens);
+    tokens_tok
 }
 
 fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {

@@ -8,17 +8,21 @@
 簡単な楽譜を再生できます。
 使えるコマンドの一覧が[こちら](src/command.md)にあります。
 
-## 未実装
+## 実装予定だが未実装
 
 - マクロ
 - Play
 - Print
-- FOR IF WHILE
-- Key / KeyShift
 - PlayFrom
-- onNote, onTime, onCycle, Random, Range
-- onCycle onNote onWave 系の連続書き込み命令
+- v.onTime, Random, Range
+- CC.onWave
 - & タイ
+
+### 未実装で実装予定なし
+
+- onNote, onCycle (あまり使わない？)
+- onCycle onNote 系の連続書き込み命令 (あまり使わない？)
+- FOR IF WHILE FUNCTION (別途スクリプト言語からMMLを動的に生成する方が実用的)
 
 # 使い方
 
@@ -133,3 +137,8 @@ v127 c ( c ( c (( c )) c ) c ) c
 ```
 `ceg` `dfa` `egb` `ceg`
 ```
+
+## 参考
+
+- サクラv2のコマンド一覧 --- https://sakuramml.com/doc/command/index.htm
+
