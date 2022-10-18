@@ -25,7 +25,8 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             'o' => result.push(read_octave(&mut cur, song)), // @ 音階の指定(例 o5) 範囲:0-10
             'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ ピッチベンドの指定 範囲:0-127 (63が中央)
             'q' => result.push(read_qlen(&mut cur, song)), // @ ゲートの指定 (例 q90) 範囲:0-100
-            'v' => result.push(read_velocity(&mut cur, song)), // @ ベロシティ音量の指定 範囲:0-127
+            'v' => result.push(read_velocity(&mut cur, song)), // @ ベロシティ音量の指定 範囲:0-127 / v.Random=n
+            't' => result.push(read_timing(&mut cur, song)), // @ 発音タイミングの指定 (例 t-1) / t.Random=n
             'y' => result.push(read_cc(&mut cur, song)), // @ コントロールチェンジの指定 (例 y1,100) 範囲:0-127
             // uppwer command
             'A'..='Z' => result.push(read_upper_command(&mut cur, song)), 
@@ -591,8 +592,27 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    // v.Random ?
+    if cur.eq(".Random") {
+        cur.index += 7;
+        let r = read_arg_int(cur, song);
+        return Token::new(TokenType::VelocityRandom, 0, vec![r])
+    }
+    // v(no)
     let value = read_arg_value(cur, song);
     Token::new(TokenType::Velocity, value.to_i(), vec![])
+}
+
+fn read_timing(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    // t.Random ?
+    if cur.eq(".Random") {
+        cur.index += 7;
+        let r = read_arg_int(cur, song);
+        return Token::new(TokenType::TimingRandom, 0, vec![r])
+    }
+    // t(no)
+    let value = read_arg_value(cur, song);
+    Token::new(TokenType::Timing, value.to_i(), vec![])
 }
 
 fn read_command_pitch_bend_big(cur: &mut TokenCursor, song: &mut Song) -> Token {

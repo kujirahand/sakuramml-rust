@@ -10,8 +10,6 @@
 
 ## 実装予定だが未実装
 
-- マクロ
-- PlayFrom
 - v.onTime, Random, Range
 - CC.onWave
 - & タイ

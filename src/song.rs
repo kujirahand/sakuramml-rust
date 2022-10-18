@@ -55,12 +55,14 @@ impl Event {
 #[allow(dead_code)]
 pub struct Track {
     pub timepos: isize,
+    pub channel: isize,
     pub length: isize,
     pub octave: isize,
     pub velocity: isize,
     pub qlen: isize,
     pub timing: isize,
-    pub channel: isize,
+    pub v_rand: isize,
+    pub t_rand: isize,
     pub events: Vec<Event>,
 }
 
@@ -73,6 +75,8 @@ impl Track {
             octave: 5,
             qlen: 90,
             timing: 0,
+            v_rand: 0,
+            t_rand: 0,
             channel,
             events: vec![],
         }
@@ -189,6 +193,7 @@ pub struct Song {
     pub key_shift: isize,
     pub play_from: isize,
     pub logs: Vec<String>, // ログ
+    rand_seed: u32,
 }
 
 impl Song {
@@ -209,6 +214,7 @@ impl Song {
             key_shift: 0,
             play_from: -1,
             logs: vec![],
+            rand_seed: 1110122942, // Random Seed
         }
     }
     pub fn add_event(&mut self, e: Event) {
@@ -226,6 +232,19 @@ impl Song {
         for trk in self.tracks.iter_mut() {
             trk.play_from(self.play_from);
         }
+    }
+    pub fn calc_rand_value(&mut self, val: isize, rand_v: isize) -> isize {
+        let r = self.rand();
+        let r = (r as isize) % rand_v - (rand_v / 2);
+        val + r
+    }
+    pub fn rand(&mut self) -> u32 {
+        let mut y = self.rand_seed;
+        y ^= y << 13;
+        y ^= y >> 17;
+        y ^= y << 5;
+        self.rand_seed = y;
+        y
     }
 }
 

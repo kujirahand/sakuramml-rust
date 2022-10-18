@@ -19,6 +19,7 @@ pub enum TokenType {
     QLen,
     Velocity,
     VelocityRel,
+    Timing,
     ControllChange,
     Tempo,
     MetaText,
@@ -39,6 +40,8 @@ pub enum TokenType {
     DefInt,
     DefStr,
     PlayFrom,
+    VelocityRandom,
+    TimingRandom,
 }
 
 #[allow(dead_code)]
