@@ -15,13 +15,14 @@
 
 ## 未実装
 
-- 和音 c0e0g ←　今回はサポートしない
 - マクロ
 - Play
 - Print
 - FOR IF WHILE
-- Key / KeyFlag / KeyShift
+- Key / KeyShift
 - PlayFrom
+- onCycle onNote onWave 系の連続書き込み命令
+- & タイ
 
 # 使い方
 
@@ -129,3 +130,10 @@ l1 { c d {efe} d } c
 v127 c ( c ( c (( c )) c ) c ) c  
 ```
 
+### 和音の指定
+
+「c0e0g」のように、0を指定した和音は、サポートしません。普通に以下のように指定してください。
+
+```
+`ceg` `dfa` `egb` `ceg`
+```
