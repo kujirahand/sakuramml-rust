@@ -1,3 +1,7 @@
+/// Sakura Version
+const SAKURA_VERSION: &str = "0.1.3";
+
 pub fn version_str() -> String {
-    "0.1.2".to_string()
+    SAKURA_VERSION.to_string()
 }
+
