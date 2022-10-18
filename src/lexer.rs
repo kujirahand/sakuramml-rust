@@ -18,8 +18,8 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             // ret
             '\n' => { cur.line += 1; },
             // lower command
-            'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ ドレミファソラシ c(音長),(ゲート),(音量)
-            'n' => result.push(read_note_n(&mut cur, song)), // @ 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量)
+            'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階)
+            'n' => result.push(read_note_n(&mut cur, song)), // @ 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング)
             'r' | '_' => result.push(read_rest(&mut cur)), // @ 休符
             'l' => result.push(read_length(&mut cur)), // @ 音長の指定(例 l4)
             'o' => result.push(read_octave(&mut cur, song)), // @ 音階の指定(例 o5) 範囲:0-10
@@ -559,10 +559,16 @@ fn read_note_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
         cur.get_int(0)
     };
     // veolocity
-    let vel = if !cur.eq_char(',') { 0 } else {
+    let vel = if !cur.eq_char(',') { -1 } else {
         cur.next();
         cur.skip_space();
-        cur.get_int(0)
+        cur.get_int(-1)
+    };
+    // timing
+    let timing = if !cur.eq_char(',') { isize::MIN } else {
+        cur.next();
+        cur.skip_space();
+        cur.get_int(isize::MIN)
     };
     Token::new(
         TokenType::NoteN,
@@ -572,6 +578,7 @@ fn read_note_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
             SValue::from_s(note_len),
             SValue::from_i(qlen),
             SValue::from_i(vel),
+            SValue::from_i(timing),
         ]
     )
 }
@@ -596,7 +603,19 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
         cur.get_int(0)
     };
     // veolocity
-    let vel = if !cur.eq_char(',') { 0 } else {
+    let vel = if !cur.eq_char(',') { -1 } else {
+        cur.next();
+        cur.skip_space();
+        cur.get_int(0)
+    };
+    // timing
+    let timing = if !cur.eq_char(',') { isize::MIN } else {
+        cur.next();
+        cur.skip_space();
+        cur.get_int(isize::MIN)
+    };
+    // octave
+    let octabe = if !cur.eq_char(',') { -1 } else {
         cur.next();
         cur.skip_space();
         cur.get_int(0)
@@ -618,6 +637,8 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
             SValue::from_s(note_len),
             SValue::from_i(qlen),
             SValue::from_i(vel),
+            SValue::from_i(timing),
+            SValue::from_i(octabe),
         ]
     )
 }

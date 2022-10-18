@@ -368,23 +368,29 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
 
 fn exec_note(song: &mut Song, t: &Token) {
     let trk = &mut song.tracks[song.cur_track];
+    // get parameters
     let note_no = (t.value % 12) as isize;
     let data_note_flag = t.data[0].to_i();
     let data_note_len = t.data[1].to_s();
-    let mut data_note_qlen = t.data[2].to_i();
-    let mut data_note_vel = t.data[3].to_i();
-    let o = trk.octave;
-    let noteno = o * 12 + note_no + data_note_flag + song.key_flag[note_no as usize];
+    let data_note_qlen = t.data[2].to_i(); // 0
+    let data_note_vel = t.data[3].to_i(); // -1
+    let data_note_t = t.data[4].to_i(); // isize::MIN
+    let data_note_o = t.data[5].to_i(); // -1
+    // check parameters
+    let qlen = if data_note_qlen != 0 { data_note_qlen } else { trk.qlen };
+    let v = if data_note_vel >= 0 { data_note_vel } else { trk.velocity };
+    let t = if data_note_t != isize::MIN { data_note_t } else { trk.timing };
+    let o = if data_note_o >= 0 { data_note_o } else { trk.octave };
+    // calc
+    let noteno = (o * 12 + note_no + data_note_flag + song.key_flag[note_no as usize]) & 0x7F;
     let notelen = calc_length(&data_note_len, song.timebase, trk.length);
-    if data_note_qlen <= 0 { data_note_qlen = trk.qlen; }
-    let notelen_real = (notelen as f32 * data_note_qlen as f32 / 100.0) as isize;
-    if data_note_vel <= 0 { data_note_vel = trk.velocity; }
-    let event = Event::note(trk.timepos, trk.channel, noteno, notelen_real, data_note_vel);
-    // println!("- {}: note(no={},len={},vel={})", trk.timepos, noteno, notelen_real, data_note_vel);
+    let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
+    let event = Event::note(trk.timepos + t, trk.channel, noteno, notelen_real, v);
+    // println!("- {}: note(no={},len={},qlen={},v={},t={},o={})", trk.timepos, noteno, notelen_real, qlen, v, t, o);
     trk.timepos += notelen;
     
     // harmony?
-    if notelen == 0 || song.flags.harmony_flag {
+    if song.flags.harmony_flag {
         trk.timepos = song.flags.harmony_time;
         song.flags.harmony_events.push(event);
     } else {
@@ -401,20 +407,28 @@ fn exec_note(song: &mut Song, t: &Token) {
 fn exec_note_n(song: &mut Song, t: &Token) {
     let data_note_no;
     let data_note_len;
-    let mut data_note_qlen;
-    let mut data_note_vel;
+    let data_note_qlen;
+    let data_note_vel;
+    let data_note_t;
+    // block for &mut song borrow checker
     {
         data_note_no = var_extract(&t.data[0], song).to_i();
         data_note_len = var_extract(&t.data[1], song).to_s();
-        data_note_qlen = var_extract(&t.data[2], song).to_i();
-        data_note_vel = var_extract(&t.data[3], song).to_i();
+        data_note_qlen = var_extract(&t.data[2], song).to_i(); // 0
+        data_note_vel = var_extract(&t.data[3], song).to_i(); // -1
+        data_note_t = var_extract(&t.data[4], song).to_i(); // isize::MIN
     }
+    // parametes
     let trk = &mut song.tracks[song.cur_track];
     let notelen = calc_length(&data_note_len, song.timebase, trk.length);
-    if data_note_qlen <= 0 { data_note_qlen = trk.qlen; }
-    let notelen_real = (notelen as f32 * data_note_qlen as f32 / 100.0) as isize;
-    if data_note_vel <= 0 { data_note_vel = trk.velocity; }
-    let event = Event::note(trk.timepos, trk.channel, data_note_no, notelen_real, data_note_vel);
+    let qlen = if data_note_qlen != 0 { data_note_qlen } else { trk.qlen };
+    let v = if data_note_vel >= 0 { data_note_vel } else { trk.velocity };
+    let t = if data_note_t != isize::MIN { data_note_t } else { trk.timing };
+    // calc
+    let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
+    let event = Event::note(trk.timepos + t, trk.channel, data_note_no, notelen_real, v);
+    // println!("- {}: note(no={},len={},qlen={},v={},t={})", trk.timepos, notelen_real, notelen, qlen, v, t);
+    // write event
     trk.events.push(event);
     trk.timepos += notelen;
 }
