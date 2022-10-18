@@ -34,6 +34,7 @@ pub enum TokenType {
     Div,
     Sub,
     KeyFlag,
+    KeyShift,
     DefInt,
     DefStr,
 }

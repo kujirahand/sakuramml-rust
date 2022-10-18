@@ -187,6 +187,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::Div => exec_div(song, t),
             TokenType::Sub => exec_sub(song, t),
             TokenType::KeyFlag => song.key_flag = t.data[0].to_int_array(),
+            TokenType::KeyShift => {
+                song.key_shift = var_extract(&t.data[0], song).to_i();
+            },
             TokenType::DefInt => {
                 let var_key = t.data[0].to_s().clone();
                 let var_val = var_extract(&t.data[1], song);
@@ -387,7 +390,7 @@ fn exec_note(song: &mut Song, t: &Token) {
     let t = if data_note_t != isize::MIN { data_note_t } else { trk.timing };
     let o = if data_note_o >= 0 { data_note_o } else { trk.octave };
     // calc
-    let noteno = (o * 12 + note_no + data_note_flag + song.key_flag[note_no as usize]) & 0x7F;
+    let noteno = (o * 12 + note_no + data_note_flag + song.key_flag[note_no as usize] + song.key_shift) & 0x7F;
     let notelen = calc_length(&data_note_len, song.timebase, trk.length);
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     let event = Event::note(trk.timepos + t, trk.channel, noteno, notelen_real, v);

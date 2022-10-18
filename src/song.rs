@@ -131,6 +131,7 @@ pub struct Song {
     pub rhthm_macro: Vec<String>,
     pub variables: HashMap<String, SValue>,
     pub key_flag: Vec<isize>,
+    pub key_shift: isize,
     pub logs: Vec<String>, // ログ
 }
 
@@ -149,6 +150,7 @@ impl Song {
             rhthm_macro: init_rhythm_macro(),
             variables: init_variables(),
             key_flag: vec![0,0,0,0,0,0,0,0,0,0,0,0],
+            key_shift: 0,
             logs: vec![],
         }
     }

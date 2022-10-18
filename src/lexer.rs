@@ -102,6 +102,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "SUB" || cmd == "Sub" { return read_command_sub(cur, song) } // @ タイムポインタを戻す (例 SUB{ceg} egb)
 
     if cmd == "KF" || cmd == "KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    if cmd == "KEY" || cmd == "Key" || cmd == "KeyShift" { return read_command_key(cur, song); } // @ ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde)
     if cmd == "INT" || cmd == "Int" { return read_def_int(cur, song); } // @ 変数を定義 (例 INT TestValue=30)
     if cmd == "STR" || cmd == "Str" { return read_def_str(cur, song); } // @ 文字列変数を定義 (例 STR A={cde})
     
@@ -386,6 +387,12 @@ fn read_command_sub(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let tokens = lex(song, &block, cur.line);
     let mut tok = Token::new(TokenType::Sub, 0, vec![]);
     tok.children = Some(tokens);
+    tok
+}
+
+fn read_command_key(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let v = read_arg_int(cur, song);
+    let tok = Token::new(TokenType::KeyShift, 0, vec![v]);
     tok
 }
 
