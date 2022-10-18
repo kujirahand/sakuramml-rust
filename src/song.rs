@@ -14,7 +14,6 @@ pub enum EventType {
     SysEx,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Event {
     pub etype: EventType,
@@ -52,7 +51,6 @@ impl Event {
 
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct Track {
     pub timepos: isize,
     pub channel: isize,
@@ -63,6 +61,8 @@ pub struct Track {
     pub timing: isize,
     pub v_rand: isize,
     pub t_rand: isize,
+    pub v_on_time_start: isize,
+    pub v_on_time: Option<Vec<isize>>,
     pub events: Vec<Event>,
 }
 
@@ -77,6 +77,8 @@ impl Track {
             timing: 0,
             v_rand: 0,
             t_rand: 0,
+            v_on_time_start: -1,
+            v_on_time: None,
             channel,
             events: vec![],
         }
@@ -157,6 +159,35 @@ impl Track {
             events.push(Event::voice(0, ch, voice));
         }
         self.events = events;
+    }
+    pub fn calc_on_time(&mut self, def: isize) -> isize {
+        let start_time = self.v_on_time_start;
+        let cur_time = self.timepos - start_time;
+        let mut result = isize::MIN;
+        // on_time?
+        let ia = match &self.v_on_time {
+            None => return def,
+            Some(pia) => pia.clone()
+        };
+        let mut area_time = 0;
+        for i in 0..ia.len() / 3 {
+            let low = ia[i*3+0];
+            let high = ia[i*3+1];
+            let len = ia[i*3+2];
+            let area_time_to = area_time + len;
+            if area_time <= cur_time && cur_time < area_time_to {
+                let v = (high - low) as f32 * ((cur_time - area_time) as f32 / len as f32) + low as f32;
+                result = v as isize;
+            }
+            area_time = area_time_to;
+        }
+        // over ?
+        if area_time <= cur_time {
+            self.v_on_time = None;
+            self.v_on_time_start = -1;
+        }
+        if result == isize::MIN { result = def; }
+        result
     }
 }
 

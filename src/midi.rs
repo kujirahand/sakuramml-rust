@@ -236,7 +236,7 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
                 },
                 _ => { // text
                     let txt = array_read_str(bin, p+3, meta_len);
-                    format!("Meta \ttype={:2x} len={:2x} text={}", meta_type, meta_len, txt)
+                    format!("Meta \ttype={:02x} len={:02x} text={}", meta_type, meta_len, txt)
                 }
             };
             *pos += 3 + meta_len;
@@ -286,32 +286,32 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
     let event_type = bin[p] & 0xF0;
     match event_type {
         0x80 => { // note on
-            let msg = format!("NoteOff   {:2x} {:2x} {:2x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
+            let msg = format!("NoteOff   {:02x} {:02x} {:02x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
             *pos += 3;
             msg
         },
         0x90 => { // note off
-            let msg = format!("NoteOn    {:2x} {:2x} {:2x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
+            let msg = format!("NoteOn    {:02x} {:02x} {:02x} : {},v{}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]), bin[p+2]);
             *pos += 3;
             msg
         },
         0xA0 => {
-            let msg = format!("PolyATouc {:2x} {:2x} {:2x}", bin[p], bin[p+1], bin[p+2]);
+            let msg = format!("PolyATouc {:02x} {:02x} {:02x}", bin[p], bin[p+1], bin[p+2]);
             *pos += 3;
             msg
         },
         0xB0 => { // CC
-            let msg = format!("CtrlChg   {:2x} {:2x} {:2x}", bin[p], bin[p+1], bin[p+2]);
+            let msg = format!("CtrlChg   {:02x} {:02x} {:02x}", bin[p], bin[p+1], bin[p+2]);
             *pos += 3;
             msg
         },
         0xC0 => { // CC
-            let msg = format!("ProgChg   {:2x} {:2x}", bin[p], bin[p+1]);
+            let msg = format!("ProgChg   {:02x} {:02x}", bin[p], bin[p+1]);
             *pos += 2;
             msg
         },
         0xD0 => { // Channel after touch
-            let msg = format!("ProgChg   {:2x} {:2x}", bin[p], bin[p+1]);
+            let msg = format!("ProgChg   {:02x} {:02x}", bin[p], bin[p+1]);
             *pos += 2;
             msg
         },

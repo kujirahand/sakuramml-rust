@@ -1,3 +1,4 @@
+use super::runner::calc_length;
 use super::song::Song;
 use super::cursor::TokenCursor;
 use super::svalue::SValue;
@@ -181,6 +182,11 @@ fn read_arg_value(cur: &mut TokenCursor, song: &mut Song) -> SValue {
                 None => SValue::from_s(format!("={}", vname)), // 変数への参照
             }
         },
+        '!' => { // timebase length
+            cur.next(); // skip !
+            let len_str = cur.get_note_length();
+            SValue::from_i(calc_length(&len_str, song.timebase, song.timebase))
+        },
         '-' | '0'..='9' => {
             let v = cur.get_int(0);
             SValue::from_i(v)
@@ -252,6 +258,40 @@ fn read_arg_int(cur: &mut TokenCursor, song: &mut Song) -> SValue {
         '=' => {
             cur.next();
             read_arg_value(cur, song)
+        },
+        _ => {
+            SValue::None
+        }
+    }
+}
+
+fn read_arg_value_int_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
+    let mut a: Vec<isize> = vec![];
+    loop {
+        cur.skip_space();
+        let v = read_arg_value(cur, song);
+        a.push(v.to_i());
+        cur.skip_space();
+        if ! cur.eq_char(',') { break; }
+        cur.next(); // skip ,
+    }
+    SValue::from_int_array(a)
+}
+
+fn read_arg_int_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
+    cur.skip_space();
+    let ch = cur.peek_n(0);
+    match ch {
+        '(' => {
+            cur.next(); // skip '('
+            let sv = read_arg_value_int_array(cur, song);
+            cur.skip_space();
+            if cur.peek_n(0) == ')' { cur.next(); }
+            return sv;
+        },
+        '=' => {
+            cur.next();
+            read_arg_value_int_array(cur, song)
         },
         _ => {
             SValue::None
@@ -594,9 +634,15 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
 fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // v.Random ?
     if cur.eq(".Random") {
-        cur.index += 7;
+        cur.index += ".Random".len();
         let r = read_arg_int(cur, song);
         return Token::new(TokenType::VelocityRandom, 0, vec![r])
+    }
+    // v.onTime
+    if cur.eq(".onTime") {
+        cur.index += ".onTime".len();
+        let av = read_arg_int_array(cur, song);
+        return Token::new(TokenType::VelocityOnTime, 0, vec![av])
     }
     // v(no)
     let value = read_arg_value(cur, song);

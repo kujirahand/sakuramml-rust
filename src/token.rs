@@ -42,6 +42,7 @@ pub enum TokenType {
     PlayFrom,
     VelocityRandom,
     TimingRandom,
+    VelocityOnTime,
 }
 
 #[allow(dead_code)]
