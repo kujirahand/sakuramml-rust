@@ -143,7 +143,7 @@ impl TokenCursor {
         while !self.is_eos() {
             let ch = self.peek_n(0);
             match ch {
-                '0'..='9' | '.' | '^' => {
+                '0'..='9' | '.' | '^' | '%' => {
                     res.push(ch);
                     self.index += 1;
                     continue;

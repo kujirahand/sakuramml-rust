@@ -323,9 +323,18 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
     let mut res = def_len;
     if len_str == "" { return def_len; }
     let mut cur = TokenCursor::from(len_str);
+    let mut step_mode = false;
+    if cur.eq_char('%') {
+        cur.next();
+        step_mode = true;
+    }
     if cur.is_numeric() {
-        let i = cur.get_int(4);
-        res = timebase * 4 / i;
+        if step_mode {
+            res = cur.get_int(0);
+        } else {
+            let i = cur.get_int(4);
+            res = timebase * 4 / i;
+        }
         if cur.peek_n(0) == '.' {
             cur.next();
             res = (res as f32 * 1.5) as isize;
@@ -333,9 +342,18 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
     }
     while !cur.is_eos() {
         if cur.peek_n(0) != '^' { break; }
+        cur.next(); // skip '^'
+        if cur.eq_char('%') {
+            step_mode = true;
+            cur.next();
+        }
         if cur.is_numeric() {
-            let i = cur.get_int(4);
-            let mut n = timebase * 4 / i;
+            let mut n = if step_mode {
+                cur.get_int(0)
+            } else {
+                let i = cur.get_int(0);
+                if i == 0 { def_len } else { timebase * 4 / i }
+            };
             if cur.peek_n(0) == '.' {
                 cur.next();
                 n = (res as f32 * 1.5) as isize;
@@ -344,7 +362,6 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
         } else {
             res += def_len;
         }
-        cur.next()
     }
     res
 }
@@ -443,5 +460,18 @@ mod tests {
         assert_eq!(calc_length("^^^", 480, 240), 480*2);
         assert_eq!(calc_length("4.", 480, 480), 480 + 240);
         assert_eq!(calc_length("4.^", 480, 240), 240*4);
+    }
+    #[test]
+    fn test_calc_le2() {
+        assert_eq!(calc_length("4", 96, 48), 96);
+        assert_eq!(calc_length("", 96, 48), 48);
+        assert_eq!(calc_length("^", 96, 48), 96);
+        assert_eq!(calc_length("^4", 96, 48), 48+96);
+    }
+    #[test]
+    fn test_calc_len_step() {
+        assert_eq!(calc_length("%96", 96, 96), 96);
+        assert_eq!(calc_length("4^%1", 96, 96), 97);
+        assert_eq!(calc_length("^%2", 96, 96), 98);
     }
 }

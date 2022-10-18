@@ -56,6 +56,7 @@ fn init_items() -> SutotonList {
     // <SUTOTON>
     items.push(SutotonItem::from("テンポ", "TEMPO="));
     items.push(SutotonItem::from("トラック", "TR="));
+    items.push(SutotonItem::from("チャンネル", "CH="));
     items.push(SutotonItem::from("全音符", "l1"));
     items.push(SutotonItem::from("二分音符", "l2"));
     items.push(SutotonItem::from("四分音符", "l4"));
