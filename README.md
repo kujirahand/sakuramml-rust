@@ -21,6 +21,7 @@
 - FOR IF WHILE
 - Key / KeyShift
 - PlayFrom
+- onNote, onTime, onCycle, Random, Range
 - onCycle onNote onWave 系の連続書き込み命令
 - & タイ
 

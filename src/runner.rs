@@ -328,7 +328,7 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
         cur.next();
         step_mode = true;
     }
-    if cur.is_numeric() {
+    if cur.is_numeric() || cur.eq_char('-') {
         if step_mode {
             res = cur.get_int(0);
         } else {
@@ -347,7 +347,7 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
             step_mode = true;
             cur.next();
         }
-        if cur.is_numeric() {
+        if cur.is_numeric() || cur.eq_char('-') {
             let mut n = if step_mode {
                 cur.get_int(0)
             } else {
@@ -473,5 +473,6 @@ mod tests {
         assert_eq!(calc_length("%96", 96, 96), 96);
         assert_eq!(calc_length("4^%1", 96, 96), 97);
         assert_eq!(calc_length("^%2", 96, 96), 98);
+        assert_eq!(calc_length("^%-1", 96, 48), 47);
     }
 }
