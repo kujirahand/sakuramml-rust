@@ -523,8 +523,13 @@ fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_loop(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let value = read_arg_value(cur, song);
-    Token::new(TokenType::LoopBegin, value.to_i(), vec![])
+    cur.skip_space();
+    let value = if cur.is_numeric() || cur.eq_char('=') || cur.eq_char('(') {
+        read_arg_value(cur, song)
+    } else {
+        SValue::from_i(2)
+    };
+    Token::new(TokenType::LoopBegin, 0, vec![value])
 }
 
 fn read_rest(cur: &mut TokenCursor) -> Token {

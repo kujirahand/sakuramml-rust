@@ -39,7 +39,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::LoopBegin => {
                 let mut it = LoopItem::new();
                 it.start_pos = pos + 1;
-                it.count = t.value as usize;
+                it.count = var_extract(&t.data[0], song).to_i() as usize;
                 loop_stack.push(it);
             },
             TokenType::LoopBreak => {
@@ -49,7 +49,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                         for i  in pos..tokens.len() {
                             match &tokens[i].ttype {
                                 TokenType::LoopEnd => {
-                                    it.end_pos = i;
+                                    it.end_pos = i + 1;
                                     break;
                                 },
                                 _ => {}

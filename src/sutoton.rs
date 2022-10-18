@@ -82,8 +82,8 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("ー", "^"));
     items.push(SutotonItem::from("「", "'"));
     items.push(SutotonItem::from("」", "'"));
-    items.push(SutotonItem::from("【", "'"));
-    items.push(SutotonItem::from("】", "'"));
+    items.push(SutotonItem::from("【", "["));
+    items.push(SutotonItem::from("】", "]"));
     items.push(SutotonItem::from("↑", ">"));
     items.push(SutotonItem::from("↓", "<"));
     items.push(SutotonItem::from("ん", "r"));
