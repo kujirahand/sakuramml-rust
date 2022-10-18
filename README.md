@@ -10,8 +10,6 @@
 
 ## 実装予定だが未実装
 
-- v.onTime, Random, Range
-- CC.onWave
 - & タイ
 
 ### 未実装で実装予定なし
@@ -132,6 +130,18 @@ v127 c ( c ( c (( c )) c ) c ) c
 
 ```
 `ceg` `dfa` `egb` `ceg`
+```
+
+### 先行指定とCCやPBの連続書き込み
+
+先行指定が使えます。
+
+- v.onTime(low, high, len, ...)　/ 省略形 v.T(low,high,len,...)
+- (ControllChange または PB または p).onTime(low, high, len, ...)
+
+```
+v.onTime(0,127,!1)l8cccccccc
+BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
 
 ## 参考

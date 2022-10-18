@@ -28,7 +28,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             'q' => result.push(read_qlen(&mut cur, song)), // @ ゲートの指定 (例 q90) 範囲:0-100
             'v' => result.push(read_velocity(&mut cur, song)), // @ ベロシティ音量の指定 範囲:0-127 / v.Random=n
             't' => result.push(read_timing(&mut cur, song)), // @ 発音タイミングの指定 (例 t-1) / t.Random=n
-            'y' => result.push(read_cc(&mut cur, song)), // @ コントロールチェンジの指定 (例 y1,100) 範囲:0-127
+            'y' => result.push(read_cc(&mut cur, song)), // @ コントロールチェンジの指定 (例 y1,100) 範囲:0-127 / y1.onTime(low,high,len)
             // uppwer command
             'A'..='Z' => result.push(read_upper_command(&mut cur, song)), 
             // flag
@@ -585,6 +585,15 @@ fn read_command_time(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
+    if cur.eq(".onTime") || cur.eq(".T") {
+        if cur.eq(".onTime") {
+            cur.index += ".onTime".len();
+        } else {
+            cur.index += ".T".len();
+        }
+        let ia = read_arg_int_array(cur, song);
+        return Token::new(TokenType::CConTime, no, vec![ia]);
+    }
     let v = read_arg_int(cur, song);
     return Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(no), v]);
 }
@@ -662,17 +671,48 @@ fn read_timing(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_command_pitch_bend_big(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    if cur.eq(".onTime") || cur.eq(".T") {
+        if cur.eq(".onTime") {
+            cur.index += ".onTime".len();
+        } else {
+            cur.index += ".T".len();
+        }
+        let ia = read_arg_int_array(cur, song);
+        return Token::new(TokenType::PBonTime, 1, vec![ia]);
+    }
     let value = read_arg_value(cur, song);
     Token::new(TokenType::PitchBend, 1, vec![value])
 }
 
 fn read_pitch_bend_small(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    if cur.eq(".onTime") || cur.eq(".T") {
+        if cur.eq(".onTime") {
+            cur.index += ".onTime".len();
+        } else {
+            cur.index += ".T".len();
+        }
+        let ia = read_arg_int_array(cur, song);
+        return Token::new(TokenType::PBonTime, 0, vec![ia]);
+    }
     let value = read_arg_value(cur, song);
     Token::new(TokenType::PitchBend, 0, vec![value])
 }
 
 fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    // red CC no
     let no = read_arg_value(cur, song);
+    
+    // .onTime
+    if cur.eq(".onTime") || cur.eq(".T") {
+        if cur.eq(".onTime") {
+            cur.index += ".onTime".len();
+        } else {
+            cur.index += ".T".len();
+        }
+        let ia = read_arg_int_array(cur, song);
+        return Token::new(TokenType::CConTime, no.to_i(), vec![ia]);
+    }
+
     cur.skip_space();
     if !cur.eq_char(',') {
         return Token::new(TokenType::Error, 0, vec![

@@ -1,7 +1,8 @@
 /// song & track
 use std::collections::HashMap;
-use super::svalue::SValue;
-use super::sakura_version;
+use crate::runner::value_range;
+use crate::svalue::SValue;
+use crate::sakura_version;
 
 #[derive(Debug, Clone)]
 pub enum EventType {
@@ -160,7 +161,7 @@ impl Track {
         }
         self.events = events;
     }
-    pub fn calc_on_time(&mut self, def: isize) -> isize {
+    pub fn calc_v_on_time(&mut self, def: isize) -> isize {
         let start_time = self.v_on_time_start;
         let cur_time = self.timepos - start_time;
         let mut result = isize::MIN;
@@ -188,6 +189,46 @@ impl Track {
         }
         if result == isize::MIN { result = def; }
         result
+    }
+    pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>, timebase: isize) {
+        let freq = timebase / 32;
+        for i in 0..ia.len() / 3 {
+            let low = ia[i*3+0];
+            let high = ia[i*3+1];
+            let len = ia[i*3+2];
+            for j in 0..len {
+                if (j % freq) == 0 {
+                    let v = (high - low) as f32 * (j as f32 / len as f32) + low as f32;
+                    let v = value_range(0, v as isize, 127);
+                    let e = Event::cc(self.timepos + j, self.channel, cc_no, v);
+                    self.events.push(e);
+                }
+            }
+        }
+    }
+    pub fn write_pb_on_time(&mut self, is_big: isize, ia: Vec<isize>, timebase: isize) {
+        let freq = timebase / 32;
+        for i in 0..ia.len() / 3 {
+            let mut low = ia[i*3+0];
+            let mut high = ia[i*3+1];
+            if is_big == 0 { // small
+                low = low * 128;
+                high = high * 128;
+            } else { // big
+                low += 8192;
+                high += 8192;
+            }
+            // println!("@@@PB.T={},{}", low,high);
+            let len = ia[i*3+2];
+            for j in 0..len {
+                if (j % freq) == 0 {
+                    let v = (high - low) as f32 * (j as f32 / len as f32) + low as f32;
+                    let v = value_range(0, v as isize, 0x7f7f);
+                    let e = Event::pitch_bend(self.timepos + j, self.channel, v);
+                    self.events.push(e);
+                }
+            }
+        }
     }
 }
 
