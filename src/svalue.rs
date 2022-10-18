@@ -12,7 +12,7 @@ impl SValue {
     pub fn new() -> Self {
         Self::None
     }
-    pub fn new_int_array(a: Vec<isize>) -> SValue {
+    pub fn from_int_array(a: Vec<isize>) -> Self {
         let mut sa: Vec<SValue> = vec![];
         for v in a.iter() {
             sa.push(SValue::from_i(*v));
@@ -42,6 +42,20 @@ impl SValue {
             Self::Str(s) => s.clone(),
             Self::None => String::new(),
             _ => String::new(),
+        }
+    }
+    pub fn to_int_array(&self) -> Vec<isize> {
+        match self {
+            Self::Array(a) => {
+                let mut res: Vec<isize> = vec![];
+                for v in a.iter() {
+                    res.push(v.to_i());
+                }
+                res
+            },
+            _ => {
+                vec![self.to_i()]
+            }
         }
     }
 }

@@ -14,7 +14,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
         match ch {
             // <CHAR_COMMANDS>
             // space
-            ' ' | '\t' | '\r' | '|' => { }, // @ 空白文字
+            ' ' | '\t' | '\r' | '|' | ';' => { }, // @ 空白文字
             // ret
             '\n' => { cur.line += 1; },
             // lower command
@@ -89,6 +89,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "SUB" || cmd == "Sub" { return read_command_sub(cur, song) } // @ タイムポインタを戻す (例 SUB{ceg} egb)
 
     if cmd == "INT" || cmd == "Int" { return read_def_int(cur, song); } // @ 変数を定義 (例 INT TestValue=30)
+    if cmd == "KF" || cmd == "KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
     
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1, song); } // @ モジュレーション 範囲: 0-127
@@ -289,6 +290,41 @@ fn scan_chars(s: &str, c: char) -> isize {
         if ch == c { cnt += 1; }
     }
     cnt
+}
+
+fn read_key_flag(cur: &mut TokenCursor, _song: &mut Song) -> Token {
+    let mut flag = 1;
+    let mut key_flag = vec![0,0,0,0,0,0,0,0,0,0,0,0];
+    cur.skip_space();
+    if cur.eq_char('=') { cur.next(); }
+    cur.skip_space();
+    // flag
+    match cur.peek_n(0) {
+        '+' | '#' => { cur.next(); flag = 1; },
+        '-' => { cur.next(); flag = -1; }
+        _ => {},
+    }
+    // check note
+    cur.skip_space();
+    if cur.eq_char('(') { cur.next(); }
+    while !cur.is_eos() {
+        cur.skip_space();
+        match cur.peek_n(0) {
+            'c' => { cur.next(); key_flag[0] = flag; },
+            'd' => { cur.next(); key_flag[2] = flag; },
+            'e' => { cur.next(); key_flag[4] = flag; },
+            'f' => { cur.next(); key_flag[5] = flag; },
+            'g' => { cur.next(); key_flag[7] = flag; },
+            'a' => { cur.next(); key_flag[9] = flag; },
+            'b' => { cur.next(); key_flag[11] = flag; },
+            _ => break,
+        }
+    }
+    cur.skip_space();
+    if cur.eq_char(')') { cur.next(); }
+    // token
+    let tok = Token::new(TokenType::KeyFlag, 0, vec![SValue::from_int_array(key_flag)]);
+    tok
 }
 
 fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {

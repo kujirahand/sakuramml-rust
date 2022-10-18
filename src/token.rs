@@ -34,6 +34,7 @@ pub enum TokenType {
     Div,
     Sub,
     DefInt,
+    KeyFlag,
 }
 
 #[allow(dead_code)]

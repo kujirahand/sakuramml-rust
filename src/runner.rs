@@ -189,7 +189,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let var_key = t.data[0].to_s().clone();
                 let var_val = var_extract(&t.data[1], song);
                 song.variables.insert(var_key, var_val);
-            }
+            },
+            TokenType::KeyFlag => song.key_flag = t.data[0].to_int_array(),
         }
         pos += 1;
     }
@@ -349,12 +350,13 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
 
 fn exec_note(song: &mut Song, t: &Token) {
     let trk = &mut song.tracks[song.cur_track];
+    let note_no = (t.value % 12) as isize;
     let data_note_flag = t.data[0].to_i();
     let data_note_len = t.data[1].to_s();
     let mut data_note_qlen = t.data[2].to_i();
     let mut data_note_vel = t.data[3].to_i();
     let o = trk.octave;
-    let noteno = o * 12 + t.value + data_note_flag;
+    let noteno = o * 12 + note_no + data_note_flag + song.key_flag[note_no as usize];
     let notelen = calc_length(&data_note_len, song.timebase, trk.length);
     if data_note_qlen <= 0 { data_note_qlen = trk.qlen; }
     let notelen_real = (notelen as f32 * data_note_qlen as f32 / 100.0) as isize;

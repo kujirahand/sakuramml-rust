@@ -3,9 +3,10 @@
 「ドレミ」や「cde」のテキストをMIDIファイルに変換するコンパイラです。
 手軽に音楽を作成できるツールです。
 
-## バグ
+## TODO & バグ
 
 - ピッチベンドの値がおかしい BR(4) PB=0 c PB=-8192 c
+- KeyFlagがない -- https://sakuramml.com/doc/kouza/page6.htm
 
 ## どこまで作ったか
 

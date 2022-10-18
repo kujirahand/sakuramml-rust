@@ -2,7 +2,7 @@
 
 | コマンド | 説明    |
 |---------|--------|
-|' ' '\t' '\r' ' '| 空白文字|
+|' ' '\t' '\r' ' ' ';'| 空白文字|
 |'c' 'd' 'e' 'f' 'g' 'a' 'b'| ドレミファソラシ c(音長),(ゲート),(音量)|
 |'n'| 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量)|
 |'r' '_'| 休符|
@@ -15,6 +15,8 @@
 |'@'| 音色の指定 範囲:1-128|
 |'>'| 音階を1つ上げる|
 |'<'| 音階を1つ下げる|
+|')'| 音量を8つ上げる|
+|'('| 音量を8つ下げる|
 |"//"| 一行コメント|
 |"/*" .. "*/"| 範囲コメント|
 |'['| ループ開始 (例 [4 cdeg])|
@@ -58,6 +60,9 @@
 |"↑"| 定義: ">"|
 |"↓"| 定義: "<"|
 |"ん"| 定義: "r"|
+|"♭"| 定義: "-"|
+|"♯"| 定義: "#"|
+|"調"| 定義: "KeyFlag="|
 |"ど"| 定義: "n36|
 |"た"| 定義: "n38|
 |"つ"| 定義: "n42|
@@ -69,8 +74,10 @@
 |"TIME" "Time"| タイム変更 TIME(節:拍:ステップ)|
 |"RHYTHM" "Rhythm" "R"| リズムモード|
 |"RYTHM" "Rythm"| リズムモード(v1の綴りミス対処[^^;])|
-|"DIV" "Div"| 連符 (例 DIV=>ceg} )|
-|"SUB" "Sub"| タイムポインタを戻す (例 SUB=>ceg} egb)|
+|"DIV" "Div"| 連符 (例 DIV{ceg} )|
+|"SUB" "Sub"| タイムポインタを戻す (例 SUB{ceg} egb)|
+|"INT" "Int"| 変数を定義 (例 INT TestValue=30)|
+|"KF" "KeyFlag"| 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)|
 |"M" "Modulation"| モジュレーション 範囲: 0-127|
 |"PT" "PortamentoTime"| ポルタメント 範囲: 0-127|
 |"V" "MainVolume"| メインボリューム 範囲: 0-127|
@@ -79,8 +86,23 @@
 |"PS" "PortamentoSwitch"| ポルタメントスイッチ|
 |"REV" "Reverb"| リバーブ 範囲: 0-127|
 |"CHO" "Chorus"| コーラス 範囲: 0-127|
+|"PB" "PitchBend"| ピッチベンドを指定 範囲: -8192~0~8191の範囲|
+|"BR" "PitchBendSensitivity"| ピッチベンドの範囲を設定 範囲: 0-12半音|
+|"FineTune"| チューニングの微調整 範囲:0-64-127 (-100 - 0 - +99.99セント）|
+|"CoarseTune"| 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音)|
+|"VibratoRate"| 音色の編集(GS/XG) 範囲: 0-127|
+|"VibratoDepth"| 音色の編集(GS/XG) 範囲: 0-127|
+|"VibratoDelay"| 音色の編集(GS/XG) 範囲: 0-127|
+|"FilterCutoff"| 音色の編集(GS/XG) 範囲: 0-127|
+|"FilterResonance"| 音色の編集(GS/XG) 範囲: 0-127|
+|"EGAttack"| 音色の編集(GS/XG) 範囲: 0-127|
+|"EGDecay"| 音色の編集(GS/XG) 範囲: 0-127|
+|"EGRelease"| 音色の編集(GS/XG) 範囲: 0-127|
+|"ResetGM"| GMリセットを送信|
+|"ResetGS"| GSリセットを送信|
+|"ResetXG"| XGリセットを送信|
 |"TEMPO" "Tempo" "T"| テンポの指定|
 |"TimeSignature" "TimeSig" "TIMESIG"| 拍子の指定|
-|"MetaText" "TEXT" "Text"| メタテキスト (例 TEXT=>"abcd"})|
-|"COPYRIGHT" "Copyright"| メタテキスト著作権 (例 COPYRIGHT=>"aaa"})|
-|"LYRIC" "Lyric"| メタテキスト歌詞 (例 LYRIC=>"aaa"})|
+|"MetaText" "TEXT" "Text"| メタテキスト (例 TEXT{"abcd"})|
+|"COPYRIGHT" "Copyright"| メタテキスト著作権 (例 COPYRIGHT{"aaa"})|
+|"LYRIC" "Lyric"| メタテキスト歌詞 (例 LYRIC{"aaa"})|

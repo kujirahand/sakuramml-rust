@@ -89,6 +89,7 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("ん", "r"));
     items.push(SutotonItem::from("♭", "-"));
     items.push(SutotonItem::from("♯", "#"));
+    items.push(SutotonItem::from("調", "KeyFlag="));
     items.push(SutotonItem::from("ど", "n36,"));
     items.push(SutotonItem::from("た", "n38,"));
     items.push(SutotonItem::from("つ", "n42,"));

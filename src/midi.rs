@@ -104,12 +104,15 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 }
             },
             EventType::PitchBend => {
+                let v = e.v1;
+                let msb = ((v >> 7) & 0x7F) as u8;
+                let lsb = ((v >> 0) & 0x7F) as u8;
+                // println!("PB={}(0x{:02x}{:02x})", v, msb, lsb);
                 array_push_delta(&mut res, e.time - timepos);
                 timepos = e.time;
-                let v = e.v1;
                 res.push(0xE0 + e.channel as u8);
-                res.push((v >> 7 | 0x7F) as u8);
-                res.push((v >> 0 | 0x7F) as u8);
+                res.push(lsb);
+                res.push(msb);
             }
         }
     }
@@ -133,9 +136,6 @@ pub fn generate(song: &mut Song) -> Vec<u8> {
     array_push_u16(&mut res, song.timebase);
     // tracks
     for track_no in 0..song.tracks.len() {
-        if song.debug {
-            println!("TR={}", track_no);
-        }
         let trk = &song.tracks[track_no];
         let block = generate_track(&trk);
         array_push_str(&mut res, "MTrk");
@@ -218,7 +218,7 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
             let msg = match meta_type {
                 0x2F => { // end of track
                     info.is_eot = true;
-                    String::from("END_OF_TRACK")
+                    String::from("__END_OF_TRACK__")
                 },
                 0x51 => { // tempo
                     // mpq = 60000000 / tempo || mpq * tempo = 60000000 || tempo = 60000000 / mpq
@@ -285,39 +285,40 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
     let event_type = bin[p] & 0xF0;
     match event_type {
         0x80 => { // note on
-            let msg = format!("NoteOff\t{:2x} {:2x} {:2x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
+            let msg = format!("NoteOff   {:2x} {:2x} {:2x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
             *pos += 3;
             msg
         },
         0x90 => { // note off
-            let msg = format!("NoteOn\t{:2x} {:2x} {:2x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
+            let msg = format!("NoteOn    {:2x} {:2x} {:2x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
             *pos += 3;
             msg
         },
         0xA0 => {
-            let msg = format!("PolyAfTouch\t{:2x} {:2x} {:2x}", bin[p], bin[p+1], bin[p+2]);
+            let msg = format!("PolyATouc {:2x} {:2x} {:2x}", bin[p], bin[p+1], bin[p+2]);
             *pos += 3;
             msg
         },
         0xB0 => { // CC
-            let msg = format!("CtrlChg\t{:2x} {:2x} {:2x}", bin[p], bin[p+1], bin[p+2]);
+            let msg = format!("CtrlChg   {:2x} {:2x} {:2x}", bin[p], bin[p+1], bin[p+2]);
             *pos += 3;
             msg
         },
         0xC0 => { // CC
-            let msg = format!("ProgChg\t{:2x} {:2x}", bin[p], bin[p+1]);
+            let msg = format!("ProgChg   {:2x} {:2x}", bin[p], bin[p+1]);
             *pos += 2;
             msg
         },
         0xD0 => { // Channel after touch
-            let msg = format!("ProgChg\t{:2x} {:2x}", bin[p], bin[p+1]);
+            let msg = format!("ProgChg   {:2x} {:2x}", bin[p], bin[p+1]);
             *pos += 2;
             msg
         },
         0xE0 => { // PitchBend
-            let vv: isize = ((bin[p+1] as isize) << 7) | bin[p+2] as isize;
+            // PichBend is Little Endian!!
+            let vv: isize = ((bin[p+2] as isize) << 7) | bin[p+1] as isize;
             let pb: isize = vv - 8192;
-            let msg = format!("PitchBend\t{:2x} ={}", bin[p], pb);
+            let msg = format!("PitchBend {:02x} {:02x} {:02x} : PB({})", bin[p], bin[p+1], bin[p+2], pb);
             *pos += 3;
             msg
         },
@@ -365,7 +366,8 @@ pub fn dump_midi(bin: &Vec<u8>) -> String {
     pos += 2;
     // tracks
     for no in 0..track_count {
-        log(&format!("--- track no={} ---", no));
+        log(&format!("----------------------"));
+        log(&format!("[MTrk] no={}", no));
         let mtrk = array_read_str(bin, pos, 4);
         if mtrk != "MTrk" {
             log(&format!("[ERROR] Track header broken MTrk!={}", mtrk));
@@ -373,7 +375,7 @@ pub fn dump_midi(bin: &Vec<u8>) -> String {
         }
         pos += 4;
         let mtrk_size = array_read_u32(bin, pos);
-        log(&format!("track_block_size={}", mtrk_size));
+        log(&format!("[MTrk] track_block_size={}B", mtrk_size));
         pos += 4;
         let mut time = 0;
         // loop track
@@ -388,7 +390,7 @@ pub fn dump_midi(bin: &Vec<u8>) -> String {
             let mes = base / info.frac + 1;
             //
             let desc = dump_midi_event(bin, &mut pos, &mut info);
-            log(&format!("TIME({:03}:{:03}:{:03}){:5}| {}", mes, beat, tick, time, desc));
+            log(&format!("{:5}|TIME({:03}:{:03}:{:03}) {}", time, mes, beat, tick, desc));
         }
         info.is_eot = false;
     }
