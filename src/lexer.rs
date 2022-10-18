@@ -577,7 +577,7 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
     loop {
         match cur.peek_n(0) {
             '+' | '#' => { note_flag += 1; cur.next(); },
-            '-' => { note_flag += 1; cur.next(); },
+            '-' => { note_flag -= 1; cur.next(); },
             _ => break,
         }
     }
