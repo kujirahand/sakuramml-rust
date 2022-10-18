@@ -106,6 +106,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "INT" || cmd == "Int" { return read_def_int(cur, song); } // @ 変数を定義 (例 INT TestValue=30)
     if cmd == "STR" || cmd == "Str" { return read_def_str(cur, song); } // @ 文字列変数を定義 (例 STR A={cde})
     if cmd == "PLAY" || cmd == "Play" { return read_play(cur, song); } // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
+    if cmd == "PRINT" || cmd == "Print" { return read_print(cur, song); } // @ 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA))
     
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1, song); } // @ モジュレーション 範囲: 0-127
@@ -358,6 +359,11 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
         var_value,
     ]);
     tok
+}
+
+fn read_print(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let val = read_arg_value_str(cur, song);
+    Token::new(TokenType::Print, 0, vec![val])
 }
 
 fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {

@@ -35,6 +35,12 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     println!("[ERROR]");
                 }
             },
+            TokenType::Print => {
+                let msg = var_extract(&t.data[0], song).to_s();
+                let msg = format!("[PRINT] {}", msg);
+                if song.debug { println!("{}", msg); }
+                song.logs.push(msg);
+            },
             // Loop controll
             TokenType::LoopBegin => {
                 let mut it = LoopItem::new();

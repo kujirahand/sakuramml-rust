@@ -5,6 +5,7 @@ use super::svalue::SValue;
 pub enum TokenType {
     Error,
     Empty,
+    Print,
     Note,
     NoteN,
     Rest,

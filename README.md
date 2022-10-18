@@ -11,7 +11,6 @@
 ## 実装予定だが未実装
 
 - マクロ
-- Play
 - Print
 - PlayFrom
 - v.onTime, Random, Range
