@@ -38,6 +38,7 @@ pub enum TokenType {
     KeyShift,
     DefInt,
     DefStr,
+    PlayFrom,
 }
 
 #[allow(dead_code)]

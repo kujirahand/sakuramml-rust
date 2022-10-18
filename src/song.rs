@@ -99,6 +99,61 @@ impl Track {
     pub fn events_sort(&mut self) {
         self.events.sort_by(|a, b| a.time.cmp(&b.time));
     }
+    pub fn play_from(&mut self, timepos: isize) {
+        let mut events: Vec<Event> = vec![];
+        let mut cc_values: Vec<isize> = vec![];
+        let mut voice: isize = -1;
+        let mut ch: isize = 0;
+        for _ in 0..128 { cc_values.push(-1); }
+        for e in self.events.iter() {
+            match e.etype {
+                EventType::Meta | EventType::SysEx => {
+                    let mut e2 = e.clone();
+                    e2.time -= timepos;
+                    if e2.time < 0 { e2.time = 0; }
+                    events.push(e2);
+                },
+                EventType::NoteNo => {
+                    let mut e2 = e.clone();
+                    e2.time -= timepos;
+                    if e2.time < 0 { continue; }
+                    events.push(e2);
+                },
+                EventType::Voice => {
+                    let mut e2 = e.clone();
+                    e2.time -= timepos;
+                    if e2.time < 0 {
+                        voice = e2.v1;
+                        ch = e2.channel;
+                        continue;
+                    }
+                    events.push(e2);
+                },
+                EventType::ControllChange => {
+                    let mut e2 = e.clone();
+                    e2.time -= timepos;
+                    if e2.time < 0 {
+                        cc_values[e2.v1 as usize] = e2.v2;
+                        ch = e2.channel;
+                        continue;
+                    }
+                    events.push(e2);
+                },
+                EventType::NoteOff => {},
+                EventType::PitchBend => {},
+            }
+        }
+        // add cc
+        for no in 0..128 {
+            if cc_values[no] < 0 { continue; }
+            events.push(Event::cc(0, ch, no as isize, cc_values[no as usize]));
+        }
+        // voice
+        if voice >= 0 {
+            events.push(Event::voice(0, ch, voice));
+        }
+        self.events = events;
+    }
 }
 
 #[derive(Debug)]
@@ -132,6 +187,7 @@ pub struct Song {
     pub variables: HashMap<String, SValue>,
     pub key_flag: Vec<isize>,
     pub key_shift: isize,
+    pub play_from: isize,
     pub logs: Vec<String>, // ログ
 }
 
@@ -151,6 +207,7 @@ impl Song {
             variables: init_variables(),
             key_flag: vec![0,0,0,0,0,0,0,0,0,0,0,0],
             key_shift: 0,
+            play_from: -1,
             logs: vec![],
         }
     }
@@ -161,6 +218,13 @@ impl Song {
         for trk in self.tracks.iter_mut() {
             trk.normalize();
             trk.events_sort();
+        }
+    }
+    pub fn play_from_all_track(&mut self) {
+        if self.play_from < 0 { return; }
+        if self.debug { println!("PLAY_FROM={}", self.play_from); }
+        for trk in self.tracks.iter_mut() {
+            trk.play_from(self.play_from);
         }
     }
 }

@@ -127,6 +127,7 @@ fn generate_track(track: &Track) -> Vec<u8> {
 pub fn generate(song: &mut Song) -> Vec<u8> {
     let midi_format = 1;
     let mut res: Vec<u8> = vec![];
+    song.play_from_all_track();
     song.normalize_and_sort();
     // header
     array_push_str(&mut res, "MThd");

@@ -11,7 +11,6 @@
 ## 実装予定だが未実装
 
 - マクロ
-- Print
 - PlayFrom
 - v.onTime, Random, Range
 - CC.onWave

@@ -89,9 +89,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.tracks[song.cur_track].channel = v as isize;
             },
             TokenType::Voice => {
-                let no = var_extract(&t.data[0], song);
+                let no = var_extract(&t.data[0], song).to_i() - 1;
                 let trk = &song.tracks[song.cur_track];
-                song.add_event(Event::voice(trk.timepos, trk.channel, no.to_i()));
+                song.add_event(Event::voice(trk.timepos, trk.channel, no));
             },
             TokenType::Note => exec_note(song, t),
             TokenType::NoteN => exec_note_n(song, t),
@@ -206,6 +206,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let var_val = var_extract(&t.data[1], song);
                 song.variables.insert(var_key, var_val);
             },
+            TokenType::PlayFrom => {
+                song.play_from = song.tracks[song.cur_track].timepos;
+            }
         }
         pos += 1;
     }
