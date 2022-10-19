@@ -13,6 +13,11 @@
 | 八分音符 | 定義: "l8" |
 | 十六音符 | 定義: "l16" |
 | 付点四分音符 | 定義: "l4." |
+| 作者 | 定義: "COPYRIGHT=" |
+| 曲名 | 定義: "TrackName=" |
+| コメント | 定義: "MetaText=" |
+| 拍子 | 定義: "TimeSig=" |
+| 音源初期化 | 定義: "ResetGM()" |
 | 音長 | 定義: "l" |
 | 音符 | 定義: "l" |
 | 音階 | 定義: "o" |
@@ -127,7 +132,11 @@
 | TimeSignature / TimeSig / TIMESIG | 拍子の指定 |
 | MetaText / TEXT / Text | メタテキスト (例 TEXT{"abcd"}) |
 | COPYRIGHT / Copyright | メタテキスト著作権 (例 COPYRIGHT{"aaa"}) |
+| TRACK_NAME / TrackName | 曲名 (例 TRACK_NAME{"aaa"}) |
+| InstrumentName | 楽器名 (例 InstrumentName{"aaa"}) |
 | LYRIC / Lyric | メタテキスト歌詞 (例 LYRIC{"aaa"}) |
+| MAKER / Marker | マーカー (例 MAKER{"aaa"}) |
+| CuePoint | キューポイント (例 CuePoint{"aaa"}) |
 
 
 ## 音色など変数定義
