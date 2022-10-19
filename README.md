@@ -11,8 +11,6 @@
 ## 実装予定だが未実装
 
 - #マクロ --- #マクロ={ l#?1 ccc } #Ama(8)
-- TrackSync
-- System.MeasureShift(1)
 - & タイ
 
 ### 未実装で実装予定なし

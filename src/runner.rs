@@ -553,4 +553,18 @@ mod tests {
         let pos = song.tracks[0].timepos;
         assert_eq!(pos, 96*4);
     }
+    #[test]
+    fn test_lex_macro_str() {
+        //
+        let song = exec_easy("#A={o#?1} #A(0) c");
+        assert_eq!(song.tracks[0].events[0].v1, 0);
+        //
+        let song = exec_easy("STR AAA={o#?1} AAA(0) d");
+        assert_eq!(song.tracks[0].events[0].v1, 2);
+        //
+        let song = exec_easy("STR BBB={o0 #?1 #?2 #?3} BBB({c},{d},{e})");
+        assert_eq!(song.tracks[0].events[0].v1, 0);
+        assert_eq!(song.tracks[0].events[1].v1, 2);
+        assert_eq!(song.tracks[0].events[2].v1, 4);
+    }
 }

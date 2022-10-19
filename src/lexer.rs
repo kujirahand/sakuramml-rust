@@ -78,6 +78,28 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
     result
 }
 
+fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SValue) -> Token {
+    match sval {
+        SValue::Str(src_org, line_no) => {
+            let mut src = src_org.clone();
+            // replace macro ?
+            if cur.eq_char('(') { // has parameters
+                let mut args = read_arg_array(cur, song).to_array();
+                for (i, v) in args.iter_mut().enumerate() {
+                    let pat = format!("#?{}", i+1);
+                    src = src.replace(&pat, &v.to_s());
+                }
+            }
+            // lex source
+            let tokens = lex(song, &src, line_no);
+            return Token::new_tokens(TokenType::Tokens, line_no, tokens);    
+        },
+        _ => {
+            return Token::new_empty(&format!("Could not execute: {}", name));
+        },
+    }
+}
+
 /// read Upper case commands
 fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token {
     cur.prev(); // back 1char
@@ -94,17 +116,10 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     }
 
     // variables?
-    let sval: SValue = match song.variables.get(&cmd) {
-        None => SValue::None,
-        Some(sval) => sval.clone(),
+    match song.variables.get(&cmd) {
+        Some(sval) => return read_variables(cur, song, &cmd, sval.clone()),
+        None => {},
     };
-    match sval {
-        SValue::Str(src, line_no) => {
-            let tokens = lex(song, &src, line_no);
-            return Token::new_tokens(TokenType::Tokens, line_no, tokens);    
-        },
-        _ => {},
-    }
 
     // Systemの場合は"."に続く
     if cmd == "System" {
@@ -338,6 +353,40 @@ fn read_arg_int_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
         '=' => {
             cur.next();
             read_arg_value_int_array(cur, song)
+        },
+        _ => {
+            SValue::None
+        }
+    }
+}
+
+fn read_arg_value_sv_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
+    let mut a: Vec<SValue> = vec![];
+    loop {
+        cur.skip_space();
+        let v = read_arg_value(cur, song);
+        a.push(v);
+        cur.skip_space();
+        if ! cur.eq_char(',') { break; }
+        cur.next(); // skip ,
+    }
+    SValue::Array(a)
+}
+
+fn read_arg_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
+    cur.skip_space();
+    let ch = cur.peek_n(0);
+    match ch {
+        '(' => {
+            cur.next(); // skip '('
+            let sv = read_arg_value_sv_array(cur, song);
+            cur.skip_space();
+            if cur.peek_n(0) == ')' { cur.next(); }
+            return sv;
+        },
+        '=' => {
+            cur.next();
+            read_arg_value_sv_array(cur, song)
         },
         _ => {
             SValue::None
