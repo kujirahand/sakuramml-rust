@@ -301,10 +301,11 @@ fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
     if song.flags.harmony_flag {
         song.flags.harmony_flag = false;
         // get harmony length
-        let mut trk = &mut song.tracks[song.cur_track];
         let note_len_s = t.data[0].to_s();
-        let note_qlen = t.data[1].to_i();
-        let note_len = calc_length(&note_len_s, song.timebase, trk.length);
+        let mut note_qlen = t.data[1].to_i();
+        // parameters
+        if note_qlen < 0 { note_qlen = trk!(song).qlen; }
+        let note_len = calc_length(&note_len_s, song.timebase, trk!(song).length);
         // change event length
         while song.flags.harmony_events.len() > 0 {
             let mut e = song.flags.harmony_events.pop().unwrap();
@@ -312,9 +313,9 @@ fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
             if note_qlen != 0 {
                 e.v2 = note_len * note_qlen / 100;
             }
-            trk.events.push(e);
+            trk!(song).events.push(e);
         }
-        trk.timepos = song.flags.harmony_time + note_len;
+        trk!(song).timepos = song.flags.harmony_time + note_len;
         return;
     }
 }
@@ -502,6 +503,8 @@ pub fn exec_easy(src: &str) -> Song {
 
 #[cfg(test)]
 mod tests {
+    use crate::song::EventType;
+
     use super::*;
     #[test]
     fn test_calc_len() {
@@ -528,9 +531,16 @@ mod tests {
         assert_eq!(calc_length("^%-1", 96, 48), 47);
     }
     #[test]
-    fn test_run() {
+    fn test_exec1() {
         assert_eq!(exec_easy("PRINT{1}").get_logs_str(), "[PRINT](0) 1");
         assert_eq!(exec_easy("PRINT{abc}").get_logs_str(), "[PRINT](0) abc");
         assert_eq!(exec_easy("STR A={abc} PRINT=A").get_logs_str(), "[PRINT](0) abc");
+    }
+    #[test]
+    fn test_exec_harmony() {
+        let song = exec_easy("q100 l8 'dg'^^^");
+        let e = &song.tracks[0].events[0];
+        assert_eq!(e.etype, EventType::NoteOn);
+        assert_eq!(e.v2, 96*2);
     }
 }

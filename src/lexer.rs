@@ -369,14 +369,14 @@ fn read_harmony_flag(cur: &mut TokenCursor, flag_harmony: &mut bool) -> Token {
     // end
     *flag_harmony = false;
     let mut len_s = SValue::None;
-    let mut qlen = SValue::None;
+    let mut qlen = SValue::from_i(-1);
     if cur.is_numeric() || cur.eq_char('^') {
         len_s = SValue::from_s(cur.get_note_length());
     }
     cur.skip_space();
     if cur.eq_char(',') {
         cur.next();
-        qlen = SValue::from_i(cur.get_int(0));
+        qlen = SValue::from_i(cur.get_int(-1));
     }
     Token::new(TokenType::HarmonyEnd, 0, vec![
         len_s,
@@ -908,5 +908,11 @@ mod tests {
         assert_eq!(&tokens_to_str(&lex(&mut song, "TIME=(1:1:0)", 0)), "[Time,0]");
         assert_eq!(&tokens_to_str(&lex(&mut song, "TIME(1:1:0)", 0)), "[Time,0]");
         assert_eq!(&tokens_to_str(&lex(&mut song, "TIME=1:1:0", 0)), "[Time,0]");
+    }
+    #[test]
+    fn test_lex_harmony() {
+        let mut song = Song::new();
+        assert_eq!(&tokens_to_str(&lex(&mut song, "'dg'", 0)), "[HarmonyBegin,0][Note,2][Note,7][HarmonyEnd,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "'dg'^^^", 0)), "[HarmonyBegin,0][Note,2][Note,7][HarmonyEnd,0]");
     }
 }

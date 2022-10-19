@@ -4,9 +4,9 @@ use crate::runner::value_range;
 use crate::svalue::SValue;
 use crate::sakura_version;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum EventType {
-    NoteNo,
+    NoteOn,
     NoteOff,
     ControllChange,
     PitchBend,
@@ -27,7 +27,7 @@ pub struct Event {
 }
 impl Event {
     pub fn note(time: isize, channel: isize, note_no: isize, len: isize, vel: isize) -> Self {
-        Self { etype: EventType::NoteNo, time, channel, v1: note_no, v2: len, v3: vel, data: None }
+        Self { etype: EventType::NoteOn, time, channel, v1: note_no, v2: len, v3: vel, data: None }
     }
     pub fn voice(time: isize, channel: isize, value: isize) -> Self {
         Self { etype: EventType::Voice, time, channel, v1: value, v2: 0, v3: 0, data: None }
@@ -89,7 +89,7 @@ impl Track {
         for i in 0..self.events.len() {
             let e = &self.events[i];
             match e.etype {
-                EventType::NoteNo => {
+                EventType::NoteOn => {
                     events.push(e.clone());
                     let mut noteoff = e.clone();
                     noteoff.etype = EventType::NoteOff;
@@ -120,7 +120,7 @@ impl Track {
                     if e2.time < 0 { e2.time = 0; }
                     events.push(e2);
                 },
-                EventType::NoteNo => {
+                EventType::NoteOn => {
                     let mut e2 = e.clone();
                     e2.time -= timepos;
                     if e2.time < 0 { continue; }

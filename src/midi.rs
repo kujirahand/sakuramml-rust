@@ -41,7 +41,7 @@ fn generate_track(track: &Track) -> Vec<u8> {
     let mut timepos = 0;
     for e in &track.events {
         match e.etype {
-            EventType::NoteNo => {
+            EventType::NoteOn => {
                 let note_no = e.v1;
                 // note_len = e.v2 // not use
                 let note_vel = e.v3;
