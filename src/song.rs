@@ -289,6 +289,12 @@ impl Song {
             rand_seed: 1110122942, // Random Seed
         }
     }
+    pub fn get_logs_str(&self) -> String {
+        self.logs.join("\n")
+    }
+    pub fn add_log(&mut self, msg: String) {
+        self.logs.push(msg);
+    }
     pub fn add_event(&mut self, e: Event) {
         self.tracks[self.cur_track].events.push(e);
     }

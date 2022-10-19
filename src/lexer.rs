@@ -32,7 +32,8 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             't' => result.push(read_timing(&mut cur, song)), // @ 発音タイミングの指定 (例 t-1) / t.Random=n
             'y' => result.push(read_cc(&mut cur, song)), // @ コントロールチェンジの指定 (例 y1,100) 範囲:0-127 / y1.onTime(low,high,len)
             // uppwer command
-            'A'..='Z' => result.push(read_upper_command(&mut cur, song)), 
+            'A'..='Z' | '_' => result.push(read_upper_command(&mut cur, song, ch)), 
+            '#' => result.push(read_upper_command(&mut cur, song, ch)),
             // flag
             '@' => result.push(read_voice(&mut cur, song)), // @ 音色の指定 範囲:1-128
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ 音階を1つ上げる
@@ -77,11 +78,21 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
 }
 
 /// read Upper case commands
-fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
+fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token {
     cur.prev(); // back 1char
+    let cur_pos = cur.index;
     let cmd = cur.get_word();
 
-    // check variables
+    // macro define?
+    if ch == '#' {
+        cur.skip_space();
+        if cur.eq_char('=') { // DEFINE MACRO
+            cur.index = cur_pos;
+            return read_def_str(cur, song);
+        }
+    }
+
+    // variables?
     let sval: SValue = match song.variables.get(&cmd) {
         None => SValue::None,
         Some(sval) => sval.clone(),
@@ -340,6 +351,9 @@ fn read_arg_str(cur: &mut TokenCursor, song: &mut Song) -> SValue {
             cur.next();
             read_arg_value_str(cur, song)
         },
+        '{' => {
+            read_arg_value_str(cur, song)
+        },
         _ => {
             SValue::None
         }
@@ -431,8 +445,9 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_print(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let lineno = cur.line;
     let val = read_arg_value_str(cur, song);
-    Token::new(TokenType::Print, 0, vec![val])
+    Token::new(TokenType::Print, lineno, vec![val])
 }
 
 fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
@@ -447,7 +462,7 @@ fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
         for t in tt.into_iter() { tokens.push(t); }
         cur.skip_space();
         match cur.peek_n(0) {
-            'A'..='Z' | '_' => {
+            'A'..='Z' | '_' | '#' => {
                 let name = cur.get_word();
                 match song.variables.get(&name) {
                     None => {},
@@ -597,13 +612,13 @@ fn read_command_time(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     if cur.eq_char('(') { cur.next(); }
     
-    let v1 = read_arg_int(cur, song);
+    let v1 = read_arg_value(cur, song);
     cur.skip_space();
     if cur.eq_char(':') { cur.next(); }
-    let v2 = read_arg_int(cur, song);
+    let v2 = read_arg_value(cur, song);
     cur.skip_space();
     if cur.eq_char(':') { cur.next(); }
-    let v3 = read_arg_int(cur, song);
+    let v3 = read_arg_value(cur, song);
     cur.skip_space();
     if cur.eq_char(')') { cur.next(); }
 
@@ -870,3 +885,28 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
     )
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::token::tokens_to_str;
+
+    use super::*;
+    #[test]
+    fn test_lex1() {
+        let mut song = Song::new();
+        assert_eq!(&tokens_to_str(&lex(&mut song, "cdefgab", 0)), "[Note,0][Note,2][Note,4][Note,5][Note,7][Note,9][Note,11]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "l4c", 0)), "[Length,0][Note,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "TR=1", 0)), "[Track,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "TR(1)", 0)), "[Track,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "INT A=1;TR(A)", 0)), "[DefInt,0][Track,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "INT A=1;TR=A", 0)), "[DefInt,0][Track,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "COPYRIGHT{a}", 0)), "[MetaText,2]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "COPYRIGHT={a}", 0)), "[MetaText,2]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "TimeSig=4,4", 0)), "[TimeSignature,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "TimeSig=(4,4)", 0)), "[TimeSignature,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "TimeSig(4,4)", 0)), "[TimeSignature,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "TIME(1:1:0)", 0)), "[Time,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "TIME=(1:1:0)", 0)), "[Time,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "TIME(1:1:0)", 0)), "[Time,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "TIME=1:1:0", 0)), "[Time,0]");
+    }
+}

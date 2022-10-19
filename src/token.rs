@@ -77,6 +77,17 @@ impl Token {
         }
         Self::new(TokenType::SysEx, 0, sa)
     }
+    pub fn to_debug_str(&self) -> String {
+        format!("[{:?},{}]", self.ttype, self.value)
+    }
+}
+
+pub fn tokens_to_str(tokens: &Vec<Token>) -> String {
+    let mut s = String::new();
+    for t in tokens.iter() {
+        s.push_str(&t.to_debug_str());
+    }
+    s
 }
 
 pub fn char_from_u32(i: u32, def: char) -> char {

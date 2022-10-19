@@ -2,6 +2,7 @@ use super::song::{Song, Track, Event};
 use super::token::{Token, TokenType};
 use super::svalue::SValue;
 use super::cursor::TokenCursor;
+use super::lexer::lex;
 
 #[derive(Debug)]
 pub struct LoopItem {
@@ -41,7 +42,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Print => {
                 let msg = var_extract(&t.data[0], song).to_s();
-                let msg = format!("[PRINT] {}", msg);
+                let msg = format!("[PRINT]({}) {}", t.value, msg);
                 if song.debug { println!("{}", msg); }
                 song.logs.push(msg);
             },
@@ -491,6 +492,14 @@ pub fn value_range(min_v: isize, value: isize, max_v: isize) -> isize {
     v
 }
 
+/// exec source (easy version)
+pub fn exec_easy(src: &str) -> Song {
+    let mut song = Song::new();
+    let t = &lex(&mut song, src, 0);
+    exec(&mut song, &t);
+    song
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -517,5 +526,11 @@ mod tests {
         assert_eq!(calc_length("4^%1", 96, 96), 97);
         assert_eq!(calc_length("^%2", 96, 96), 98);
         assert_eq!(calc_length("^%-1", 96, 48), 47);
+    }
+    #[test]
+    fn test_run() {
+        assert_eq!(exec_easy("PRINT{1}").get_logs_str(), "[PRINT](0) 1");
+        assert_eq!(exec_easy("PRINT{abc}").get_logs_str(), "[PRINT](0) abc");
+        assert_eq!(exec_easy("STR A={abc} PRINT=A").get_logs_str(), "[PRINT](0) abc");
     }
 }

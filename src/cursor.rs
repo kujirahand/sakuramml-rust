@@ -158,6 +158,10 @@ impl TokenCursor {
     }
     pub fn get_word(&mut self) -> String {
         let mut res = String::new();
+        if self.eq_char('#') {
+            res.push('#');
+            self.next();
+        }
         while !self.is_eos() {
             let ch = self.peek_n(0);
             match ch {
@@ -350,5 +354,20 @@ mod tests {
         //
         let mut cur = TokenCursor::from("-0xFF");
         assert_eq!(cur.get_int(0), -0xFF);
+    }
+    #[test]
+    fn test_get_word() {
+        let mut cur = TokenCursor::from("ABC");
+        assert_eq!(&cur.get_word(), "ABC");
+        let mut cur = TokenCursor::from("_ABC");
+        assert_eq!(&cur.get_word(), "_ABC");
+        let mut cur = TokenCursor::from("Abc");
+        assert_eq!(&cur.get_word(), "Abc");
+        let mut cur = TokenCursor::from("A123");
+        assert_eq!(&cur.get_word(), "A123");
+        let mut cur = TokenCursor::from("#abc#def");
+        assert_eq!(&cur.get_word(), "#abc");
+        let mut cur = TokenCursor::from("#abc(30)");
+        assert_eq!(&cur.get_word(), "#abc");
     }
 }
