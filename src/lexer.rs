@@ -152,12 +152,16 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new(TokenType::Tempo, 0, vec![v]);
     }
     if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" { // @ 拍子の指定
-        let frac = read_arg_int(cur, song);
         cur.skip_space();
-        let deno = if cur.eq_char(',') {
-            cur.next();
-            read_arg_int(cur, song)
-        } else { frac.clone() };
+        if cur.eq_char('=') { cur.next(); }
+        cur.skip_space();
+        if cur.eq_char('(') { cur.next(); }
+        let frac = read_arg_value(cur, song);
+        cur.skip_space();
+        if cur.eq_char(',') { cur.next(); }
+        let deno = read_arg_value(cur, song);
+        cur.skip_space();
+        if cur.eq_char(')') { cur.next(); }
         return Token::new(TokenType::TimeSignature, 0, vec![frac, deno]);
     }
     if cmd == "MetaText" || cmd == "TEXT" || cmd == "Text" { // @ メタテキスト (例 TEXT{"abcd"})
