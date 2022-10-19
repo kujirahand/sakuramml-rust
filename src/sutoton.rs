@@ -63,6 +63,11 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("八分音符", "l8"));
     items.push(SutotonItem::from("十六音符", "l16"));
     items.push(SutotonItem::from("付点四分音符", "l4."));
+    items.push(SutotonItem::from("作者", "COPYRIGHT="));
+    items.push(SutotonItem::from("曲名", "TrackName="));
+    items.push(SutotonItem::from("コメント", "MetaText="));
+    items.push(SutotonItem::from("拍子", "TimeSig="));
+    items.push(SutotonItem::from("音源初期化", "ResetGM()"));
     items.push(SutotonItem::from("音長", "l"));
     items.push(SutotonItem::from("音符", "l"));
     items.push(SutotonItem::from("音階", "o"));

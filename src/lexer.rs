@@ -4,6 +4,8 @@ use super::cursor::TokenCursor;
 use super::svalue::SValue;
 use super::token::{Token, TokenType, zen2han};
 
+const LEX_MAX_ERROR: usize = 30;
+
 /// split source code to tokens
 pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
     let mut result: Vec<Token> = vec![];
@@ -63,7 +65,11 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '?' => result.push(Token::new_value(TokenType::PlayFrom, 0)), // @ ここから演奏する (=PLAY_FROM)
             // </CHAR_COMMANDS>
             _ => {
-                song.logs.push(format!("[ERROR]({}) Unknown char: '{}'", cur.line, ch));
+                if song.logs.len() == LEX_MAX_ERROR {
+                    song.logs.push(format!("[ERROR]({}) Too many errors in Lexer ...", cur.line));
+                } else if song.logs.len() < LEX_MAX_ERROR {
+                    song.logs.push(format!("[ERROR]({}) Unknown char: '{}'", cur.line, ch));
+                }
             }
         }
     }
@@ -162,9 +168,25 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 2, vec![v]);
     }
+    if cmd == "TRACK_NAME" || cmd == "TrackName" { // @ 曲名 (例 TRACK_NAME{"aaa"})
+        let v = read_arg_str(cur, song);
+        return Token::new(TokenType::MetaText, 3, vec![v]);
+    }
+    if cmd == "InstrumentName" { // @ 楽器名 (例 InstrumentName{"aaa"})
+        let v = read_arg_str(cur, song);
+        return Token::new(TokenType::MetaText, 4, vec![v]);
+    }
     if cmd == "LYRIC" || cmd == "Lyric" { // @ メタテキスト歌詞 (例 LYRIC{"aaa"})
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 5, vec![v]);
+    }
+    if cmd == "MAKER" || cmd == "Marker" { // @ マーカー (例 MAKER{"aaa"})
+        let v = read_arg_str(cur, song);
+        return Token::new(TokenType::MetaText, 6, vec![v]);
+    }
+    if cmd == "CuePoint" { // @ キューポイント (例 CuePoint{"aaa"})
+        let v = read_arg_str(cur, song);
+        return Token::new(TokenType::MetaText, 7, vec![v]);
     }
     // </UPPER_COMMANDS>
     song.logs.push(format!("[ERROR]({}) Unknown command: {}", cur.line, cmd));

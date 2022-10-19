@@ -38,7 +38,7 @@ fn main() {
             version();
             return;
         }
-        else if arg == "--debug" || arg == "-d" || arg == "debug" {
+        else if arg == "--debug" || arg == "-d" || arg == "debug" || arg == "d" {
             song.debug = true;
         }
         else if arg == "--eval" || arg == "-e" || arg == "eval" {

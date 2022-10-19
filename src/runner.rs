@@ -36,7 +36,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Error => {
                 if song.debug {
-                    println!("[ERROR]");
+                    println!("[RUNTIME.ERROR]");
                 }
             },
             TokenType::Print => {
@@ -54,7 +54,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 loop_stack.push(it);
             },
             TokenType::LoopBreak => {
-                let mut it = loop_stack.pop().unwrap();
+                let mut it = match loop_stack.pop() {
+                    None => { pos += 1; continue},
+                    Some(i) => i,
+                };
                 if it.index == (it.count-1) {
                     if it.end_pos == 0 {
                         for i  in pos..tokens.len() {
@@ -125,7 +128,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Tempo => {
                 let tempo = data_get_int(&t.data);
-                let mpq = 60000000 / tempo;
+                let mpq = if tempo > 0 { 60000000 / tempo } else { 120 };
                 let e = Event::meta(trk!(song).timepos, 0xFF, 0x51, 0x03, vec![
                     (mpq >> 16 & 0xFF) as u8,
                     (mpq >>  8 & 0xFF) as u8,

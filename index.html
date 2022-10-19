@@ -2,22 +2,28 @@
 <html><meta charset="utf-8"><body>
 <script src="https://unpkg.com/picoaudio/dist/browser/PicoAudio.js"></script>
 <script type="module">
-  // WebAssemblyを読み込む --- (*1)
+  // WebAssemblyを読み込む
   import init, {compile,get_version} from './pkg/sakuramml.js';
-  // Promiseの仕組みでライブラリを読み込む --- (*2)
+  // Promiseの仕組みでライブラリを読み込む
   init().then(() => {
     console.log('ok')
     document.getElementById('player').style.display = 'block'
     document.getElementById('sakura_version').innerHTML = 'ver.' + get_version()
+  }).catch(err => {
+    console.error(err);
+    document.getElementById('msg').innerHTML = '[LOAD_ERROR]' + tohtml(err.toString())
   });
-  // これが必要
-  window.sakura_log = function (s) {
-    console.log(s)
+  function tohtml(s) {
     s = s.replace(/&/g,'&amp;')
     s = s.replace(/</g,'&lt;')
     s = s.replace(/>/g,'&gt;')
     s = s.replace(/\n/g,'<br>\n')
-    document.getElementById('msg').innerHTML = s
+    return s
+  }
+  // これが必要
+  window.sakura_log = function (s) {
+    console.log(s)
+    document.getElementById('msg').innerHTML = tohtml(s)
   }
   const picoAudio = new PicoAudio();
   picoAudio.init();
@@ -25,14 +31,19 @@
   function playMML() {
     const txt = document.getElementById('txt')
     localStorage["picosakura_txt"] = txt.value
-    const a = compile(txt.value)
-    const smfData = new Uint8Array(a);
-    // SMF形式のバイナリのパースを行う
-    const parsedData = picoAudio.parseSMF(smfData);
-    // パースしたデータをセット
-    picoAudio.setData(parsedData);
-    // 再生
-    picoAudio.play();
+    try {
+      const a = compile(txt.value)
+      const smfData = new Uint8Array(a);
+      // SMF形式のバイナリのパースを行う
+      const parsedData = picoAudio.parseSMF(smfData);
+      // パースしたデータをセット
+      picoAudio.setData(parsedData);
+      // 再生
+      picoAudio.play();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('msg').innerHTML = '[SYSTEM_ERROR]' + tohtml(err.toString())
+    }
   }
   document.getElementById('btnPlay').onclick = () => {
     playMML()
