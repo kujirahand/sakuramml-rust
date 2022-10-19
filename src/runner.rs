@@ -195,25 +195,17 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let var_val = var_extract(&t.data[1], song);
                 song.variables.insert(var_key, var_val);
             },
-            TokenType::PlayFrom => {
-                song.play_from = trk!(song).timepos;
-            },
-            TokenType::VelocityRandom => {
-                trk!(song).v_rand = var_extract(&t.data[0], song).to_i();
-            },
-            TokenType::TimingRandom => {
-                trk!(song).t_rand = var_extract(&t.data[0], song).to_i();
-            },
+            TokenType::PlayFrom => { song.play_from = trk!(song).timepos; },
+            TokenType::VelocityRandom => { trk!(song).v_rand = var_extract(&t.data[0], song).to_i(); },
+            TokenType::TimingRandom => { trk!(song).t_rand = var_extract(&t.data[0], song).to_i(); },
             TokenType::VelocityOnTime => {
                 trk!(song).v_on_time_start = trk!(song).timepos;
                 trk!(song).v_on_time = Some(t.data[0].to_int_array());
             },
-            TokenType::CConTime => {
-                trk!(song).write_cc_on_time(t.value, t.data[0].to_int_array(), song.timebase);
-            },
-            TokenType::PBonTime => {
-                trk!(song).write_pb_on_time(t.value, t.data[0].to_int_array(), song.timebase);
-            },
+            TokenType::CConTime => { trk!(song).write_cc_on_time(t.value, t.data[0].to_int_array(), song.timebase); },
+            TokenType::PBonTime => { trk!(song).write_pb_on_time(t.value, t.data[0].to_int_array(), song.timebase); },
+            TokenType::MeasureShift => { song.flags.measure_shift = var_extract(&t.data[0], song).to_i(); },
+            TokenType::TrackSync => song.track_sync(),
         }
         pos += 1;
     }
@@ -323,7 +315,7 @@ fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
 fn exec_time(song: &mut Song, t: &Token) {
     // Calc Time (SakuraObj_time2step)
     // (ref) https://github.com/kujirahand/sakuramml-c/blob/68b62cbc101669211c511258ae1cf830616f238e/src/k_main.c#L473
-    let mes = t.data[0].to_i();
+    let mes = t.data[0].to_i() + song.flags.measure_shift;
     let beat = t.data[1].to_i();
     let tick = t.data[2].to_i();
     // calc
@@ -472,7 +464,7 @@ fn exec_rest(song: &mut Song, t: &Token) {
 }
 
 fn exec_track(song: &mut Song, t: &Token) {
-    let mut v = data_get_int(&t.data) - 1; // TR(1 to xxx)
+    let mut v = data_get_int(&t.data); // TR=0..
     if v < 0 { v = 0; }
     song.cur_track = v as usize;
     // new track ?
@@ -542,5 +534,23 @@ mod tests {
         let e = &song.tracks[0].events[0];
         assert_eq!(e.etype, EventType::NoteOn);
         assert_eq!(e.v2, 96*2);
+    }
+    #[test]
+    fn test_exec_track_sync() {
+        //
+        let song = exec_easy("TR=1 l4 cdef TR=2 c TrackSync;");
+        let pos = song.tracks[0].timepos;
+        assert_eq!(pos, 96);
+        //
+        let song = exec_easy("TR=0 l4 c TR=2 cdef TrackSync;");
+        let pos = song.tracks[0].timepos;
+        assert_eq!(pos, 96*4);
+    }
+    #[test]
+    fn test_exec_mes_shift() {
+        //
+        let song = exec_easy("System.MeasureShift=1;TR=0 TIME(1:1:0)");
+        let pos = song.tracks[0].timepos;
+        assert_eq!(pos, 96*4);
     }
 }

@@ -238,6 +238,7 @@ pub struct Flags {
     pub harmony_time: isize,
     pub harmony_events: Vec<Event>,
     pub octave_once: isize,
+    pub measure_shift: isize,
 }
 impl Flags {
     pub fn new() -> Self {
@@ -246,6 +247,7 @@ impl Flags {
             harmony_time: 0,
             harmony_events: vec![],
             octave_once: 0,
+            measure_shift: 0,
         }
     }
 }
@@ -323,6 +325,12 @@ impl Song {
         y ^= y << 5;
         self.rand_seed = y;
         y
+    }
+    pub fn track_sync(&mut self) {
+        let timepos = self.tracks[self.cur_track].timepos;
+        for i in 0..self.tracks.len() {
+            self.tracks[i].timepos = timepos;
+        }
     }
 }
 

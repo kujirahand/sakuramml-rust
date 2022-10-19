@@ -45,6 +45,8 @@ pub enum TokenType {
     VelocityRandom,
     TimingRandom,
     VelocityOnTime,
+    MeasureShift,
+    TrackSync,
 }
 
 #[allow(dead_code)]

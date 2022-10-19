@@ -64,6 +64,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)), // @ 一度だけ音階を+1する
             '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)), // @ 一度だけ音階を-1する
             '?' => result.push(Token::new_value(TokenType::PlayFrom, 0)), // @ ここから演奏する (=PLAY_FROM)
+            '&' => {}, // @ タイ(todo: 現在未実装)
             // </CHAR_COMMANDS>
             _ => {
                 if song.logs.len() == LEX_MAX_ERROR {
@@ -81,7 +82,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
 fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token {
     cur.prev(); // back 1char
     let cur_pos = cur.index;
-    let cmd = cur.get_word();
+    let mut cmd = cur.get_word();
 
     // macro define?
     if ch == '#' {
@@ -105,9 +106,15 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
         _ => {},
     }
 
+    // Systemの場合は"."に続く
+    if cmd == "System" {
+        if cur.eq_char('.') { cur.next(); cmd.push('.'); }
+        cmd.push_str(&cur.get_word());
+    }
+
     // <UPPER_COMMANDS>
     // Track & Channel
-    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" { // @ トラック変更　TR=番号 範囲:1-
+    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" { // @ トラック変更　TR=番号 範囲:0-
         let v = read_arg_int(cur, song);
         return Token::new(TokenType::Track, 0, vec![v]);
     }
@@ -128,7 +135,9 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     if cmd == "PLAY" || cmd == "Play" { return read_play(cur, song); } // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
     if cmd == "PRINT" || cmd == "Print" { return read_print(cur, song); } // @ 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA))
     if cmd == "PLAY_FROM" || cmd == "PlayFrom" { return Token::new_value(TokenType::PlayFrom, 0); } // @ ここから演奏する　(?と同じ意味)
-    
+    if cmd == "System.MeasureShift" { return read_command_mes_shift(cur, song); } // @ 小節番号をシフトする (例 System.MeasureShift(1))
+    if cmd == "TRACK_SYNC" || cmd == "TrackSync" { return Token::new_value(TokenType::TrackSync, 0) } // @ 全てのトラックのタイムポインタを同期する
+
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1, song); } // @ モジュレーション 範囲: 0-127
     if cmd == "PT" || cmd == "PortamentoTime" { return read_command_cc(cur, 5, song); } // @ ポルタメント 範囲: 0-127
@@ -623,6 +632,11 @@ fn read_command_time(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cur.eq_char(')') { cur.next(); }
 
     return Token::new(TokenType::Time, 0, vec![v1, v2, v3]);
+}
+
+fn read_command_mes_shift(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let v = read_arg_int(cur, song);
+    return Token::new(TokenType::MeasureShift, 0, vec![v]);
 }
 
 fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
