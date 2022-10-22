@@ -61,11 +61,14 @@ pub struct Track {
     pub qlen: isize,
     pub timing: isize,
     pub v_rand: isize,
+    pub q_rand: isize,
     pub t_rand: isize,
     pub v_on_time_start: isize,
     pub v_on_time: Option<Vec<isize>>,
     pub v_on_note_index: isize,
     pub v_on_note: Option<Vec<isize>>,
+    pub q_on_note_index: isize,
+    pub q_on_note: Option<Vec<isize>>,
     pub t_on_note_index: isize,
     pub t_on_note: Option<Vec<isize>>,
     pub cc_on_time_freq: isize,
@@ -82,12 +85,15 @@ impl Track {
             qlen: 90,
             timing: 0,
             v_rand: 0,
+            q_rand: 0,
             t_rand: 0,
             cc_on_time_freq: 4,
             v_on_time_start: -1,
             v_on_time: None,
             v_on_note_index: 0,
             v_on_note: None,
+            q_on_note_index: 0,
+            q_on_note: None,
             t_on_note_index: 0,
             t_on_note: None,
             channel,
@@ -228,6 +234,17 @@ impl Track {
         let t = ia[(self.t_on_note_index as usize) % ia.len()];
         self.t_on_note_index += 1;
         return t;
+    }
+    pub fn calc_qlen_on_note(&mut self, def: isize) -> isize {
+        // on_note?
+        let ia = match &self.q_on_note {
+            None => return def,
+            Some(pia) => pia.clone()
+        };
+        if ia.len() == 0 { return def; }
+        let qlen = ia[(self.q_on_note_index as usize) % ia.len()];
+        self.q_on_note_index += 1;
+        return qlen;
     }
     pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>) {
         let freq = self.cc_on_time_freq;

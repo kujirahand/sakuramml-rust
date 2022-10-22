@@ -182,6 +182,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     if cmd == "PLAY_FROM" || cmd == "PlayFrom" { return Token::new_value(TokenType::PlayFrom, 0); } // @ ここから演奏する　(?と同じ意味)
     if cmd == "System.MeasureShift" { return read_command_mes_shift(cur, song); } // @ 小節番号をシフトする (例 System.MeasureShift(1))
     if cmd == "System.KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" { return read_timebase(cur, song); } // @ タイムベースを設定 (例 TIMEBASE=96)
     if cmd == "TRACK_SYNC" || cmd == "TrackSync" { return Token::new_value(TokenType::TrackSync, 0) } // @ 全てのトラックのタイムポインタを同期する
 
     // controll change
@@ -196,6 +197,8 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
 
     if cmd == "PB" || cmd == "PitchBend" { return read_command_pitch_bend_big(cur, song); } // @ ピッチベンドを指定 範囲: -8192~0~8191の範囲
     if cmd == "BR" || cmd == "PitchBendSensitivity" { return read_command_rpn(cur, 0, 0, song); } // @ ピッチベンドの範囲を設定 範囲: 0-12半音
+    if cmd == "RPN" { return read_command_rpn_n(cur, song); } // @ RPNを書き込む (例 RPN=0,1,64)
+    if cmd == "NRPN" { return read_command_nrpn_n(cur, song); } // @ NRPNを書き込む (例 NRPN=1,0x64,10)
     if cmd == "FineTune" { return read_command_rpn(cur, 0, 1, song); } // @ チューニングの微調整 範囲:0-64-127 (-100 - 0 - +99.99セント）
     if cmd == "CoarseTune" { return read_command_rpn(cur, 0, 2, song); } // @ 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音)
     if cmd == "VibratoRate" { return read_command_nrpn(cur, 1, 8, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
@@ -407,6 +410,12 @@ fn scan_chars(s: &str, c: char) -> isize {
     cnt
 }
 
+fn read_timebase(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let v = read_arg_value(cur, song);
+    song.timebase = v.to_i();
+    Token::new_empty(&format!("TIMEBASE={}", v.to_i()))
+}
+
 fn read_key_flag(cur: &mut TokenCursor, _song: &mut Song) -> Token {
     let mut flag = 1;
     let mut key_flag = vec![0,0,0,0,0,0,0,0,0,0,0,0];
@@ -615,6 +624,12 @@ fn read_command_rhythm(cur: &mut TokenCursor, song: &mut Song) -> Token {
                     result.push_str(m);
                 }
             },
+            '(' => {
+                // 丸カッコの中は置換しない
+                macro_cur.prev();
+                let src = macro_cur.get_token_nest('(', ')');
+                result.push_str(&src);
+            }
             _ => {
                 result.push(ch);
             }
@@ -631,7 +646,11 @@ fn read_def_rhythm_macro(cur: &mut TokenCursor, song: &mut Song) {
     if cur.eq_char('=') { cur.next(); }
     cur.skip_space();
     let s = cur.get_token_nest('{', '}');
-    song.rhthm_macro[ch as usize - 0x40] = s;
+    if 0x40 <= ch as u8 && ch as u8 <= 0x7F {
+        song.rhthm_macro[ch as usize - 0x40] = s;
+    } else {
+        song.add_log(format!("[ERROR]({}) could not define Rhythm macro '{}' ", cur.line, ch));
+    }
 }
 
 fn read_command_time(cur: &mut TokenCursor, song: &mut Song) -> Token {
@@ -689,6 +708,21 @@ fn read_command_rpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut So
     tokens
 }
 
+fn read_command_rpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let a = read_arg_int_array(cur, song).to_array();
+    if a.len() < 3 {
+        song.add_log(format!("[ERROR]({}): RPN not enough arguments", cur.line));
+        return Token::new_empty("RPN error");
+    }
+    let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
+    tokens.children = Some(vec![
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(101), a[0].clone()]),
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(100), a[1].clone()]),
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), a[2].clone()]),
+    ]);
+    tokens
+}
+
 fn read_command_nrpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
     let val = read_arg_value(cur, song);
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
@@ -696,6 +730,21 @@ fn read_command_nrpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut S
         Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(99), SValue::from_i(msb)]),
         Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(98), SValue::from_i(lsb)]),
         Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), val]),
+    ]);
+    tokens
+}
+
+fn read_command_nrpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let a = read_arg_int_array(cur, song).to_array();
+    if a.len() < 3 {
+        song.add_log(format!("[ERROR]({}): NRPN not enough arguments", cur.line));
+        return Token::new_empty("NRPN error");
+    }
+    let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
+    tokens.children = Some(vec![
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(99), a[0].clone()]),
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(98), a[1].clone()]),
+        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), a[2].clone()]),
     ]);
     tokens
 }
@@ -716,6 +765,22 @@ fn read_octave(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    if cur.eq_char('.') {
+        cur.next(); // skip '.'
+        let cmd = cur.get_word();
+        if cmd == "Random" {
+            let r = read_arg_value(cur, song);
+            return Token::new(TokenType::QLenRandom, 0, vec![r])
+        }
+        if cmd == "onTime" || cmd == "T" {
+            let _av = read_arg_int_array(cur, song);
+            return Token::new_empty(&format!("[ERROR]({}) q.onTime not supported", cur.line));
+        }
+        if cmd == "onNote" || cmd == "N" {
+            let av = read_arg_int_array(cur, song);
+            return Token::new(TokenType::QLenOnNote, 0, vec![av])
+        }
+    }
     let value = read_arg_value(cur, song);
     Token::new(TokenType::QLen, value.to_i(), vec![])
 }

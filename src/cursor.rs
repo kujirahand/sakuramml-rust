@@ -94,7 +94,7 @@ impl TokenCursor {
         // top
         if self.peek_n(0) == open_ch {
             level += 1;
-            self.index += 1;
+            self.next();
         }
         while !self.is_eos() {
             let ch = self.get_char();
@@ -321,6 +321,12 @@ mod tests {
         //
         let mut cur = TokenCursor::from("{aaa{bbb}ccc}");
         assert_eq!(cur.get_token_nest('{', '}'), String::from("aaa{bbb}ccc"));
+        //
+        let mut cur = TokenCursor::from("(abc(ddd))aaa");
+        assert_eq!(cur.get_token_nest('(', ')'), String::from("abc(ddd)"));
+        //
+        let mut cur = TokenCursor::from("(abc(ddd)e)aaa");
+        assert_eq!(cur.get_token_nest('(', ')'), String::from("abc(ddd)e"));
     }
     #[test]
     fn test_get_int() {

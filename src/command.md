@@ -24,6 +24,7 @@
 | 音階 | 定義: "o" |
 | 音色 | 定義: "@" |
 | 音量 | 定義: "v" |
+| 音量予約 | 定義: "v.onTime=" |
 | ゲート | 定義: "q" |
 | 連符 | 定義: "Div" |
 | ド | 定義: "c" |
@@ -43,6 +44,7 @@
 | 】 | 定義: "]" |
 | ↑ | 定義: ">" |
 | ↓ | 定義: "<" |
+| っ | 定義: "r" |
 | ん | 定義: "r" |
 | ♭ | 定義: "-" |
 | ♯ | 定義: "#" |
@@ -53,6 +55,8 @@
 | く | 定義: "n44 |
 | ち | 定義: "n46 |
 | ぱ | 定義: "n49 |
+| − | 定義: "-" |
+| ‘ | 定義: "`" |
 
 
 ## 1文字コマンド
@@ -108,6 +112,8 @@
 | PRINT / Print | 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA)) |
 | PLAY_FROM / PlayFrom | ここから演奏する　(?と同じ意味) |
 | System.MeasureShift | 小節番号をシフトする (例 System.MeasureShift(1)) |
+| System.KeyFlag | 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
+| System.TimeBase / TIMEBASE / Timebase | タイムベースを設定 (例 TIMEBASE=96) |
 | TRACK_SYNC / TrackSync | 全てのトラックのタイムポインタを同期する |
 | M / Modulation | モジュレーション 範囲: 0-127 |
 | PT / PortamentoTime | ポルタメント 範囲: 0-127 |
