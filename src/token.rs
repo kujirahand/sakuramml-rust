@@ -40,6 +40,7 @@ pub enum TokenType {
     Sub,
     KeyFlag,
     KeyShift,
+    TrackKey,
     DefInt,
     DefStr,
     PlayFrom,

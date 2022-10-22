@@ -148,6 +148,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
 
     if cmd == "KF" || cmd == "KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
     if cmd == "KEY" || cmd == "Key" || cmd == "KeyShift" { return read_command_key(cur, song); } // @ ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde)
+    if cmd == "TR_KEY" || cmd == "TrackKey" { return read_command_track_key(cur, song); } // @ トラック毎、ノート(cdefgab)のキーをn半音シフトする (例 TrackKey=3 cde)
     if cmd == "INT" || cmd == "Int" { return read_def_int(cur, song); } // @ 変数を定義 (例 INT TestValue=30)
     if cmd == "STR" || cmd == "Str" { return read_def_str(cur, song); } // @ 文字列変数を定義 (例 STR A={cde})
     if cmd == "PLAY" || cmd == "Play" { return read_play(cur, song); } // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
@@ -155,8 +156,9 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     if cmd == "PLAY_FROM" || cmd == "PlayFrom" { return Token::new_value(TokenType::PlayFrom, 0); } // @ ここから演奏する　(?と同じ意味)
     if cmd == "System.MeasureShift" { return read_command_mes_shift(cur, song); } // @ 小節番号をシフトする (例 System.MeasureShift(1))
     if cmd == "System.KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
-    if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" || cmd=="TimeBase" { return read_timebase(cur, song); } // @ タイムベースを設定 (例 TIMEBASE=96)
+    if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" || cmd == "TimeBase" { return read_timebase(cur, song); } // @ タイムベースを設定 (例 TIMEBASE=96)
     if cmd == "TRACK_SYNC" || cmd == "TrackSync" { return Token::new_value(TokenType::TrackSync, 0) } // @ 全てのトラックのタイムポインタを同期する
+    if cmd == "SLUR" || cmd == "Slur" { return Token::new(TokenType::Empty, 0, read_arg_int_array(cur, song).to_array()); } // @ 未実装
 
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1, song); } // @ モジュレーション 範囲: 0-127
@@ -574,6 +576,11 @@ fn read_command_key(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let tok = Token::new(TokenType::KeyShift, 0, vec![v]);
     tok
 }
+fn read_command_track_key(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let v = read_arg_value(cur, song);
+    let tok = Token::new(TokenType::TrackKey, 0, vec![v]);
+    tok
+}
 
 fn read_command_div(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
@@ -782,6 +789,14 @@ fn read_octave(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    if cur.eq("__") { // dummy
+        cur.next(); cur.next();
+        cur.get_int(0);
+    }
+    else if cur.eq("_") {
+        cur.next();
+        cur.get_int(0);
+    }
     if cur.eq_char('.') {
         cur.next(); // skip '.'
         let cmd = cur.get_word();
@@ -803,6 +818,16 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let mut ino = -1;
+    if cur.eq("__") { // sub velocity
+        cur.next(); cur.next();
+        ino = cur.get_int(0);
+    }
+    else if cur.eq("_") {
+        cur.next();
+        cur.get_int(0);
+        ino = 0;
+    }
     if cur.eq_char('.') {
         cur.next(); // skip '.'
         let cmd = cur.get_word();
@@ -821,10 +846,17 @@ fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
     // v(no)
     let value = read_arg_value(cur, song);
-    Token::new(TokenType::Velocity, value.to_i(), vec![])
+    Token::new(TokenType::Velocity, value.to_i(), vec![SValue::from_i(ino)])
 }
 
 fn read_timing(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    if cur.eq("__") { // dummy
+        cur.next(); cur.next();
+        cur.get_int(0);
+    }
+    else if cur.eq_char('_') {
+        cur.next();
+    }
     if cur.eq_char('.') {
         cur.next(); // skip '.'
         let cmd = cur.get_word();

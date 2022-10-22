@@ -113,7 +113,13 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).q_on_note = None;
             },
             TokenType::Velocity => {
-                trk!(song).velocity = value_range(0, t.value, 127);
+                let ino = t.data[0].to_i();
+                if ino > 0 {
+                    while trk!(song).v_sub.len() >= ino as usize { trk!(song).v_sub.push(0); }
+                    trk!(song).v_sub[ino as usize] = value_range(0, t.value, 127);
+                } else {
+                    trk!(song).velocity = value_range(0, t.value, 127);
+                }
                 trk!(song).v_on_time = None;
                 trk!(song).v_on_note = None;
             },
@@ -189,9 +195,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::Div => exec_div(song, t),
             TokenType::Sub => exec_sub(song, t),
             TokenType::KeyFlag => song.key_flag = t.data[0].to_int_array(),
-            TokenType::KeyShift => {
-                song.key_shift = var_extract(&t.data[0], song).to_i();
-            },
+            TokenType::KeyShift => { song.key_shift = var_extract(&t.data[0], song).to_i(); },
+            TokenType::TrackKey => { trk!(song).track_key = var_extract(&t.data[0], song).to_i(); },
             TokenType::DefInt => {
                 let var_key = t.data[0].to_s().clone();
                 let var_val = var_extract(&t.data[1], song);
@@ -422,6 +427,7 @@ fn exec_note(song: &mut Song, t: &Token) {
     let mut noteno = o * 12 + note_no + data_note_flag;
     noteno += if data_note_natural == 0 { song.key_flag[note_no as usize] } else { 0 };
     noteno += song.key_shift;
+    noteno += trk!(song).track_key;
     // onTime / onNote
     let v = trk!(song).calc_v_on_time(v);
     let v = trk!(song).calc_v_on_note(v);
@@ -469,13 +475,17 @@ fn exec_note_n(song: &mut Song, t: &Token) {
     let qlen = if data_note_qlen != 0 { data_note_qlen } else { trk!(song).qlen };
     let v = if data_note_vel >= 0 { data_note_vel } else { trk!(song).velocity };
     let t = if data_note_t != isize::MIN { data_note_t } else { trk!(song).timing };
-    // calc
-    let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
-    // onTime
+    // onTime / onNote
     let v = trk!(song).calc_v_on_time(v);
+    let v = trk!(song).calc_v_on_note(v);
+    let t = trk!(song).calc_t_on_note(t);
+    let qlen = trk!(song).calc_qlen_on_note(qlen);
     // Random
     let v = if trk!(song).v_rand > 0 { song.calc_rand_value(v, trk!(song).v_rand) } else { v };
     let t = if trk!(song).t_rand > 0 { song.calc_rand_value(t, trk!(song).t_rand) } else { t };
+    let qlen = if trk!(song).q_rand > 0 { song.calc_rand_value(qlen, trk!(song).q_rand) } else { qlen };
+    // calc
+    let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // range
     let v = value_range(0, v, 127);
     let event = Event::note(trk!(song).timepos + t, trk!(song).channel, data_note_no, notelen_real, v);
