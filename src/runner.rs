@@ -115,8 +115,12 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::Velocity => {
                 trk!(song).velocity = value_range(0, t.value, 127);
                 trk!(song).v_on_time = None;
+                trk!(song).v_on_note = None;
             },
-            TokenType::Timing => { trk!(song).timing = t.value; },
+            TokenType::Timing => {
+                trk!(song).timing = t.value; 
+                trk!(song).t_on_note = None;
+            },
             TokenType::ControllChange => {
                 let no = t.data[0].to_i();
                 let val = t.data[1].to_i();
@@ -206,7 +210,12 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).v_on_note_index = 0;
                 trk!(song).v_on_note = Some(t.data[0].to_int_array());
             },
-            TokenType::CConTime => { trk!(song).write_cc_on_time(t.value, t.data[0].to_int_array(), song.timebase); },
+            TokenType::TimingOnNote => {
+                trk!(song).t_on_note_index = 0;
+                trk!(song).t_on_note = Some(t.data[0].to_int_array());
+            },
+            TokenType::CConTime => { trk!(song).write_cc_on_time(t.value, t.data[0].to_int_array()); },
+            TokenType::CConTimeFreq => { trk!(song).cc_on_time_freq = var_extract(&t.data[0], song).to_i(); },
             TokenType::PBonTime => { trk!(song).write_pb_on_time(t.value, t.data[0].to_int_array(), song.timebase); },
             TokenType::MeasureShift => { song.flags.measure_shift = var_extract(&t.data[0], song).to_i(); },
             TokenType::TrackSync => song.track_sync(),
@@ -352,7 +361,7 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
             res = cur.get_int(0);
         } else {
             let i = cur.get_int(4);
-            res = timebase * 4 / i;
+            res = if i > 0 { timebase * 4 / i } else { 0 };
         }
         if cur.peek_n(0) == '.' {
             cur.next();
@@ -389,11 +398,12 @@ fn exec_note(song: &mut Song, t: &Token) {
     // get parameters
     let note_no = (t.value % 12) as isize;
     let data_note_flag = t.data[0].to_i();
-    let data_note_len = t.data[1].to_s();
-    let data_note_qlen = t.data[2].to_i(); // 0
-    let data_note_vel = t.data[3].to_i(); // -1
-    let data_note_t = t.data[4].to_i(); // isize::MIN
-    let data_note_o = t.data[5].to_i(); // -1
+    let data_note_natural = t.data[1].to_i();
+    let data_note_len = t.data[2].to_s();
+    let data_note_qlen = t.data[3].to_i(); // 0
+    let data_note_vel = t.data[4].to_i(); // -1
+    let data_note_t = t.data[5].to_i(); // isize::MIN
+    let data_note_o = t.data[6].to_i(); // -1
     // check parameters
     let qlen = if data_note_qlen != 0 { data_note_qlen } else { trk!(song).qlen };
     let v = if data_note_vel >= 0 { data_note_vel } else { trk!(song).velocity };
@@ -401,12 +411,15 @@ fn exec_note(song: &mut Song, t: &Token) {
     let o = if data_note_o >= 0 { data_note_o } else { trk!(song).octave };
     let timepos = trk!(song).timepos;
     // calc
-    let noteno = (o * 12 + note_no + data_note_flag + song.key_flag[note_no as usize] + song.key_shift) & 0x7F;
+    let mut noteno = o * 12 + note_no + data_note_flag;
+    noteno += if data_note_natural == 0 { song.key_flag[note_no as usize] } else { 0 };
+    noteno += song.key_shift;
     let notelen = calc_length(&data_note_len, song.timebase, trk!(song).length);
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // onTime / onNote
     let v = trk!(song).calc_v_on_time(v);
     let v = trk!(song).calc_v_on_note(v);
+    let v = trk!(song).calc_t_on_note(v);
     // Random
     let v = if trk!(song).v_rand > 0 { song.calc_rand_value(v, trk!(song).v_rand) } else { v };
     let t = if trk!(song).t_rand > 0 { song.calc_rand_value(t, trk!(song).t_rand) } else { t };

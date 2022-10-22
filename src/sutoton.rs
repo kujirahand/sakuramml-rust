@@ -48,6 +48,7 @@ impl SutotonList {
             }
         }
         self.items.push(SutotonItem::from(name, value));
+        self.sorted = false;
     }
 }
 
@@ -74,6 +75,7 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("音階", "o"));
     items.push(SutotonItem::from("音色", "@"));
     items.push(SutotonItem::from("音量", "v"));
+    items.push(SutotonItem::from("音量予約", "v.onTime="));
     items.push(SutotonItem::from("ゲート", "q"));
     items.push(SutotonItem::from("連符", "Div"));
     items.push(SutotonItem::from("ド", "c"));
@@ -104,6 +106,8 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("く", "n44,"));
     items.push(SutotonItem::from("ち", "n46,"));
     items.push(SutotonItem::from("ぱ", "n49,"));
+    items.push(SutotonItem::from("−", "-"));
+    items.push(SutotonItem::from("‘", "`"));
     // </SUTOTON>
     items.sort_items();
     items
@@ -128,11 +132,13 @@ pub fn convert(src: &str) -> String {
                 cur.next();
                 continue;
             },
+            /*
             '\u{0020}'..='\u{007D}' => {
                 res.push(ch);
                 cur.next();
                 continue;
             },
+            */
             // add item
             '~' | '‾' => {
                 cur.next(); // skip '~'

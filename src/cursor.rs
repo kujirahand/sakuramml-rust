@@ -69,6 +69,9 @@ impl TokenCursor {
                 self.index += splitter.chars().count();
                 break;
             }
+            if self.eq_char('\n') {
+                self.line += 1;
+            }
             s.push(self.get_char());
         }
         s

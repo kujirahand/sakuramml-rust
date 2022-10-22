@@ -66,6 +66,9 @@ pub struct Track {
     pub v_on_time: Option<Vec<isize>>,
     pub v_on_note_index: isize,
     pub v_on_note: Option<Vec<isize>>,
+    pub t_on_note_index: isize,
+    pub t_on_note: Option<Vec<isize>>,
+    pub cc_on_time_freq: isize,
     pub events: Vec<Event>,
 }
 
@@ -80,10 +83,13 @@ impl Track {
             timing: 0,
             v_rand: 0,
             t_rand: 0,
+            cc_on_time_freq: 4,
             v_on_time_start: -1,
             v_on_time: None,
             v_on_note_index: 0,
             v_on_note: None,
+            t_on_note_index: 0,
+            t_on_note: None,
             channel,
             events: vec![],
         }
@@ -212,8 +218,19 @@ impl Track {
         self.v_on_note_index += 1;
         return v;
     }
-    pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>, timebase: isize) {
-        let freq = timebase / 32;
+    pub fn calc_t_on_note(&mut self, def: isize) -> isize {
+        // on_note?
+        let ia = match &self.t_on_note {
+            None => return def,
+            Some(pia) => pia.clone()
+        };
+        if ia.len() == 0 { return def; }
+        let t = ia[(self.t_on_note_index as usize) % ia.len()];
+        self.t_on_note_index += 1;
+        return t;
+    }
+    pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>) {
+        let freq = self.cc_on_time_freq;
         for i in 0..ia.len() / 3 {
             let low = ia[i*3+0];
             let high = ia[i*3+1];

@@ -22,6 +22,7 @@ pub enum TokenType {
     Timing,
     ControllChange,
     CConTime,
+    CConTimeFreq,
     Tempo,
     MetaText,
     SysEx,
@@ -46,6 +47,7 @@ pub enum TokenType {
     TimingRandom,
     VelocityOnTime,
     VelocityOnNote,
+    TimingOnNote,
     MeasureShift,
     TrackSync,
 }
