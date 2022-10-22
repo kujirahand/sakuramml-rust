@@ -4,6 +4,7 @@
 
 | コマンド | 説明    |
 |---------|--------|
+| ここから演奏 | 定義: "?" |
 | テンポ | 定義: "TEMPO=" |
 | トラック | 定義: "TR=" |
 | チャンネル | 定義: "CH=" |
@@ -57,6 +58,16 @@
 | ぱ | 定義: "n49 |
 | − | 定義: "-" |
 | ‘ | 定義: "`" |
+| 変 | 定義: "-" |
+| 嬰 | 定義: "#" |
+| リズム | 定義: "RHYTHM" |
+| イ | 定義: "a" |
+| ロ | 定義: "b" |
+| ハ | 定義: "c" |
+| ニ | 定義: "d" |
+| ホ | 定義: "e" |
+| ヘ | 定義: "f" |
+| ト | 定義: "g" |
 
 
 ## 1文字コマンド
@@ -106,6 +117,7 @@
 | SUB / Sub | タイムポインタを戻す (例 SUB{ceg} egb) |
 | KF / KeyFlag | 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
 | KEY / Key / KeyShift | ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde) |
+| TR_KEY / TrackKey | トラック毎、ノート(cdefgab)のキーをn半音シフトする (例 TrackKey=3 cde) |
 | INT / Int | 変数を定義 (例 INT TestValue=30) |
 | STR / Str | 文字列変数を定義 (例 STR A={cde}) |
 | PLAY / Play | 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc}) |
@@ -113,8 +125,9 @@
 | PLAY_FROM / PlayFrom | ここから演奏する　(?と同じ意味) |
 | System.MeasureShift | 小節番号をシフトする (例 System.MeasureShift(1)) |
 | System.KeyFlag | 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
-| System.TimeBase / TIMEBASE / Timebase | タイムベースを設定 (例 TIMEBASE=96) |
+| System.TimeBase / TIMEBASE / Timebase / TimeBase | タイムベースを設定 (例 TIMEBASE=96) |
 | TRACK_SYNC / TrackSync | 全てのトラックのタイムポインタを同期する |
+| SLUR / Slur | 未実装 |
 | M / Modulation | モジュレーション 範囲: 0-127 |
 | PT / PortamentoTime | ポルタメント 範囲: 0-127 |
 | V / MainVolume | メインボリューム 範囲: 0-127 |
@@ -123,8 +136,11 @@
 | PS / PortamentoSwitch | ポルタメントスイッチ |
 | REV / Reverb | リバーブ 範囲: 0-127 |
 | CHO / Chorus | コーラス 範囲: 0-127 |
+| VAR / Variation | バリエーション 範囲: 0-127 |
 | PB / PitchBend | ピッチベンドを指定 範囲: -8192~0~8191の範囲 |
 | BR / PitchBendSensitivity | ピッチベンドの範囲を設定 範囲: 0-12半音 |
+| RPN | RPNを書き込む (例 RPN=0,1,64) |
+| NRPN | NRPNを書き込む (例 NRPN=1,0x64,10) |
 | FineTune | チューニングの微調整 範囲:0-64-127 (-100 - 0 - +99.99セント） |
 | CoarseTune | 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) |
 | VibratoRate | 音色の編集(GS/XG) 範囲: 0-127 |
@@ -147,6 +163,7 @@
 | LYRIC / Lyric | メタテキスト歌詞 (例 LYRIC{"aaa"}) |
 | MAKER / Marker | マーカー (例 MAKER{"aaa"}) |
 | CuePoint | キューポイント (例 CuePoint{"aaa"}) |
+| Include / INCLUDE | 未実装 |
 
 
 ## マクロや音色など変数定義
@@ -372,3 +389,4 @@
 | H | "n44," |
 | o | "n46," |
 | c | "n49," |
+| _ | "r" |
