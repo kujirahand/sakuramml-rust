@@ -41,7 +41,7 @@ fn main() {
         else if arg == "--debug" || arg == "-d" || arg == "debug" || arg == "d" {
             song.debug = true;
         }
-        else if arg == "--eval" || arg == "-e" || arg == "eval" {
+        else if arg == "--eval" || arg == "-e" || arg == "eval" || arg == "e" {
             i += 1;
             eval_mml = if i < args.len() { String::from(&args[i]) } else { String::new() };
             outfile = String::from("eval.mid");

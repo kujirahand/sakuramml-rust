@@ -1,9 +1,17 @@
 <!DOCTYPE html>
 <html><meta charset="utf-8"><body>
-<script src="https://unpkg.com/picoaudio/dist/browser/PicoAudio.js"></script>
+  <!-- jzz player -->
+  <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jzz-midi-smf"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jzz-synth-tiny"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jzz-input-kbd"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jzz-gui-player"></script>
+  <!-- picoaudio player -->
+  <script src="https://unpkg.com/picoaudio/dist/browser/PicoAudio.js"></script>
+
 <script type="module">
   // WebAssemblyを読み込む
-  import init, {compile,get_version} from './pkg/sakuramml.js';
+  import init, {compile, get_version} from './pkg/sakuramml.js';
   // Promiseの仕組みでライブラリを読み込む
   init().then(() => {
     console.log('ok')
@@ -13,6 +21,11 @@
     console.error(err);
     document.getElementById('msg').innerHTML = '[LOAD_ERROR]' + tohtml(err.toString())
   });
+  // これが必要
+  window.sakura_log = function (s) {
+    console.log(s)
+    document.getElementById('msg').innerHTML = tohtml(s)
+  }
   function tohtml(s) {
     s = s.replace(/&/g,'&amp;')
     s = s.replace(/</g,'&lt;')
@@ -20,26 +33,45 @@
     s = s.replace(/\n/g,'<br>\n')
     return s
   }
-  // これが必要
-  window.sakura_log = function (s) {
-    console.log(s)
-    document.getElementById('msg').innerHTML = tohtml(s)
-  }
-  const picoAudio = new PicoAudio();
-  picoAudio.init();
+  window.player_jzz = null;
+  window.player_pico = null;
 
   function playMML() {
     const txt = document.getElementById('txt')
+    const pico = document.getElementById('pico')
     localStorage["picosakura_txt"] = txt.value
+    // init player
+    if (pico.checked) {
+      if (!window.player_pico) {
+        // load Pico
+        window.player_pico = new PicoAudio();
+        window.player_pico.init();
+      }
+    } else {
+      if (!window.player_jzz) {
+        // load JZZ
+        document.getElementById('player_gui').style.display = 'none'
+        window.player_jzz = new JZZ.gui.Player('player_gui');
+        JZZ.synth.Tiny.register('Web Audio');
+      }
+    }
     try {
       const a = compile(txt.value)
       const smfData = new Uint8Array(a);
-      // SMF形式のバイナリのパースを行う
-      const parsedData = picoAudio.parseSMF(smfData);
-      // パースしたデータをセット
-      picoAudio.setData(parsedData);
-      // 再生
-      picoAudio.play();
+      if (pico.checked) {
+        if (window.player_jzz) {
+          window.player_jzz.stop(); //
+        }
+        const parsedData = player_pico.parseSMF(smfData);
+        window.player_pico.setData(parsedData);
+        window.player_pico.play();
+      } else {
+        if (window.player_jzz) {
+          window.player_pico.stop(); //
+        }
+        window.player_jzz.load(new JZZ.MIDI.SMF(smfData));
+        window.player_jzz.play();
+      }
     } catch (err) {
       console.error(err);
       document.getElementById('msg').innerHTML = '[SYSTEM_ERROR]' + tohtml(err.toString())
@@ -56,21 +88,40 @@
     }
   })
 </script>
+<script>
+  function show_jzz() {
+    const gui = document.getElementById('player_gui')
+    gui.style.display = 'block'
+  }
+  function show_pico() {
+    document.getElementById('player_gui').style.display = 'none'
+    console.log('pico')
+  }
+</script>
 <div>
   <div id="player" style="display:none;">
     <button id="btnPlay" style="padding:8px;">▶ 再生</button> &nbsp;
     <span id="sakura_version"></span>
+    <span style="padding:6px;">
+      (シンセ選択:
+      <label for="pico"><input type="radio" id="pico" name="player_type" value="pico" checked="1" onclick="show_pico()">picoaudio</label>
+      <label for="jzz"><input type="radio" id="jzz" name="player_type" value="jzz" onclick="show_jzz()">jzz-synth-tiny</label>)
+    </span>
   </div>
-  <textarea id="txt" cols="60" rows="8" style="width:97%;padding:8px;background-color:#fffff0;">// ここに、ドレミのテキストを書いてください。
+  <div>
+    <textarea id="txt" cols="60" rows="8" style="width:97%;padding:8px;background-color:#fffff0;">// ここに、ドレミのテキストを書いてください。
 トラック1 @1 音量120 音階5 音符4 [3 ドミソミ ] ドーーー
 トラック2 @1 音量100 音階5 音符4 [3 ソラ`レラ ] ソーーー
 トラック3 @1 音量100 音階3 音符8 [3 ドドドド ドドドド] ドーーー
 トラック10 音量100 音符8 [3 どつたつ どつたた ] ぱーーー
-  </textarea>
-  <div id="msg" style="padding:0.5em; color: red;"></div>
+    </textarea>
+  </div>
+  <div>
+    <div id="player_gui"></div>
+  </div>
+    <div id="msg" style="padding:0.5em; color: red;"></div>
 </div>
 
 
-
-  </body></html>
+</body></html>
 

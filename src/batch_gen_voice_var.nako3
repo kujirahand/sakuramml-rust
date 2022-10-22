@@ -211,7 +211,7 @@ Int OpenSurdo = 87;
 　　もし、そうでなければ、続ける。
 　　VAR=抽出文字列[0]
 　　VAL=抽出文字列[1]
-　　「    var.insert(String::from("{VAR}"), SValue::from_i({VAL}));」を表示。
+　　「    var.insert(String::from("{VAR}"), SValue::from_i({VAL})); // @ 音色:{VAR}」を表示。
 　　RES=RES&「| {VAR} | {VAL} |」&改行
 ここまで。
 
