@@ -145,7 +145,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.add_event(e);
             },
             TokenType::MetaText => {
-                let txt = data_get_str(&t.data, song);
+                let mut txt = data_get_str(&t.data, song);
+                if txt.len() > 128 {
+                    txt = txt.chars().take(40).collect();
+                }
                 let e = Event::meta(trk!(song).timepos, 0xFF, t.value, txt.len() as isize, txt.into_bytes());
                 song.add_event(e);
             },
