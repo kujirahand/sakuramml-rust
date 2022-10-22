@@ -96,10 +96,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let v = value_range(1, data_get_int(&t.data), 16) - 1; // CH(1 to 16)
                 trk!(song).channel = v as isize;
             },
-            TokenType::Voice => {
-                let no = var_extract(&t.data[0], song).to_i() - 1;
-                song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
-            },
+            TokenType::Voice => exec_voice(song, t),
             TokenType::Note => exec_note(song, t),
             TokenType::NoteN => exec_note_n(song, t),
             TokenType::Rest => exec_rest(song, t),
@@ -495,6 +492,23 @@ fn exec_rest(song: &mut Song, t: &Token) {
     trk.timepos += notelen * t.value;
 }
 
+fn exec_voice(song: &mut Song, t: &Token) {
+    // voice no
+    let no = var_extract(&t.data[0], song).to_i() - 1;
+    // bank ?
+    match t.data[1] {
+        SValue::None => {
+            song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
+            return;
+        },
+        _ => {
+            let bank = var_extract(&t.data[1], song).to_i();
+            song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0, bank)); // msb
+            song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x20, 0)); // lsb
+            song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
+        }
+    };
+}
 fn exec_track(song: &mut Song, t: &Token) {
     let mut v = data_get_int(&t.data); // TR=0..
     if v < 0 { v = 0; }

@@ -16,6 +16,7 @@ pub fn init_rhythm_macro() -> Vec<String> {
     rhthm_macro['H' as usize - 0x40] = String::from("n44,");
     rhthm_macro['o' as usize - 0x40] = String::from("n46,");
     rhthm_macro['c' as usize - 0x40] = String::from("n49,");
+    rhthm_macro['_' as usize - 0x40] = String::from("r");
     // </RHYTHM_MACRO>
     //
     rhthm_macro

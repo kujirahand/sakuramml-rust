@@ -103,33 +103,6 @@ fn normalize_tokens(tokens: Vec<Token>) -> Vec<Token> {
     res
 }
 
-fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SValue) -> Token {
-    match sval {
-        SValue::Str(src_org, line_no) => {
-            let mut src = src_org.clone();
-            // replace macro ?
-            match src.find("#?1") {
-                Some(_) => {
-                    if cur.eq_char('(') || cur.eq_char('=') || cur.eq_char('{') { // has parameters
-                        let mut args = read_arg_value_sv_array(cur, song).to_array();
-                        for (i, v) in args.iter_mut().enumerate() {
-                            let pat = format!("#?{}", i+1);
-                            src = src.replace(&pat, &v.to_s());
-                        }
-                    }
-                },
-                None => {},
-            }
-            // lex source
-            let tokens = lex(song, &src, line_no);
-            return Token::new_tokens(TokenType::Tokens, line_no, tokens);    
-        },
-        _ => {
-            return Token::new_empty(&format!("Could not execute: {}", name));
-        },
-    }
-}
-
 /// read Upper case commands
 fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token {
     cur.prev(); // back 1char
@@ -182,7 +155,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     if cmd == "PLAY_FROM" || cmd == "PlayFrom" { return Token::new_value(TokenType::PlayFrom, 0); } // @ ここから演奏する　(?と同じ意味)
     if cmd == "System.MeasureShift" { return read_command_mes_shift(cur, song); } // @ 小節番号をシフトする (例 System.MeasureShift(1))
     if cmd == "System.KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
-    if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" { return read_timebase(cur, song); } // @ タイムベースを設定 (例 TIMEBASE=96)
+    if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" || cmd=="TimeBase" { return read_timebase(cur, song); } // @ タイムベースを設定 (例 TIMEBASE=96)
     if cmd == "TRACK_SYNC" || cmd == "TrackSync" { return Token::new_value(TokenType::TrackSync, 0) } // @ 全てのトラックのタイムポインタを同期する
 
     // controll change
@@ -194,6 +167,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     if cmd == "PS" || cmd == "PortamentoSwitch" { return read_command_cc(cur, 65, song); } // @ ポルタメントスイッチ
     if cmd == "REV" || cmd == "Reverb" { return read_command_cc(cur, 91, song); } // @ リバーブ 範囲: 0-127
     if cmd == "CHO" || cmd == "Chorus" { return read_command_cc(cur, 93, song); } // @ コーラス 範囲: 0-127
+    if cmd == "VAR" || cmd == "Variation" { return read_command_cc(cur, 94, song); } // @ バリエーション 範囲: 0-127
 
     if cmd == "PB" || cmd == "PitchBend" { return read_command_pitch_bend_big(cur, song); } // @ ピッチベンドを指定 範囲: -8192~0~8191の範囲
     if cmd == "BR" || cmd == "PitchBendSensitivity" { return read_command_rpn(cur, 0, 0, song); } // @ ピッチベンドの範囲を設定 範囲: 0-12半音
@@ -261,9 +235,42 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 7, vec![v]);
     }
+    if cmd == "Include" || cmd == "INCLUDE" { // @ 未実装
+        cur.skip_space();
+        let v = if cur.eq_char('(') { cur.get_token_nest('(', ')') } else { "".to_string() };
+        return Token::new_empty(&v);
+    }
     // </UPPER_COMMANDS>
     song.logs.push(format!("[ERROR]({}) Unknown command: {}", cur.line, cmd));
     return Token::new_empty(&cmd);
+}
+
+
+fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SValue) -> Token {
+    match sval {
+        SValue::Str(src_org, line_no) => {
+            let mut src = src_org.clone();
+            // replace macro ?
+            match src.find("#?1") {
+                Some(_) => {
+                    if cur.eq_char('(') || cur.eq_char('=') || cur.eq_char('{') { // has parameters
+                        let mut args = read_arg_value_sv_array(cur, song).to_array();
+                        for (i, v) in args.iter_mut().enumerate() {
+                            let pat = format!("#?{}", i+1);
+                            src = src.replace(&pat, &v.to_s());
+                        }
+                    }
+                },
+                None => {},
+            }
+            // lex source
+            let tokens = lex(song, &src, line_no);
+            return Token::new_tokens(TokenType::Tokens, line_no, tokens);    
+        },
+        _ => {
+            return Token::new_empty(&format!("Could not execute: {}", name));
+        },
+    }
 }
 
 fn read_arg_value(cur: &mut TokenCursor, song: &mut Song) -> SValue {
@@ -413,6 +420,7 @@ fn scan_chars(s: &str, c: char) -> isize {
 fn read_timebase(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let v = read_arg_value(cur, song);
     song.timebase = v.to_i();
+    if song.timebase <= 48 { song.timebase = 48; }
     Token::new_empty(&format!("TIMEBASE={}", v.to_i()))
 }
 
@@ -691,6 +699,10 @@ fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
             return Token::new_empty("not supported : onNoteWave");
+        } else if cmd == "onCycle" || cmd == "C" {
+            // TODO: not supported
+            let _ = read_arg_int_array(cur, song);
+            return Token::new_empty("not supported : onCycle");
         }
     }
     let v = read_arg_value(cur, song);
@@ -751,7 +763,12 @@ fn read_command_nrpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_voice(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let value = read_arg_value(cur, song);
-    Token::new(TokenType::Voice, 0, vec![value])
+    cur.skip_space();
+    let bank = if cur.eq_char(',') {
+        cur.next();
+        read_arg_value(cur, song)
+    } else { SValue::None };
+    Token::new(TokenType::Voice, 0, vec![value, bank])
 }
 
 fn read_length(cur: &mut TokenCursor) -> Token {
@@ -860,18 +877,25 @@ fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let no = read_arg_value(cur, song);
     
     // .onTime
-    if cur.eq(".onTime") || cur.eq(".T") {
-        if cur.eq(".onTime") {
-            cur.index += ".onTime".len();
-        } else {
-            cur.index += ".T".len();
+    if cur.eq_char('.') {
+        cur.next();
+        let cmd = cur.get_word();
+        if cmd == "onTime" || cmd == "T" {
+            let ia = read_arg_int_array(cur, song);
+            return Token::new(TokenType::CConTime, no.to_i(), vec![ia]);
         }
-        let ia = read_arg_int_array(cur, song);
-        return Token::new(TokenType::CConTime, no.to_i(), vec![ia]);
+        if cmd == "onNoteWave" || cmd == "W" {
+            let _ia = read_arg_int_array(cur, song);
+            return Token::new_empty("NOT SUPPORTED");
+        }
+        if cmd == "onCycle" || cmd == "C" {
+            let _ia = read_arg_int_array(cur, song);
+            return Token::new_empty("NOT SUPPORTED");
+        }
     }
 
     cur.skip_space();
-    if !cur.eq_char(',') {
+    if !cur.eq_char(',') && !cur.eq_char('(') {
         return Token::new(TokenType::Error, 0, vec![
             SValue::from_s(format!("[ERROR]({}): Faild to set Controll Change", cur.line + 1))]);
     }
