@@ -55,6 +55,7 @@ impl SutotonList {
 fn init_items() -> SutotonList {
     let mut items = SutotonList::new();
     // <SUTOTON>
+    items.push(SutotonItem::from("ここから演奏", "?"));
     items.push(SutotonItem::from("テンポ", "TEMPO="));
     items.push(SutotonItem::from("トラック", "TR="));
     items.push(SutotonItem::from("チャンネル", "CH="));
@@ -108,6 +109,16 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("ぱ", "n49,"));
     items.push(SutotonItem::from("−", "-"));
     items.push(SutotonItem::from("‘", "`"));
+    items.push(SutotonItem::from("変", "-"));
+    items.push(SutotonItem::from("嬰", "#"));
+    items.push(SutotonItem::from("リズム", "RHYTHM"));
+    items.push(SutotonItem::from("イ", "a"));
+    items.push(SutotonItem::from("ロ", "b"));
+    items.push(SutotonItem::from("ハ", "c"));
+    items.push(SutotonItem::from("ニ", "d"));
+    items.push(SutotonItem::from("ホ", "e"));
+    items.push(SutotonItem::from("ヘ", "f"));
+    items.push(SutotonItem::from("ト", "g"));
     // </SUTOTON>
     items.sort_items();
     items
