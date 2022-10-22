@@ -64,6 +64,8 @@ pub struct Track {
     pub t_rand: isize,
     pub v_on_time_start: isize,
     pub v_on_time: Option<Vec<isize>>,
+    pub v_on_note_index: isize,
+    pub v_on_note: Option<Vec<isize>>,
     pub events: Vec<Event>,
 }
 
@@ -80,6 +82,8 @@ impl Track {
             t_rand: 0,
             v_on_time_start: -1,
             v_on_time: None,
+            v_on_note_index: 0,
+            v_on_note: None,
             channel,
             events: vec![],
         }
@@ -196,6 +200,17 @@ impl Track {
         }
         if result == isize::MIN { result = def; }
         result
+    }
+    pub fn calc_v_on_note(&mut self, def: isize) -> isize {
+        // on_note?
+        let ia = match &self.v_on_note {
+            None => return def,
+            Some(pia) => pia.clone()
+        };
+        if ia.len() == 0 { return def; }
+        let v = ia[(self.v_on_note_index as usize) % ia.len()];
+        self.v_on_note_index += 1;
+        return v;
     }
     pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>, timebase: isize) {
         let freq = timebase / 32;

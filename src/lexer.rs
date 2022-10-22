@@ -701,17 +701,21 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    // v.Random ?
-    if cur.eq(".Random") {
-        cur.index += ".Random".len();
-        let r = read_arg_value(cur, song);
-        return Token::new(TokenType::VelocityRandom, 0, vec![r])
-    }
-    // v.onTime
-    if cur.eq(".onTime") {
-        cur.index += ".onTime".len();
-        let av = read_arg_int_array(cur, song);
-        return Token::new(TokenType::VelocityOnTime, 0, vec![av])
+    if cur.eq_char('.') {
+        cur.next(); // skip '.'
+        let cmd = cur.get_word();
+        if cmd == "Random" {
+            let r = read_arg_value(cur, song);
+            return Token::new(TokenType::VelocityRandom, 0, vec![r])
+        }
+        if cmd == "onTime" || cmd == "T" {
+            let av = read_arg_int_array(cur, song);
+            return Token::new(TokenType::VelocityOnTime, 0, vec![av])
+        }
+        if cmd == "onNote" || cmd == "N" {
+            let av = read_arg_int_array(cur, song);
+            return Token::new(TokenType::VelocityOnNote, 0, vec![av])
+        }
     }
     // v(no)
     let value = read_arg_value(cur, song);

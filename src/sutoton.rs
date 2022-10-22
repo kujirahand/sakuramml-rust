@@ -93,6 +93,7 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("】", "]"));
     items.push(SutotonItem::from("↑", ">"));
     items.push(SutotonItem::from("↓", "<"));
+    items.push(SutotonItem::from("っ", "r"));
     items.push(SutotonItem::from("ん", "r"));
     items.push(SutotonItem::from("♭", "-"));
     items.push(SutotonItem::from("♯", "#"));
@@ -133,14 +134,13 @@ pub fn convert(src: &str) -> String {
                 continue;
             },
             // add item
-            '~' => {
-                cur.index += 1;
+            '~' | '‾' => {
+                cur.next(); // skip '~'
                 cur.skip_space();
                 if cur.peek_n(0) != '{' { continue; }
                 let name = cur.get_token_nest('{', '}');
                 cur.skip_space();
-                let ch = cur.get_char();
-                if ch != '=' { continue; }
+                if cur.eq_char('=') { cur.next(); } // skip '='
                 cur.skip_space();
                 if cur.peek_n(0) != '{' { continue; }
                 let value = cur.get_token_nest('{', '}');

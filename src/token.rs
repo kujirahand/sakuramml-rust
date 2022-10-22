@@ -45,6 +45,7 @@ pub enum TokenType {
     VelocityRandom,
     TimingRandom,
     VelocityOnTime,
+    VelocityOnNote,
     MeasureShift,
     TrackSync,
 }

@@ -137,6 +137,7 @@ v127 c ( c ( c (( c )) c ) c ) c
 先行指定が使えます。
 
 - v.onTime(low, high, len, ...)　/ 省略形 v.T(low,high,len,...)
+- v.onNote(v1, v2, v3, ...)　/ 省略形 v.N(low,high,len,...)
 - (ControllChange または PB または p).onTime(low, high, len, ...)
 
 ```
