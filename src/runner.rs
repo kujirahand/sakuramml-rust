@@ -382,7 +382,8 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
         }
     }
     while !cur.is_eos() {
-        if cur.peek_n(0) != '^' { break; }
+        let c = cur.peek_n(0);
+        if (c != '^') && (c != '+') { break; }
         cur.next(); // skip '^'
         if cur.eq_char('%') {
             step_mode = true;
@@ -577,6 +578,11 @@ mod tests {
         assert_eq!(calc_length("4^%1", 96, 96), 97);
         assert_eq!(calc_length("^%2", 96, 96), 98);
         assert_eq!(calc_length("^%-1", 96, 48), 47);
+    }
+    #[test]
+    fn test_calc_len_plus() {
+        assert_eq!(calc_length("4+4", 96, 96), 96*2);
+        assert_eq!(calc_length("8+", 96, 48), 96);
     }
     #[test]
     fn test_exec1() {
