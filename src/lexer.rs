@@ -78,31 +78,6 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
     normalize_tokens(result)
 }
 
-// Emptyを削除し、Tokensを展開して返す。ただし、Div/Subは実行時にならないと展開結果が分からないため、それは展開しない
-fn normalize_tokens(tokens: Vec<Token>) -> Vec<Token> {
-    let mut res = vec![];
-    for t in tokens.into_iter() {
-        match t.ttype {
-            TokenType::Empty => {},
-            TokenType::Tokens => {
-                match t.children {
-                    Some(sub_tt) => {
-                        let sub_tt2 = normalize_tokens(sub_tt);
-                        for tt in sub_tt2.into_iter() {
-                            res.push(tt);
-                        }
-                    },
-                    None => {},
-                }
-            },
-            _ => {
-                res.push(t);
-            }
-        }
-    }
-    res
-}
-
 /// read Upper case commands
 fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token {
     cur.prev(); // back 1char
@@ -274,6 +249,33 @@ fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SVal
         },
     }
 }
+
+// Emptyを削除し、Tokensを展開して返す。ただし、Div/Subは実行時にならないと展開結果が分からないため、それは展開しない
+fn normalize_tokens(tokens: Vec<Token>) -> Vec<Token> {
+    let mut res = vec![];
+    for t in tokens.into_iter() {
+        match t.ttype {
+            TokenType::Empty => {},
+            TokenType::Tokens => {
+                match t.children {
+                    Some(sub_tt) => {
+                        let sub_tt2 = normalize_tokens(sub_tt);
+                        for tt in sub_tt2.into_iter() {
+                            res.push(tt);
+                        }
+                    },
+                    None => {},
+                }
+            },
+            _ => {
+                res.push(t);
+            }
+        }
+    }
+    res
+}
+
+
 
 fn read_arg_value(cur: &mut TokenCursor, song: &mut Song) -> SValue {
     cur.skip_space();
