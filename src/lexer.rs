@@ -95,7 +95,16 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
 
     // variables?
     match song.variables.get(&cmd) {
-        Some(sval) => return read_variables(cur, song, &cmd, sval.clone()),
+        Some(sval) => {
+            cur.skip_space();
+            // set varable?
+            if cur.eq_char('=') {
+                cur.index = cur_pos;
+                return read_def_str(cur, song);
+            }
+            // get variable
+            return read_variables(cur, song, &cmd, sval.clone());
+        },
         None => {},
     };
 
