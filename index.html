@@ -80,6 +80,10 @@
   document.getElementById('btnPlay').onclick = () => {
     playMML()
   }
+  document.getElementById('btnStop').onclick = () => {
+    if (window.player_jzz) { window.player_pico.stop(); }
+    if (window.player_pico) { window.player_pico.stop(); }
+  }
 
   window.addEventListener("load", (e) => {
     const txt = localStorage["picosakura_txt"]
@@ -100,9 +104,10 @@
 </script>
 <div>
   <div id="player" style="display:none;">
-    <button id="btnPlay" style="padding:8px;">▶ 再生</button> &nbsp;
-    <span id="sakura_version"></span>
-    <span style="padding:6px;">
+    <button id="btnPlay" style="padding:8px;">▶ ピコ再生</button>
+    <button id="btnStop" style="padding:8px;">停止</button> &nbsp;
+    <span id="sakura_version" style="font-size:0.4em;"></span>
+    <span style="padding:6px; font-size:0.6em;">
       (シンセ選択:
       <label for="pico"><input type="radio" id="pico" name="player_type" value="pico" checked="1" onclick="show_pico()">picoaudio</label>
       <label for="jzz"><input type="radio" id="jzz" name="player_type" value="jzz" onclick="show_jzz()">jzz-synth-tiny</label>)

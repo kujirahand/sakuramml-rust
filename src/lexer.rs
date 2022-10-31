@@ -38,8 +38,8 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '@' => result.push(read_voice(&mut cur, song)), // @ 音色の指定 範囲:1-128
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ 音階を1つ上げる
             '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)), // @ 音階を1つ下げる
-            ')' => result.push(Token::new_value(TokenType::VelocityRel, 8)), // @ 音量を8つ上げる
-            '(' => result.push(Token::new_value(TokenType::VelocityRel, -8)), // @ 音量を8つ下げる
+            ')' => result.push(Token::new_value(TokenType::VelocityRel, song.v_add)), // @ 音量を8つ上げる
+            '(' => result.push(Token::new_value(TokenType::VelocityRel, -1 * song.v_add)), // @ 音量を8つ下げる
             // comment
             /*
                 "//" => // @ 一行コメント
@@ -70,7 +70,8 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                 if song.logs.len() == LEX_MAX_ERROR {
                     song.logs.push(format!("[ERROR]({}) Too many errors in Lexer ...", cur.line));
                 } else if song.logs.len() < LEX_MAX_ERROR {
-                    song.logs.push(format!("[ERROR]({}) Unknown char: '{}'", cur.line, ch));
+                    let near = cur.peek_str_n(8);
+                    song.logs.push(format!("[ERROR]({}) Unknown char: '{}' near '{}'", cur.line, ch, near));
                 }
             }
         }
@@ -143,6 +144,13 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" || cmd == "TimeBase" { return read_timebase(cur, song); } // @ タイムベースを設定 (例 TIMEBASE=96)
     if cmd == "TRACK_SYNC" || cmd == "TrackSync" { return Token::new_value(TokenType::TrackSync, 0) } // @ 全てのトラックのタイムポインタを同期する
     if cmd == "SLUR" || cmd == "Slur" { return Token::new(TokenType::Empty, 0, read_arg_int_array(cur, song).to_array()); } // @ 未実装
+    if cmd == "System.Include" || cmd == "Include" || cmd == "INCLUDE" { // @ 未実装
+        cur.skip_space();
+        let v = if cur.eq_char('(') { cur.get_token_nest('(', ')') } else { "".to_string() };
+        return Token::new_empty(&v);
+    }
+    if cmd == "System.vAdd" || cmd == "vAdd" { return read_v_add(cur, song); } // @ ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8))
+    if cmd == "System.qAdd" || cmd == "qAdd" { read_arg_value(cur, song); return Token::new_empty("qAdd"); } // @ 未定義
 
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1, song); } // @ モジュレーション 範囲: 0-127
@@ -169,6 +177,10 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     if cmd == "EGAttack" { return read_command_nrpn(cur, 1, 0x63, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
     if cmd == "EGDecay" { return read_command_nrpn(cur, 1, 0x64, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
     if cmd == "EGRelease" { return read_command_nrpn(cur, 1, 0x66, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
+
+    if cmd == "Fadein" || cmd == "FADEIN" { return read_fadein(cur, song, 1); }// @ 小節数を指定してフェードインする (例: Fadein(1))
+    if cmd == "Fadeout" || cmd == "FADEOUT" { return read_fadein(cur, song, -1); }// @ 小節数を指定してフェードアウトする (例: Fadeout(1))
+
 
     // SysEx
     if cmd == "ResetGM" { return Token::new_sysex(vec![0x7E,0x7F,0x9,0x1,0xF7]) } // @ GMリセットを送信
@@ -220,11 +232,6 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     if cmd == "CuePoint" { // @ キューポイント (例 CuePoint{"aaa"})
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 7, vec![v]);
-    }
-    if cmd == "Include" || cmd == "INCLUDE" { // @ 未実装
-        cur.skip_space();
-        let v = if cur.eq_char('(') { cur.get_token_nest('(', ')') } else { "".to_string() };
-        return Token::new_empty(&v);
     }
     // </UPPER_COMMANDS>
     song.logs.push(format!("[ERROR]({}) Unknown command: {}", cur.line, cmd));
@@ -435,6 +442,12 @@ fn read_timebase(cur: &mut TokenCursor, song: &mut Song) -> Token {
     song.timebase = v.to_i();
     if song.timebase <= 48 { song.timebase = 48; }
     Token::new_empty(&format!("TIMEBASE={}", v.to_i()))
+}
+
+fn read_v_add(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let v = read_arg_value(cur, song);
+    song.v_add = v.to_i();
+    Token::new_empty("vAdd")
 }
 
 fn read_key_flag(cur: &mut TokenCursor, _song: &mut Song) -> Token {
@@ -701,6 +714,16 @@ fn read_command_time(cur: &mut TokenCursor, song: &mut Song) -> Token {
 fn read_command_mes_shift(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let v = read_arg_value(cur, song);
     return Token::new(TokenType::MeasureShift, 0, vec![v]);
+}
+
+fn read_fadein(cur: &mut TokenCursor, song: &mut Song, dir: isize) -> Token {
+    let arg = read_arg_value(cur, song);
+    let ia = if dir >= 1 {
+        SValue::from_int_array(vec![0, 127, song.timebase * 4 * arg.to_i()])
+    } else {
+        SValue::from_int_array(vec![127, 0, song.timebase * 4 * arg.to_i()])
+    };
+    return Token::new(TokenType::CConTime, 11, vec![ia]);
 }
 
 fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
@@ -985,16 +1008,20 @@ fn read_note_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
         cur.skip_space();
         cur.get_int(0)
     };
-    // veolocity
+    cur.skip_space();
+    // velocity
     let vel = if !cur.eq_char(',') { -1 } else {
         cur.next();
         cur.skip_space();
+        if cur.eq_char('+') { cur.next(); } // 現状 +/- を無視する (TODO)
         cur.get_int(-1)
     };
+    cur.skip_space();
     // timing
     let timing = if !cur.eq_char(',') { isize::MIN } else {
         cur.next();
         cur.skip_space();
+        if cur.eq_char('+') { cur.next(); }
         cur.get_int(isize::MIN)
     };
     Token::new(
@@ -1031,12 +1058,15 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
         cur.skip_space();
         cur.get_int(0)
     };
+    cur.skip_space();
     // veolocity
     let vel = if !cur.eq_char(',') { -1 } else {
         cur.next();
         cur.skip_space();
+        if cur.eq_char('+') { cur.next(); } // 現状 +/- を無視する (TODO)
         cur.get_int(0)
     };
+    cur.skip_space();
     // timing
     let timing = if !cur.eq_char(',') { isize::MIN } else {
         cur.next();

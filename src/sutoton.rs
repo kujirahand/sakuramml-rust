@@ -79,6 +79,7 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("音量予約", "v.onTime="));
     items.push(SutotonItem::from("ゲート", "q"));
     items.push(SutotonItem::from("連符", "Div"));
+    items.push(SutotonItem::from("読む", "Include"));
     items.push(SutotonItem::from("ド", "c"));
     items.push(SutotonItem::from("レ", "d"));
     items.push(SutotonItem::from("ミ", "e"));
@@ -87,6 +88,14 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("ソ", "g"));
     items.push(SutotonItem::from("ラ", "a"));
     items.push(SutotonItem::from("シ", "b"));
+    items.push(SutotonItem::from("ど", "c"));
+    items.push(SutotonItem::from("れ", "d"));
+    items.push(SutotonItem::from("み", "e"));
+    items.push(SutotonItem::from("ふぁ", "f"));
+    items.push(SutotonItem::from("ふ", "f"));
+    items.push(SutotonItem::from("そ", "g"));
+    items.push(SutotonItem::from("ら", "a"));
+    items.push(SutotonItem::from("し", "b"));
     items.push(SutotonItem::from("ン", "r"));
     items.push(SutotonItem::from("ッ", "r"));
     items.push(SutotonItem::from("ー", "^"));

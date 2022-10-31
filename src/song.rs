@@ -326,6 +326,7 @@ pub struct Song {
     pub key_flag: Vec<isize>,
     pub key_shift: isize,
     pub play_from: isize,
+    pub v_add: isize,
     pub logs: Vec<String>, // ログ
     rand_seed: u32,
 }
@@ -348,6 +349,7 @@ impl Song {
             key_shift: 0,
             play_from: -1,
             logs: vec![],
+            v_add: 8,
             rand_seed: 1110122942, // Random Seed
         }
     }

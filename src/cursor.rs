@@ -41,6 +41,15 @@ impl TokenCursor {
         if self.src.len() <= idx { return '\0'; }
         self.src[idx]
     }
+    pub fn peek_str_n(&self, n: usize) -> String {
+        let mut s = String::new();
+        for i in 0..n {
+            let idx = self.index + i;
+            if idx >= self.src.len() { return s; }
+            s.push(self.src[idx]);
+        }
+        s
+    }
     pub fn is_numeric(&self) -> bool {
         if self.is_eos() { return false; }
         let c = self.src[self.index];
@@ -378,5 +387,16 @@ mod tests {
         assert_eq!(&cur.get_word(), "#abc");
         let mut cur = TokenCursor::from("#abc(30)");
         assert_eq!(&cur.get_word(), "#abc");
+    }
+    #[test]
+    fn test_peek_str_n() {
+        let cur = TokenCursor::from("abcdefg");
+        assert_eq!(cur.peek_str_n(1), "a".to_string());
+        assert_eq!(cur.peek_str_n(3), "abc".to_string());
+        assert_eq!(cur.peek_str_n(5), "abcde".to_string());
+        let cur = TokenCursor::from("ドレミ");
+        assert_eq!(cur.peek_str_n(1), "ド".to_string());
+        assert_eq!(cur.peek_str_n(3), "ドレミ".to_string());
+        assert_eq!(cur.peek_str_n(5), "ドレミ".to_string());
     }
 }
