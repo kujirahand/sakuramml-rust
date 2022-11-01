@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::runner::value_range;
 use crate::svalue::SValue;
 use crate::mml_def;
+use crate::sakura_message::{MessageLang, MessageData, MessageKind};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum EventType {
@@ -315,6 +316,7 @@ impl Flags {
 #[derive(Debug)]
 pub struct Song {
     pub debug: bool,
+    pub message_data: MessageData,
     pub tracks: Vec<Track>,
     pub timebase: isize,
     pub cur_track: usize,
@@ -337,6 +339,7 @@ impl Song {
         let trk = Track::new(timebase, 0);
         Self {
             debug: false,
+            message_data: MessageData::new(MessageLang::EN),
             timebase,
             tracks: vec![trk],
             cur_track: 0,
@@ -352,6 +355,13 @@ impl Song {
             v_add: 8,
             rand_seed: 1110122942, // Random Seed
         }
+    }
+    pub fn set_language(&mut self, lang_code: &str) {
+        let lang = MessageLang::from(lang_code);
+        self.message_data = MessageData::new(lang);
+    }
+    pub fn get_message(&self, kind: MessageKind) -> &'static str {
+        self.message_data.get(kind)
     }
     pub fn get_logs_str(&self) -> String {
         self.logs.join("\n")

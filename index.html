@@ -11,7 +11,7 @@
 
 <script type="module">
   // WebAssemblyを読み込む
-  import init, {compile, get_version} from './pkg/sakuramml.js';
+  import init, {compile, get_version, SakuraCompiler} from './pkg/sakuramml.js';
   // Promiseの仕組みでライブラリを読み込む
   init().then(() => {
     console.log('ok')
@@ -56,7 +56,9 @@
       }
     }
     try {
-      const a = compile(txt.value)
+      const com = SakuraCompiler.new()
+      com.set_language('ja')
+      const a = com.compile(txt.value)
       const smfData = new Uint8Array(a);
       if (pico.checked) {
         if (window.player_jzz) {

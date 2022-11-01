@@ -1,8 +1,9 @@
-use super::runner::calc_length;
-use super::song::Song;
-use super::cursor::TokenCursor;
-use super::svalue::SValue;
-use super::token::{Token, TokenType, zen2han};
+use crate::runner::calc_length;
+use crate::song::Song;
+use crate::cursor::TokenCursor;
+use crate::svalue::SValue;
+use crate::token::{Token, TokenType, zen2han};
+use crate::sakura_message::MessageKind;
 
 const LEX_MAX_ERROR: usize = 30;
 
@@ -68,10 +69,16 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             // </CHAR_COMMANDS>
             _ => {
                 if song.logs.len() == LEX_MAX_ERROR {
-                    song.logs.push(format!("[ERROR]({}) Too many errors in Lexer ...", cur.line));
+                    song.logs.push(format!("[ERROR]({}) {}", cur.line, song.get_message(MessageKind::TooManyErrorsInLexer)));
                 } else if song.logs.len() < LEX_MAX_ERROR {
-                    let near = cur.peek_str_n(8);
-                    song.logs.push(format!("[ERROR]({}) Unknown char: '{}' near '{}'", cur.line, ch, near));
+                    let near = cur.peek_str_n(8).replace('\n', "↵");
+                    let log = format!(
+                        "[ERROR]({}) {}: '{}' {} \"{}\"",
+                        cur.line,
+                        song.get_message(MessageKind::UnknownChar), ch,
+                        song.get_message(MessageKind::Near), near
+                    );
+                    song.logs.push(log);
                 }
             }
         }
@@ -234,7 +241,17 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
         return Token::new(TokenType::MetaText, 7, vec![v]);
     }
     // </UPPER_COMMANDS>
-    song.logs.push(format!("[ERROR]({}) Unknown command: {}", cur.line, cmd));
+    // Error message
+    if song.logs.len() < LEX_MAX_ERROR {
+        let near = cur.peek_str_n(8).replace('\n', "↵");
+        song.logs.push(format!("[ERROR]({}) {} \"{}\" {} \"{}\"", 
+            cur.line,
+            song.get_message(MessageKind::UnknownCommand),
+            cmd,
+            song.get_message(MessageKind::Near),
+            near,
+        ));
+    }
     return Token::new_empty(&cmd);
 }
 
