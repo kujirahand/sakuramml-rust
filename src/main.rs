@@ -1,6 +1,7 @@
 use std::fs::{File, read_to_string};
 use std::io::{Write};
 
+use sakuramml::sakura_version::SAKURA_VERSION;
 use sakuramml::lexer::lex;
 use sakuramml::song::Song;
 use sakuramml::midi::{generate, dump_midi};
@@ -8,7 +9,7 @@ use sakuramml::runner::exec;
 
 fn usage() {
     println!("=== sakuramml ver.{} ===\n{}{}{}{}{}{}{}",
-        sakuramml::sakura_version::version_str(),
+        SAKURA_VERSION,
         "USAGE:\n",
         "  sakuramml (mmlfile) (midifile)\n",
         "OPTIONS:\n",
@@ -19,7 +20,7 @@ fn usage() {
     );
 }
 fn version() {
-    println!("{}", sakuramml::sakura_version::version_str());
+    println!("{}", SAKURA_VERSION);
 }
 fn main() {
     let mut song = Song::new();

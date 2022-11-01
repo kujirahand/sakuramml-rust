@@ -28,7 +28,7 @@ extern {
 /// get sakura compiler version info
 #[wasm_bindgen]
 pub fn get_version() -> String {
-    sakura_version::version_str()
+    sakura_version::SAKURA_VERSION.to_string()
 }
 
 /// compile source to MIDI data
