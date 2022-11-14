@@ -1,11 +1,15 @@
+/// Source code reader
 #[derive(Debug)]
 pub struct TokenCursor {
+    /// position
     pub index: usize,
     src: Vec<char>,
+    /// line number
     pub line: isize,
 }
 
 impl TokenCursor {
+    /// cursor from source
     pub fn from(source: &str) -> Self {
         Self {
             index: 0,
@@ -13,6 +17,7 @@ impl TokenCursor {
             line: 0,
         }
     }
+    /// is eos
     pub fn is_eos(&self) -> bool {
         self.src.len() <=  self.index
     }

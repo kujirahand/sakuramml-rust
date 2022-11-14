@@ -333,12 +333,13 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
     }
 }
 
-pub fn dump_midi(bin: &Vec<u8>) -> String {
+pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
     let mut info = MidiReaderInfo::new();
     let mut res = String::new();
     let mut log = |s: &str| {
         res.push_str(s);
-        println!("{}", s);
+        res.push('\n');
+        if flag_stdout { println!("{}", s); }
     };
     let mut pos = 0;
     let s = array_read_str(bin, pos, 4);

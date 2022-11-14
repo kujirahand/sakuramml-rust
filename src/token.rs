@@ -1,5 +1,6 @@
 use super::svalue::SValue;
 
+/// TokenType
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum TokenType {

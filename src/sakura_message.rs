@@ -1,5 +1,6 @@
 /// message calalogue
 
+/// Message Kind
 #[derive(Debug)]
 pub enum MessageKind {
     UnknownChar,
@@ -8,9 +9,12 @@ pub enum MessageKind {
     TooManyErrorsInLexer,
 }
 
+/// Language
 #[derive(Debug)]
 pub enum MessageLang {
+    /// English
     EN,
+    /// Japanese
     JA,
 }
 impl MessageLang {

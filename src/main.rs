@@ -1,7 +1,7 @@
 /// Command line tool
 
-use std::fs::{File, read_to_string};
-use std::io::{Write};
+use std::fs::{self, File, read_to_string};
+use std::io::{Write, Read};
 
 use sakuramml::sakura_version::SAKURA_VERSION;
 use sakuramml::lexer::lex;
@@ -11,7 +11,7 @@ use sakuramml::runner::exec;
 
 /// show usage
 fn usage() {
-    println!("=== sakuramml ver.{} ===\n{}{}{}{}{}{}{}",
+    println!("=== sakuramml ver.{} ===\n{}{}{}{}{}{}{}{}",
         SAKURA_VERSION,
         "USAGE:\n",
         "  sakuramml (mmlfile) (midifile)\n",
@@ -20,6 +20,7 @@ fn usage() {
         "  -e, --exec     Compile (MML)\n",
         "  -h, --help     Show help\n",
         "  -v, --version  Show version\n",
+        "  -m, --dump,    Dump midi file\n",
     );
 }
 
@@ -33,6 +34,7 @@ fn main() {
     let mut filename = String::new();
     let mut outfile = String::new();
     let mut eval_mml = String::new();
+    let mut mode = String::from("mml2mid");
     let mut i = 1;
     while i < args.len() {
         let arg = &args[i];
@@ -52,6 +54,9 @@ fn main() {
             eval_mml = if i < args.len() { String::from(&args[i]) } else { String::new() };
             outfile = String::from("eval.mid");
         }
+        else if arg == "--dump" || arg == "dump" || arg == "-m" {
+            mode = String::from("dump");
+        }
         else if filename == "" {
             filename = arg.clone();
         }
@@ -67,7 +72,21 @@ fn main() {
     if outfile == "" {
         outfile = filename.replace(".mml", ".mid");
     }
-
+    // dump mode
+    if mode == "dump" {
+        match fs::File::open(filename.clone()) {
+            Ok(mut f) => {
+                let mut buf: Vec<u8> = vec![];
+                f.read_to_end(&mut buf).unwrap();
+                dump_midi(&buf, true);
+                return;
+            },
+            Err(e) => {
+                println!("[ERROR](0): File not found : {}", filename);
+                panic!("{:?}", e);
+            }
+        }
+    }
     // read file
     let mut src: String;
     if eval_mml != "" {
@@ -97,7 +116,7 @@ fn save_to_file(song: &mut Song, path: &str) {
     let mut file = File::create(path).unwrap();
     let buf = generate(song);
     if song.debug {
-        dump_midi(&buf);
+        dump_midi(&buf, true);
     }
     file.write(buf.as_ref()).unwrap();
     file.flush().unwrap();

@@ -5,6 +5,7 @@ use crate::svalue::SValue;
 use crate::mml_def;
 use crate::sakura_message::{MessageLang, MessageData, MessageKind};
 
+/// Event Type
 #[derive(Debug, Clone, PartialEq)]
 pub enum EventType {
     NoteOn,
@@ -16,6 +17,7 @@ pub enum EventType {
     SysEx,
 }
 
+/// Event
 #[derive(Debug, Clone)]
 pub struct Event {
     pub etype: EventType,
@@ -51,7 +53,7 @@ impl Event {
     }
 }
 
-
+/// Track
 #[derive(Debug)]
 pub struct Track {
     pub timepos: isize,
@@ -313,6 +315,7 @@ impl Flags {
     }
 }
 
+/// Song
 #[derive(Debug)]
 pub struct Song {
     pub debug: bool,
