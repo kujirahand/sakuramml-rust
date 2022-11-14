@@ -1,3 +1,5 @@
+/// Command line tool
+
 use std::fs::{File, read_to_string};
 use std::io::{Write};
 
@@ -7,6 +9,7 @@ use sakuramml::song::Song;
 use sakuramml::midi::{generate, dump_midi};
 use sakuramml::runner::exec;
 
+/// show usage
 fn usage() {
     println!("=== sakuramml ver.{} ===\n{}{}{}{}{}{}{}",
         SAKURA_VERSION,
@@ -19,6 +22,8 @@ fn usage() {
         "  -v, --version  Show version\n",
     );
 }
+
+/// show sakura version
 fn version() {
     println!("{}", SAKURA_VERSION);
 }
@@ -87,6 +92,7 @@ fn main() {
     println!("{}\nok.", song.logs.join("\n").trim());
 }
 
+/// save song to file
 fn save_to_file(song: &mut Song, path: &str) {
     let mut file = File::create(path).unwrap();
     let buf = generate(song);
