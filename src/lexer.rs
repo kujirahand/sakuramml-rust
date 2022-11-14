@@ -117,8 +117,9 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     };
 
     // Systemの場合は"."に続く
-    if cmd == "System" {
+    if cmd == "System" || cmd == "SYSTEM" {
         if cur.eq_char('.') { cur.next(); cmd.push('.'); }
+        cmd = "System".to_string(); // convert "SYSTEM" to "System"
         cmd.push_str(&cur.get_word());
     }
 
@@ -187,7 +188,6 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
 
     if cmd == "Fadein" || cmd == "FADEIN" { return read_fadein(cur, song, 1); }// @ 小節数を指定してフェードインする (例: Fadein(1))
     if cmd == "Fadeout" || cmd == "FADEOUT" { return read_fadein(cur, song, -1); }// @ 小節数を指定してフェードアウトする (例: Fadeout(1))
-
 
     // SysEx
     if cmd == "ResetGM" { return Token::new_sysex(vec![0x7E,0x7F,0x9,0x1,0xF7]) } // @ GMリセットを送信

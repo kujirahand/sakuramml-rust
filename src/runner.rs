@@ -159,16 +159,20 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.timesig_frac = t.data[0].to_i();
                 song.timesig_deno = t.data[1].to_i();
                 song.timesig_deno = match song.timesig_deno {
+                    2 => 2,
                     4 => 4,
                     8 => 8,
+                    16 => 16,
                     _ => {
-                        song.logs.push(String::from("[TimeSignature] value must be 4,4 or 6,8"));
+                        song.logs.push(String::from("[TimeSignature] value must be 2/4/8/16,n"));
                         4
                     }
                 };
                 let deno_v = match song.timesig_deno {
+                    2 => 1,
                     4 => 2,
                     8 => 3,
+                    16 => 4,
                     _ => 2,
                 };
                 let e = Event::meta(trk!(song).timepos, 0xFF, 0x58, 0x04, vec![
