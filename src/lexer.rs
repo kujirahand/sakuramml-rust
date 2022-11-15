@@ -1,3 +1,5 @@
+//! lexer
+
 use crate::runner::calc_length;
 use crate::song::Song;
 use crate::cursor::TokenCursor;

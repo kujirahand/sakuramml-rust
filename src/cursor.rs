@@ -1,4 +1,5 @@
-/// Source code reader
+//! Source reader
+
 #[derive(Debug)]
 pub struct TokenCursor {
     /// position

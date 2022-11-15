@@ -1,4 +1,4 @@
-/// Command line tool
+//! Command line interface
 
 use std::fs::{self, File, read_to_string};
 use std::io::{Write, Read};

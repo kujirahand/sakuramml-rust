@@ -1,3 +1,5 @@
+//! Define MML Commands and Macros
+
 use std::collections::HashMap;
 use crate::svalue::SValue;
 use crate::sakura_version;

@@ -3,6 +3,11 @@
 「ドレミ」や「cde」のテキストをMIDIファイルに変換するコンパイラです。手軽に音楽を作成できるツールです。
 Rustで作られておりマルチプラットフォーム(macOS/Windows/Linux/WebAssembly)で動作します。
 
+# リポジトリ
+
+- [GitHub](https://github.com/kujirahand/sakuramml-rust)
+- [crate.io](https://crates.io/crates/sakuramml)
+
 ## どこまで作ったか
 
 - ブラウザで手軽に音楽を再生できる[ピコサクラ](https://sakuramml.com/go.php?15)を実装しました。

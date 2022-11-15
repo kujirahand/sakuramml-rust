@@ -1,3 +1,4 @@
+//! MIDI file generator and analizer
 
 /// midi 
 use super::song::{Song, Track, EventType};

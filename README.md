@@ -1,23 +1,22 @@
 # sakuramml-rust
 
-- [日本語のREADME](README_ja.md)
+"sakruamml" is a MML/ABC to MIDI compier.
 
-"sakruamml-rust" is a MML/ABC to MIDI compier.
+- [README(日本語)](README_ja.md)
 
 This compiler that converts the text of "cde" into MIDI files. 
 It is a tool that allows you to easily create music.
 It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAssembly).
-
-# Web Version
-
-- [Pico-Sakura](https://sakuramml.com/go.php?15) --- WebAssembly version
-  - [Sakura's Web](https://sakuramml.com)
 
 # Repository
 
 - [GitHub](https://github.com/kujirahand/sakuramml-rust)
 - [crate.io](https://crates.io/crates/sakuramml)
 
+# Web Version
+
+- [Pico-Sakura](https://sakuramml.com/go.php?15) --- WebAssembly version
+  - [Sakura's Web](https://sakuramml.com)
 
 # Install
 

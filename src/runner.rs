@@ -1,3 +1,5 @@
+//! runner from tokens
+
 use super::song::{Song, Track, Event};
 use super::token::{Token, TokenType};
 use super::svalue::SValue;
