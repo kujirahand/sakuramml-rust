@@ -562,8 +562,8 @@ fn exec_track(song: &mut Song, t: &Token) {
     song.cur_track = v as usize;
     // new track ?
     while song.tracks.len() <= song.cur_track {
-        let no = song.tracks.len() as isize;
-        let trk = Track::new(song.timebase, no);
+        println!("{:?}", v);
+        let trk = Track::new(song.timebase, v - 1);
         song.tracks.push(trk);
     }
 }

@@ -83,6 +83,7 @@ pub struct Track {
 
 impl Track {
     pub fn new(timebase: isize, channel: isize) -> Self {
+        let channel = if channel < 0 { 0 } else if channel > 15 { 15 } else { channel };
         Track {
             timepos: 0,
             length: timebase,
