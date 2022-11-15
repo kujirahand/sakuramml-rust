@@ -10,8 +10,9 @@ It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAss
 
 # Repository
 
-- [GitHub](https://github.com/kujirahand/sakuramml-rust)
-- [crate.io](https://crates.io/crates/sakuramml)
+- [GitHub/sakuramml-rust](https://github.com/kujirahand/sakuramml-rust)
+- [crate.io/sakuramml](https://crates.io/crates/sakuramml)
+- [npm/sakuramml](https://www.npmjs.com/package/sakuramml)
 
 # Web Version (WASM)
 

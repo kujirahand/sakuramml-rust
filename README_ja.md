@@ -7,6 +7,7 @@ Rustで作られておりマルチプラットフォーム(macOS/Windows/Linux/W
 
 - [GitHub](https://github.com/kujirahand/sakuramml-rust)
 - [crate.io](https://crates.io/crates/sakuramml)
+- [npm/sakuramml](https://www.npmjs.com/package/sakuramml)
 
 ## どこまで作ったか
 
