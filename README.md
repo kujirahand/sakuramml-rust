@@ -13,7 +13,7 @@ It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAss
 - [GitHub](https://github.com/kujirahand/sakuramml-rust)
 - [crate.io](https://crates.io/crates/sakuramml)
 
-# Web Version
+# Web Version (WASM)
 
 - [Pico-Sakura](https://sakuramml.com/go.php?15) --- WebAssembly version
   - [Sakura's Web](https://sakuramml.com)
