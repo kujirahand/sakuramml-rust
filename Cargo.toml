@@ -11,7 +11,8 @@ repository = "https://github.com/kujirahand/sakuramml-rust"
 license-file = "LICENSE"
 keywords = ["MML", "MIDI", "Compiler", "ABC"]
 documentation = "https://docs.rs/sakuramml"
-exclude = ["/test.sh", "/test.mml", "/test.mid", "/eval.mid"]
+exclude = ["/test.sh", "/test.mml", "/test.mid", "/eval.mid", ".*"]
+include = ["/src", "LICENSE", "/samples"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
