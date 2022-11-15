@@ -240,7 +240,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
 fn check_variables(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
     let cur_pos = cur.index;
     let ch = cur.peek_n(0);
-
+    let cmd = cur.get_word();
     // macro define?
     if ch == '#' {
         cur.skip_space();
@@ -251,7 +251,6 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
     }
 
     // variables?
-    let cmd = cur.get_word();
     match song.variables.get(&cmd) {
         Some(sval) => {
             // get variable
