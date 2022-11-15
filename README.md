@@ -1,74 +1,80 @@
-# テキスト音楽サクラ(Rust版)
+# sakuramml-rust
 
-「ドレミ」や「cde」のテキストをMIDIファイルに変換するコンパイラです。手軽に音楽を作成できるツールです。
-Rustで作られておりマルチプラットフォーム(macOS/Windows/Linux/WebAssembly)で動作します。
+- [日本語のREADME](README_ja.md)
 
-## どこまで作ったか
+"sakruamml-rust" is a MML/ABC to MIDI compier.
 
-- ブラウザで手軽に音楽を再生できる[ピコサクラ](https://sakuramml.com/go.php?15)を実装しました。
-- サクラv2と比べると機能は少ないですが、使えるコマンドの一覧が[こちら](src/command.md)にあります。
-- 内部構造についての説明が[こちら](dev_memo.md)にあります。
+This compiler that converts the text of "cde" into MIDI files. 
+It is a tool that allows you to easily create music.
+It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAssembly).
 
-### 実装予定だが未実装
+# Web Version
 
-- & タイ Slur(type[,value,range])	タイ記号"&"の異音程(スラー)の動作を変更する。type=0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ
+- [Pico-Sakura](https://sakuramml.com/go.php?15) --- WebAssembly version
+  - [Sakura's Web](https://sakuramml.com)
 
-### 未実装で実装予定なし
+# Repository
 
-- onCycle命令
-- FOR IF WHILE FUNCTION (別途スクリプト言語からMMLを動的に生成する方が実用的かと)
+- [GitHub](https://github.com/kujirahand/sakuramml-rust)
+- [crate.io](https://crates.io/crates/sakuramml)
 
-# インストールについて
 
-Web版が「[こちら(ピコサクラ)](https://sakuramml.com/go.php?15)」です。
-ブラウザ上で手軽にMIDIファイルを再生できます。
+# Install
 
-ダウンロードして使いたい場合、コマンドライン版が使えます。releaseより各OSのバイナリをダウンロードしてください。
+## Binary - command line
 
-# 使い方
+- [Command line v0.1.13(win/mac/ubuntu)](https://github.com/kujirahand/sakuramml-rust/releases/tag/0.1.13)
 
-## コマンドライン版の使い方
+## Compie
 
-楽譜情報をテキストに記述します。例えば「test.mml」というファイルに記述します。
-それを、"test.mml"を"test.mid"に変換するには、コマンドラインで以下のようにコマンドを実行します。
+Please install [Rust compier](https://www.rust-lang.org/tools/install).
+
+```
+$ git clone https://github.com/kujirahand/sakuramml-rust.git
+$ cd sakuramml-rust
+$ cargo build --relase
+```
+
+`sakuramml` command in `target/release/` dir.
+
+
+# Sakura MML
+
+Please make text file "test.mml". 　Execute the following command to generate a MIDI file.
 
 ```
 $ sakuramml test.mml
 ```
 
-## 基本的な使い方
+## Basic
 
 ```
-音階4 ドレミファソラシ↑ド↓シラソファミレド
 o4 cdefgab>c<bagfedc
 ```
 
 ```
-トラック1 チャンネル1 音符1 ドミソー
 TR=1 CH=1 l1 ceg^
 ```
 
-## 和音
+## Harmony
 
 ```
-音符1「ドミソ」
 l4 `ceg` `dfa`8 `egb`8 `ceg`
 ```
 
-## タイムの移動
+## Set TIME Pointer
 
-TIME(小節:拍:ステップ)を使うと任意の小節に移動できます。
 
 ```
-// 先頭に移動
+// top
 TIME(1:1:0) cdef
 TIME(1:1:0) efga
 
-// 2小節目に移動
+// 2mes
 TIME(2:1:0) cdef
 ```
 
-SUB{...}を使うと、タイムポインタをSUBの直前に戻すことが可能です。気軽に和音を演奏できます。
+`SUB{...}` command let time pointer back.
 
 ```
 SUB{ cdef  c }
@@ -78,18 +84,19 @@ SUB{ efga  e }
 
 ## Rhythm macro
 
-リズムマクロでは、大文字、小文字に関わらず、１文字１命令として扱われる。
-リズムマクロの定義は「$文字{定義}」のように記述する。
+In the rhythm macro, one character is treated as one instruction regardless of uppercase or lowercase letters.
+Rhythm macro definitions are described as "$(char){definition}".
+
 
 ```
-// リズムマクロの定義(ただし以下のものはデフォルトで定義済み...再定義も可能)
+// define macro
 $b{n36,}
 $h{n42,}
 $o{n46,}
-// 新規でリズムマクロを定義
+// new macro
 $S{n37,}
 CH(10)
-//Rhythm のサンプル
+// sample
 Rhythm{
 　[4　l8
 　　　brSr bbsr r-1
@@ -98,62 +105,43 @@ Rhythm{
 }
 ```
 
-## サクラv1/v2とサクラRust版の違い
 
-サクラv1/v2と敢えて変更した点があります。
+### How to specify tuplets
 
-### ステップモードの指定
-
-本バージョンでは、ステップモードの指定方法が異なります。v1/v2では、音長の指定を「l%96」のように書くと、その後ずっとステップ指定になっていました。
-しかし、ステップモードで音符を指定することはほとんどないため、本バージョンでは、一時的にステップ指定ができますが、その後もステップ指定になるわけではありません。ステップ指定は一時的のみ使えます。
-
-```
-// 以下二行は同じ意味
-l%96 cde
-c4d4e4
-```
-
-### 連符の指定方法
-
-従来、連符は『Div{...}』と記述していましたが、『Div』を省略して、『{ceg}』のように記述できます。
+The tuplets are written as "Div{...}", but "Div" can be omitted and written as "{ceg}".
 
 ```
 l4 Div{cde} f Div{gab} >c<
 l4 {cde} f {gab} >c<
 ```
 
-伸ばす記号「^」も1音と数えるので便利。
 
 ```
 l4 {cde}c {gfe}d {c^d} e {d^e} f
 ```
 
-連符はネストできます。
+The tuplets can nest.
 
 ```
 l1 { c d {efe} d } c
 ```
 
-### 音量の相対指定記号
+### Velocity
 
-「(」でベロシティを8下げ、「)」でベロシティを8上げます。
+"(" decreases the velocity by 8, and ")" increases the velocity by 8.
 
 ```
 v127 c ( c ( c (( c )) c ) c ) c  
 ```
 
-### 和音の指定
+### Harmony
 
-「c0e0g」のように、0を指定した和音は、サポートしません。普通に以下のように指定してください。
 
 ```
 `ceg` `dfa` `egb` `ceg`
-「ドミソ」「レファラ」「ミソシ」「ドミソ」
 ```
 
-### 先行指定とCCやPBの連続書き込み
-
-先行指定が使えます。
+### Reservation notation
 
 - v.onTime(low, high, len, ...)　/ 省略形 v.T(low,high,len,...)
 - v.onNote(v1, v2, v3, ...)　/ 省略形 v.N(v1,v2,v3,...)
@@ -165,30 +153,30 @@ v.onTime(0,127,!1)l8cccccccc
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
 
-## マクロの機能
+## Macro
 
-以下のようにしてマクロを定義できます。
+It can define Macro.
 
 ```
-// マクロの定義
+// define Macro
 STR P1 = {cdefg}
 #P1 = {cdefg}
-// マクロを展開
+// expand Macro
 P1
 #P1
 ```
 
-マクロに引数を指定してマクロの内容を置換できます。マクロの中に「#?1」「#?2」「#?3」...を定義しておくと、その部分がマクロの直後に書いた引数で置換されます。
+The macro can replace with arguments. 
+It replaces `#?1` `#?2` `#?3` ...
 
 ```
-// マクロの定義
+// define macro
 #Unison = { Key=#?2 Sub{ #?1 } Key=0 #?1 }
-// マクロの展開
+// expand macro with arguments 
 #Unison{cde},7
 ```
 
-## 参考
+## memo
 
-- サクラ(Rust版)のコマンド一覧 --- [command.md](src/command.md)
-  - サクラ(v2版)のコマンド一覧 --- https://sakuramml.com/doc/command/index.htm
+- Command List(ja) --- [command.md](src/command.md)
 
