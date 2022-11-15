@@ -19,6 +19,7 @@
 | コメント | 定義: "MetaText=" |
 | 拍子 | 定義: "TimeSig=" |
 | 音源初期化 | 定義: "ResetGM()" |
+| 演奏位置 | 定義: "PlayFrom" |
 | 時間 | 定義: "Time=" |
 | 音長 | 定義: "l" |
 | 音符 | 定義: "l" |
@@ -28,6 +29,7 @@
 | 音量予約 | 定義: "v.onTime=" |
 | ゲート | 定義: "q" |
 | 連符 | 定義: "Div" |
+| 読む | 定義: "Include" |
 | ド | 定義: "c" |
 | レ | 定義: "d" |
 | ミ | 定義: "e" |
@@ -36,6 +38,14 @@
 | ソ | 定義: "g" |
 | ラ | 定義: "a" |
 | シ | 定義: "b" |
+| ど | 定義: "c" |
+| れ | 定義: "d" |
+| み | 定義: "e" |
+| ふぁ | 定義: "f" |
+| ふ | 定義: "f" |
+| そ | 定義: "g" |
+| ら | 定義: "a" |
+| し | 定義: "b" |
 | ン | 定義: "r" |
 | ッ | 定義: "r" |
 | ー | 定義: "^" |
@@ -128,6 +138,9 @@
 | System.TimeBase / TIMEBASE / Timebase / TimeBase | タイムベースを設定 (例 TIMEBASE=96) |
 | TRACK_SYNC / TrackSync | 全てのトラックのタイムポインタを同期する |
 | SLUR / Slur | 未実装 |
+| System.Include / Include / INCLUDE | 未実装 |
+| System.vAdd / vAdd | ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8)) |
+| System.qAdd / qAdd | 未定義 |
 | M / Modulation | モジュレーション 範囲: 0-127 |
 | PT / PortamentoTime | ポルタメント 範囲: 0-127 |
 | V / MainVolume | メインボリューム 範囲: 0-127 |
@@ -151,10 +164,13 @@
 | EGAttack | 音色の編集(GS/XG) 範囲: 0-127 |
 | EGDecay | 音色の編集(GS/XG) 範囲: 0-127 |
 | EGRelease | 音色の編集(GS/XG) 範囲: 0-127 |
+| Fadein / FADEIN | 小節数を指定してフェードインする (例: Fadein(1)) |
+| Fadeout / FADEOUT | 小節数を指定してフェードアウトする (例: Fadeout(1)) |
 | ResetGM | GMリセットを送信 |
 | ResetGS | GSリセットを送信 |
 | ResetXG | XGリセットを送信 |
 | TEMPO / Tempo / T | テンポの指定 |
+| TempoChange | テンポを連続で変更する (書式) TempoChange(開始値,終了値, !長さ) |
 | TimeSignature / TimeSig / TIMESIG | 拍子の指定 |
 | MetaText / TEXT / Text | メタテキスト (例 TEXT{"abcd"}) |
 | COPYRIGHT / Copyright | メタテキスト著作権 (例 COPYRIGHT{"aaa"}) |
@@ -163,7 +179,6 @@
 | LYRIC / Lyric | メタテキスト歌詞 (例 LYRIC{"aaa"}) |
 | MAKER / Marker | マーカー (例 MAKER{"aaa"}) |
 | CuePoint | キューポイント (例 CuePoint{"aaa"}) |
-| Include / INCLUDE | 未実装 |
 
 
 ## マクロや音色など変数定義
@@ -174,6 +189,7 @@
 | Unison5th |  5度のユニゾンを演奏 (例 Unison5th{cde}) (値:"Sub{ Key=7 #?1 Key=0 } #?1") |
 | Unison3th |  3度のユニゾンを演奏 (例 Unison3th{cde}) (値:"Sub{ Key=4 #?1 Key=0 } #?1") |
 | Unison |  N度のユニゾンを演奏 (例 Unison{cde},7) (値:"Sub{ Key=#?2 #?1 Key=0 } #?1") |
+| SoundType |  互換性のため。未実装。 (値:0) |
 | GrandPiano |  音色:GrandPiano (値:1) |
 | BrightPiano |  音色:BrightPiano (値:2) |
 | ElectricGrandPiano |  音色:ElectricGrandPiano (値:3) |

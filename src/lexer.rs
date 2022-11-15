@@ -91,12 +91,10 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
 /// read Upper case commands
 fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.prev(); // back 1char    
-    let tmp_pos = cur.index;
-    match read_let_variable(cur, song) {
+    match check_variables(cur, song) {
         Some(res) => return res,
         None => {},
     }
-    cur.index = tmp_pos;
     let mut cmd = cur.get_word();
     // Systemの場合は"."に続く
     if cmd == "System" || cmd == "SYSTEM" {
@@ -141,6 +139,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
     if cmd == "System.vAdd" || cmd == "vAdd" { return read_v_add(cur, song); } // @ ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8))
     if cmd == "System.qAdd" || cmd == "qAdd" { read_arg_value(cur, song); return Token::new_empty("qAdd"); } // @ 未定義
+    if cmd == "SoundType" || cmd == "SOUND_TYPE" { return Token::new(TokenType::Empty, 0, read_arg_int_array(cur, song).to_array()); } // @ 未実装
 
     // controll change
     if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1, song); } // @ モジュレーション 範囲: 0-127
@@ -238,10 +237,9 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     return Token::new_empty(&cmd);
 }
 
-fn read_let_variable(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
+fn check_variables(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
     let cur_pos = cur.index;
     let ch = cur.peek_n(0);
-    let cmd = cur.get_word();
 
     // macro define?
     if ch == '#' {
@@ -253,19 +251,15 @@ fn read_let_variable(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
     }
 
     // variables?
+    let cmd = cur.get_word();
     match song.variables.get(&cmd) {
         Some(sval) => {
-            cur.skip_space();
-            // set varable?
-            if cur.eq_char('=') {
-                cur.index = cur_pos;
-                return Some(read_def_str(cur, song));
-            }
             // get variable
             return Some(read_variables(cur, song, &cmd, sval.clone()));
         },
         None => {},
     };
+    cur.index = cur_pos;
     None
 }
 

@@ -32,7 +32,6 @@ pub fn init_variables() -> HashMap<String, SValue> {
     var.insert(String::from("Unison5th"), SValue::from_str("Sub{ Key=7 #?1 Key=0 } #?1")); // @ 5度のユニゾンを演奏 (例 Unison5th{cde})
     var.insert(String::from("Unison3th"), SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1")); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})
     var.insert(String::from("Unison"), SValue::from_str("Sub{ Key=#?2 #?1 Key=0 } #?1")); // @ N度のユニゾンを演奏 (例 Unison{cde},7)
-    var.insert(String::from("SoundType"), SValue::from_i(0)); // @ 互換性のため。未実装。
     //
     var.insert(String::from("GrandPiano"), SValue::from_i(1)); // @ 音色:GrandPiano
     var.insert(String::from("BrightPiano"), SValue::from_i(2)); // @ 音色:BrightPiano
