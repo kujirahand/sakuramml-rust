@@ -33,8 +33,8 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             't' => result.push(read_timing(&mut cur, song)), // @ 発音タイミングの指定 (例 t-1) / t.Random=n
             'y' => result.push(read_cc(&mut cur, song)), // @ コントロールチェンジの指定 (例 y1,100) 範囲:0-127 / y1.onTime(low,high,len)
             // uppwer command
-            'A'..='Z' | '_' => result.push(read_upper_command(&mut cur, song, ch)), 
-            '#' => result.push(read_upper_command(&mut cur, song, ch)),
+            'A'..='Z' | '_' => result.push(read_upper_command(&mut cur, song)),
+            '#' => result.push(read_upper_command(&mut cur, song)),
             // flag
             '@' => result.push(read_voice(&mut cur, song)), // @ 音色の指定 範囲:1-128
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ 音階を1つ上げる
@@ -87,39 +87,19 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
 }
 
 /// read Upper case commands
-fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token {
-    cur.prev(); // back 1char
-    let cur_pos = cur.index;
-    let mut cmd = cur.get_word();
-
-    // macro define?
-    if ch == '#' {
-        cur.skip_space();
-        if cur.eq_char('=') { // DEFINE MACRO
-            cur.index = cur_pos;
-            return read_def_str(cur, song);
-        }
-    }
-
-    // variables?
-    match song.variables.get(&cmd) {
-        Some(sval) => {
-            cur.skip_space();
-            // set varable?
-            if cur.eq_char('=') {
-                cur.index = cur_pos;
-                return read_def_str(cur, song);
-            }
-            // get variable
-            return read_variables(cur, song, &cmd, sval.clone());
-        },
+fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    cur.prev(); // back 1char    
+    let tmp_pos = cur.index;
+    match read_let_variable(cur, song) {
+        Some(res) => return res,
         None => {},
-    };
-
+    }
+    cur.index = tmp_pos;
+    let mut cmd = cur.get_word();
     // Systemの場合は"."に続く
     if cmd == "System" || cmd == "SYSTEM" {
-        if cur.eq_char('.') { cur.next(); cmd.push('.'); }
         cmd = "System".to_string(); // convert "SYSTEM" to "System"
+        if cur.eq_char('.') { cur.next(); cmd.push('.'); }
         cmd.push_str(&cur.get_word());
     }
 
@@ -255,6 +235,36 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song, ch: char) -> Token
     return Token::new_empty(&cmd);
 }
 
+fn read_let_variable(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
+    let cur_pos = cur.index;
+    let ch = cur.peek_n(0);
+    let cmd = cur.get_word();
+
+    // macro define?
+    if ch == '#' {
+        cur.skip_space();
+        if cur.eq_char('=') { // DEFINE MACRO
+            cur.index = cur_pos;
+            return Some(read_def_str(cur, song));
+        }
+    }
+
+    // variables?
+    match song.variables.get(&cmd) {
+        Some(sval) => {
+            cur.skip_space();
+            // set varable?
+            if cur.eq_char('=') {
+                cur.index = cur_pos;
+                return Some(read_def_str(cur, song));
+            }
+            // get variable
+            return Some(read_variables(cur, song, &cmd, sval.clone()));
+        },
+        None => {},
+    };
+    None
+}
 
 fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SValue) -> Token {
     match sval {
