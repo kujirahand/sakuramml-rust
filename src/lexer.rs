@@ -886,6 +886,11 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
             let av = read_arg_int_array(cur, song);
             return Token::new(TokenType::QLenOnNote, 0, vec![av])
         }
+        if cmd == "onCycle" || cmd == "C" {
+            // TODO: not supported
+            let _ = read_arg_int_array(cur, song);
+            return Token::new_empty("not supported : onCycle");
+        }
     }
     let value = read_arg_value(cur, song);
     Token::new(TokenType::QLen, value.to_i(), vec![])
@@ -917,6 +922,11 @@ fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
             let av = read_arg_int_array(cur, song);
             return Token::new(TokenType::VelocityOnNote, 0, vec![av])
         }
+        if cmd == "onCycle" || cmd == "C" {
+            // TODO: not supported
+            let _ = read_arg_int_array(cur, song);
+            return Token::new_empty("not supported : onCycle");
+        }
     }
     // v(no)
     let value = read_arg_value(cur, song);
@@ -943,6 +953,11 @@ fn read_timing(cur: &mut TokenCursor, song: &mut Song) -> Token {
         if cmd == "onNote" || cmd == "N" {
             let av = read_arg_int_array(cur, song);
             return Token::new(TokenType::TimingOnNote, 0, vec![av])
+        }
+        if cmd == "onCycle" || cmd == "C" {
+            // TODO: not supported
+            let _ = read_arg_int_array(cur, song);
+            return Token::new_empty("not supported : onCycle");
         }
     }
     // t(no)
