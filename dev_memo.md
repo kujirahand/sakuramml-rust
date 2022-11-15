@@ -1,5 +1,8 @@
 # sakuramml-rust の開発メモ
 
+以下に開発記を書きました。
+- [Rustでテキスト音楽「サクラ」を書き直している件](https://qiita.com/kujirahand/items/df2918b70c5715b7dd6b)
+
 ## ソースコードの構造
 
 - メタ情報
