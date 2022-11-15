@@ -25,7 +25,7 @@ It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAss
 
 - [Command line v0.1.13(win/mac/ubuntu)](https://github.com/kujirahand/sakuramml-rust/releases/tag/0.1.13)
 
-## Compie
+## Compile
 
 Please install [Rust compier](https://www.rust-lang.org/tools/install).
 

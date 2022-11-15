@@ -23,7 +23,21 @@ Rustで作られておりマルチプラットフォーム(macOS/Windows/Linux/W
 Web版が「[こちら(ピコサクラ)](https://sakuramml.com/go.php?15)」です。
 ブラウザ上で手軽にMIDIファイルを再生できます。
 
-ダウンロードして使いたい場合、コマンドライン版が使えます。releaseより各OSのバイナリをダウンロードしてください。
+ダウンロードして使いたい場合、コマンドライン版が使えます。以下より各OSのバイナリをダウンロードしてください。
+
+- [Command line v0.1.13(win/mac/ubuntu)](https://github.com/kujirahand/sakuramml-rust/releases/tag/0.1.13)
+
+## 最新版のコンパイル
+
+最初に[Rust](https://www.rust-lang.org/tools/install)をインストールしておいてください。
+
+```
+$ git clone https://github.com/kujirahand/sakuramml-rust.git
+$ cd sakuramml-rust
+$ cargo build --relase
+```
+
+すると、`target/release/sakuramml`が作成されます。
 
 # 使い方
 

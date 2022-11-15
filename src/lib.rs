@@ -1,3 +1,7 @@
+//! "sakruamml-rust" is a MML/ABC to MIDI compier.
+//! This compiler that converts the text of "cde" into MIDI files. 
+//! It is a tool that allows you to easily create music.
+
 pub mod sakura_version;
 pub mod sakura_message;
 pub mod cursor;
