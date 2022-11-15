@@ -141,6 +141,7 @@
 | System.Include / Include / INCLUDE | 未実装 |
 | System.vAdd / vAdd | ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8)) |
 | System.qAdd / qAdd | 未定義 |
+| SoundType / SOUND_TYPE | 未実装 |
 | M / Modulation | モジュレーション 範囲: 0-127 |
 | PT / PortamentoTime | ポルタメント 範囲: 0-127 |
 | V / MainVolume | メインボリューム 範囲: 0-127 |
@@ -189,7 +190,6 @@
 | Unison5th |  5度のユニゾンを演奏 (例 Unison5th{cde}) (値:"Sub{ Key=7 #?1 Key=0 } #?1") |
 | Unison3th |  3度のユニゾンを演奏 (例 Unison3th{cde}) (値:"Sub{ Key=4 #?1 Key=0 } #?1") |
 | Unison |  N度のユニゾンを演奏 (例 Unison{cde},7) (値:"Sub{ Key=#?2 #?1 Key=0 } #?1") |
-| SoundType |  互換性のため。未実装。 (値:0) |
 | GrandPiano |  音色:GrandPiano (値:1) |
 | BrightPiano |  音色:BrightPiano (値:2) |
 | ElectricGrandPiano |  音色:ElectricGrandPiano (値:3) |
