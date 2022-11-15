@@ -70,6 +70,7 @@ fn init_items() -> SutotonList {
     items.push(SutotonItem::from("コメント", "MetaText="));
     items.push(SutotonItem::from("拍子", "TimeSig="));
     items.push(SutotonItem::from("音源初期化", "ResetGM()"));
+    items.push(SutotonItem::from("演奏位置", "PlayFrom"));
     items.push(SutotonItem::from("時間", "Time="));
     items.push(SutotonItem::from("音長", "l"));
     items.push(SutotonItem::from("音符", "l"));

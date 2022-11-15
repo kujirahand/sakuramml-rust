@@ -128,7 +128,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "STR" || cmd == "Str" { return read_def_str(cur, song); } // @ 文字列変数を定義 (例 STR A={cde})
     if cmd == "PLAY" || cmd == "Play" { return read_play(cur, song); } // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
     if cmd == "PRINT" || cmd == "Print" { return read_print(cur, song); } // @ 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA))
-    if cmd == "PLAY_FROM" || cmd == "PlayFrom" { return Token::new_value(TokenType::PlayFrom, 0); } // @ ここから演奏する　(?と同じ意味)
+    if cmd == "PLAY_FROM" || cmd == "PlayFrom" { return read_playfrom(cur, song); } // @ ここから演奏する　(?と同じ意味)
     if cmd == "System.MeasureShift" { return read_command_mes_shift(cur, song); } // @ 小節番号をシフトする (例 System.MeasureShift(1))
     if cmd == "System.KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
     if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" || cmd == "TimeBase" { return read_timebase(cur, song); } // @ タイムベースを設定 (例 TIMEBASE=96)
@@ -543,6 +543,18 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
     ]);
     tok
 }
+
+fn read_playfrom(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    cur.skip_space();
+    if cur.eq_char('(') {
+        // time
+        let tok = read_command_time(cur, song);
+        let pf = Token::new_value(TokenType::PlayFrom, 0);
+        return Token::new_tokens(TokenType::Tokens, 0, vec![tok, pf]);
+    }
+    Token::new_value(TokenType::PlayFrom, 0)
+}
+
 
 fn read_print(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
