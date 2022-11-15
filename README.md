@@ -16,7 +16,7 @@ It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAss
 
 # Web Version (WASM)
 
-- [Pico-Sakura](https://sakuramml.com/go.php?15) --- WebAssembly version
+- [Pico-Sakura](https://sakuramml.com/index.php?pico-sakura) --- WebAssembly version
   - [Sakura's Web](https://sakuramml.com)
 
 # Install
