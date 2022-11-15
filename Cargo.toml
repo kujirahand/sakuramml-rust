@@ -9,7 +9,7 @@ readme = "README.md"
 homepage = "https://sakuramml.com"
 repository = "https://github.com/kujirahand/sakuramml-rust"
 license-file = "LICENSE"
-keywords = ["MML", "MIDI", "MML Compiler", "ABC"]
+keywords = ["MML", "MIDI", "Compiler", "ABC"]
 exclude = ["/test.sh"]
 
 [lib]
