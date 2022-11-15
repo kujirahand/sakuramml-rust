@@ -322,6 +322,7 @@ pub struct Song {
     pub debug: bool,
     pub message_data: MessageData,
     pub tracks: Vec<Track>,
+    pub tempo: isize,
     pub timebase: isize,
     pub cur_track: usize,
     pub timesig_frac: isize, // 分子
@@ -345,6 +346,7 @@ impl Song {
             debug: false,
             message_data: MessageData::new(MessageLang::EN),
             timebase,
+            tempo: 120,
             tracks: vec![trk],
             cur_track: 0,
             timesig_frac: 4,

@@ -181,6 +181,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         let v = read_arg_value(cur, song);
         return Token::new(TokenType::Tempo, 0, vec![v]);
     }
+    if cmd == "TempoChange" { return read_tempo_change(cur, song); } // @ テンポを連続で変更する (書式) TempoChange(開始値,終了値, !長さ)
     if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" { // @ 拍子の指定
         cur.skip_space();
         if cur.eq_char('=') { cur.next(); }
@@ -755,6 +756,11 @@ fn read_command_time(cur: &mut TokenCursor, song: &mut Song) -> Token {
 fn read_command_mes_shift(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let v = read_arg_value(cur, song);
     return Token::new(TokenType::MeasureShift, 0, vec![v]);
+}
+
+fn read_tempo_change(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let ia = read_arg_int_array(cur, song);
+    return Token::new(TokenType::TempoChange, 0, vec![ia]);
 }
 
 fn read_fadein(cur: &mut TokenCursor, song: &mut Song, dir: isize) -> Token {

@@ -141,13 +141,17 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Tempo => {
                 let tempo = data_get_int(&t.data);
-                let mpq = if tempo > 0 { 60000000 / tempo } else { 120 };
-                let e = Event::meta(trk!(song).timepos, 0xFF, 0x51, 0x03, vec![
-                    (mpq >> 16 & 0xFF) as u8,
-                    (mpq >>  8 & 0xFF) as u8,
-                    (mpq >>  0 & 0xFF) as u8,
-                ]);
-                song.add_event(e);
+                tempo_change(song, tempo);
+            },
+            TokenType::TempoChange => {
+                let data: Vec<isize> = (&t.data[0]).to_int_array();
+                if data.len() == 3 {
+                    tempo_change_a_to_b(song, data[0], data[1], data[2]);
+                } else if data.len() == 2 {
+                    tempo_change_a_to_b(song, song.tempo, data[0], data[1]);
+                } else {
+                    tempo_change(song, data[0]);
+                }
             },
             TokenType::MetaText => {
                 let mut txt = data_get_str(&t.data, song);
@@ -267,6 +271,32 @@ fn var_extract(val: &SValue, song: &mut Song) -> SValue {
             val.clone()
         }
     }
+}
+
+fn tempo_change_a_to_b(song: &mut Song, a: isize, b: isize, len: isize) {
+    let step = (song.timebase * 4) / 16;
+    let step_cnt = len / step;
+    let width = b - a;
+    let timepos = trk!(song).timepos;
+    for i in 0..step_cnt {
+        let v = (a as f32) + (width as f32) * (i as f32 / step_cnt as f32);
+        tempo_change(song, v as isize);
+        trk!(song).timepos += step;
+    }
+    trk!(song).timepos = timepos + len;
+    tempo_change(song, b);
+    trk!(song).timepos = timepos;
+}
+
+fn tempo_change(song: &mut Song, tempo: isize) {
+    song.tempo = tempo;
+    let mpq = if tempo > 0 { 60000000 / tempo } else { 120 };
+    let e = Event::meta(trk!(song).timepos, 0xFF, 0x51, 0x03, vec![
+        (mpq >> 16 & 0xFF) as u8,
+        (mpq >>  8 & 0xFF) as u8,
+        (mpq >>  0 & 0xFF) as u8,
+    ]);
+    song.add_event(e);
 }
 
 fn exec_sub(song: &mut Song, t: &Token) {

@@ -25,6 +25,7 @@ pub enum TokenType {
     CConTime,
     CConTimeFreq,
     Tempo,
+    TempoChange,
     MetaText,
     SysEx,
     TimeSignature,
