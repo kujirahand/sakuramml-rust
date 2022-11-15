@@ -32,10 +32,10 @@ Please install [Rust compier](https://www.rust-lang.org/tools/install).
 ```
 $ git clone https://github.com/kujirahand/sakuramml-rust.git
 $ cd sakuramml-rust
-$ cargo build --relase
+$ cargo build --release
 ```
 
-`sakuramml` command in `target/release/` dir.
+`target/release/sakuramml` is compiler.
 
 
 # Sakura MML
