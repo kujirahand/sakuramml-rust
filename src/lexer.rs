@@ -683,13 +683,19 @@ fn read_command_rhythm(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let mut macro_cur = TokenCursor::from(&block);
     macro_cur.line = line_start;
     while !macro_cur.is_eos() {
-        let ch = macro_cur.get_char();
         if macro_cur.eq("Sub") || macro_cur.eq("SUB") {
             result.push_str("SUB");
             macro_cur.index += 3;
             continue;
         }
+        let ch = macro_cur.get_char();
         match ch {
+            '(' => {
+                // 丸カッコの中は置換しない
+                macro_cur.prev();
+                let src = macro_cur.get_token_nest('(', ')');
+                result.push_str(&src);
+            }
             '\u{0040}'..='\u{007f}' => {
                 let m = &song.rhthm_macro[ch as usize - 0x40];
                 if m == "" {
@@ -698,12 +704,6 @@ fn read_command_rhythm(cur: &mut TokenCursor, song: &mut Song) -> Token {
                     result.push_str(m);
                 }
             },
-            '(' => {
-                // 丸カッコの中は置換しない
-                macro_cur.prev();
-                let src = macro_cur.get_token_nest('(', ')');
-                result.push_str(&src);
-            }
             _ => {
                 result.push(ch);
             }
@@ -1196,5 +1196,11 @@ mod tests {
         assert_eq!(&tokens_to_str(&lex(&mut song, "STR A={#?1} A{e}", 0)), "[Note,4]");
         assert_eq!(&tokens_to_str(&lex(&mut song, "#A={#?1} #A{f}", 0)), "[Note,5]");
 
+    }
+    #[test]
+    fn test_lex_rhythm_macro() {
+        let mut song = Song::new();
+        assert_eq!(&tokens_to_str(&lex(&mut song, "RHYTHM{b}", 0)), "[NoteN,0]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "RHYTHM{(Sub){b}}", 0)), "[Sub,0]");
     }
 }
