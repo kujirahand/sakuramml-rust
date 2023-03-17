@@ -1,10 +1,10 @@
 //! runner from tokens
 
-use super::song::{Song, Track, Event};
-use super::token::{Token, TokenType};
-use super::svalue::SValue;
 use super::cursor::TokenCursor;
 use super::lexer::lex;
+use super::song::{Event, Song, Track};
+use super::svalue::SValue;
+use super::token::{Token, TokenType};
 
 #[derive(Debug)]
 pub struct LoopItem {
@@ -16,12 +16,19 @@ pub struct LoopItem {
 
 impl LoopItem {
     fn new() -> Self {
-        LoopItem { start_pos: 0, end_pos: 0, index: 0, count: 0 }
+        LoopItem {
+            start_pos: 0,
+            end_pos: 0,
+            index: 0,
+            count: 0,
+        }
     }
 }
 
 macro_rules! trk {
-    ($song:expr) => { $song.tracks[$song.cur_track] };
+    ($song:expr) => {
+        $song.tracks[$song.cur_track]
+    };
 }
 
 /// run tokens
@@ -36,18 +43,20 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
         match t.ttype {
             TokenType::Empty => {
                 // unknown
-            },
+            }
             TokenType::Error => {
                 if song.debug {
                     println!("[RUNTIME.ERROR]");
                 }
-            },
+            }
             TokenType::Print => {
                 let msg = var_extract(&t.data[0], song).to_s();
                 let msg = format!("[PRINT]({}) {}", t.value, msg);
-                if song.debug { println!("{}", msg); }
+                if song.debug {
+                    println!("{}", msg);
+                }
                 song.logs.push(msg);
-            },
+            }
             // Loop controll
             TokenType::LoopBegin => {
                 let mut it = LoopItem::new();
@@ -55,20 +64,23 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 it.count = var_extract(&t.data[0], song).to_i() as usize;
                 // println!("loop={}", it.count);
                 loop_stack.push(it);
-            },
+            }
             TokenType::LoopBreak => {
                 let mut it = match loop_stack.pop() {
-                    None => { pos += 1; continue},
+                    None => {
+                        pos += 1;
+                        continue;
+                    }
                     Some(i) => i,
                 };
-                if it.index == (it.count-1) {
+                if it.index == (it.count - 1) {
                     if it.end_pos == 0 {
-                        for i  in pos..tokens.len() {
+                        for i in pos..tokens.len() {
                             match &tokens[i].ttype {
                                 TokenType::LoopEnd => {
                                     it.end_pos = i + 1;
                                     break;
-                                },
+                                }
                                 _ => {}
                             }
                         }
@@ -80,7 +92,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 } else {
                     loop_stack.push(it);
                 }
-            },
+            }
             TokenType::LoopEnd => {
                 if loop_stack.len() > 0 {
                     let mut it = loop_stack.pop().unwrap();
@@ -92,57 +104,71 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                         continue;
                     }
                 }
-            },
+            }
             TokenType::Track => exec_track(song, t),
             TokenType::Channel => {
                 let v = value_range(1, data_get_int(&t.data), 16) - 1; // CH(1 to 16)
                 trk!(song).channel = v as isize;
-            },
+            }
             TokenType::Voice => exec_voice(song, t),
             TokenType::Note => exec_note(song, t),
             TokenType::NoteN => exec_note_n(song, t),
             TokenType::Rest => exec_rest(song, t),
-            TokenType::Length => { trk!(song).length = calc_length(&t.data[0].to_s(), song.timebase, song.timebase); },
-            TokenType::Octave => { trk!(song).octave = value_range(0, t.value, 10); },
-            TokenType::OctaveRel => { trk!(song).octave = value_range(0, trk!(song).octave + t.value, 10); },
-            TokenType::VelocityRel => { trk!(song).velocity = value_range(0, trk!(song).velocity + t.value, 127); },
+            TokenType::Length => {
+                trk!(song).length = calc_length(&t.data[0].to_s(), song.timebase, song.timebase);
+            }
+            TokenType::Octave => {
+                trk!(song).octave = value_range(0, t.value, 10);
+            }
+            TokenType::OctaveRel => {
+                trk!(song).octave = value_range(0, trk!(song).octave + t.value, 10);
+            }
+            TokenType::VelocityRel => {
+                trk!(song).velocity = value_range(0, trk!(song).velocity + t.value, 127);
+            }
             TokenType::OctaveOnce => {
                 trk!(song).octave = value_range(0, trk!(song).octave + t.value, 10);
                 song.flags.octave_once += t.value;
-            },
+            }
             TokenType::QLen => {
                 trk!(song).qlen = value_range(0, t.value, 100);
                 trk!(song).q_on_note = None;
-            },
+            }
             TokenType::Velocity => {
                 let ino = t.data[0].to_i();
                 if ino > 0 {
-                    while trk!(song).v_sub.len() >= ino as usize { trk!(song).v_sub.push(0); }
+                    while trk!(song).v_sub.len() >= ino as usize {
+                        trk!(song).v_sub.push(0);
+                    }
                     trk!(song).v_sub[ino as usize] = value_range(0, t.value, 127);
                 } else {
                     trk!(song).velocity = value_range(0, t.value, 127);
                 }
                 trk!(song).v_on_time = None;
                 trk!(song).v_on_note = None;
-            },
+            }
             TokenType::Timing => {
-                trk!(song).timing = t.value; 
+                trk!(song).timing = t.value;
                 trk!(song).t_on_note = None;
-            },
+            }
             TokenType::ControllChange => {
                 let no = t.data[0].to_i();
                 let val = t.data[1].to_i();
                 song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, no, val));
-            },
+            }
             TokenType::PitchBend => {
                 let val = var_extract(&t.data[0], song).to_i();
                 let val = if t.value == 0 { val * 128 } else { val + 8192 };
-                song.add_event(Event::pitch_bend(trk!(song).timepos, trk!(song).channel, val));
-            },
+                song.add_event(Event::pitch_bend(
+                    trk!(song).timepos,
+                    trk!(song).channel,
+                    val,
+                ));
+            }
             TokenType::Tempo => {
                 let tempo = data_get_int(&t.data);
                 tempo_change(song, tempo);
-            },
+            }
             TokenType::TempoChange => {
                 let data: Vec<isize> = (&t.data[0]).to_int_array();
                 if data.len() == 3 {
@@ -152,15 +178,21 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 } else {
                     tempo_change(song, data[0]);
                 }
-            },
+            }
             TokenType::MetaText => {
                 let mut txt = data_get_str(&t.data, song);
                 if txt.len() > 128 {
                     txt = txt.chars().take(40).collect();
                 }
-                let e = Event::meta(trk!(song).timepos, 0xFF, t.value, txt.len() as isize, txt.into_bytes());
+                let e = Event::meta(
+                    trk!(song).timepos,
+                    0xFF,
+                    t.value,
+                    txt.len() as isize,
+                    txt.into_bytes(),
+                );
                 song.add_event(e);
-            },
+            }
             TokenType::TimeSignature => {
                 song.timesig_frac = t.data[0].to_i();
                 song.timesig_deno = t.data[1].to_i();
@@ -170,7 +202,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     8 => 8,
                     16 => 16,
                     _ => {
-                        song.logs.push(String::from("[TimeSignature] value must be 2/4/8/16,n"));
+                        song.logs
+                            .push(String::from("[TimeSignature] value must be 2/4/8/16,n"));
                         4
                     }
                 };
@@ -181,18 +214,19 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     16 => 4,
                     _ => 2,
                 };
-                let e = Event::meta(trk!(song).timepos, 0xFF, 0x58, 0x04, vec![
-                    song.timesig_frac as u8,
-                    deno_v as u8,
-                    0x18,
-                    0x08
-                ]);
+                let e = Event::meta(
+                    trk!(song).timepos,
+                    0xFF,
+                    0x58,
+                    0x04,
+                    vec![song.timesig_frac as u8, deno_v as u8, 0x18, 0x08],
+                );
                 song.add_event(e);
-            },
+            }
             TokenType::SysEx => {
                 let e = Event::sysex(trk!(song).timepos, &t.data);
                 song.add_event(e);
-            },
+            }
             TokenType::Time => exec_time(song, t),
             TokenType::HarmonyBegin => exec_harmony(song, t, true),
             TokenType::HarmonyEnd => exec_harmony(song, t, false),
@@ -201,46 +235,66 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     Some(tokens) => exec(song, tokens),
                     None => false,
                 };
-            },
+            }
             TokenType::Div => exec_div(song, t),
             TokenType::Sub => exec_sub(song, t),
             TokenType::KeyFlag => song.key_flag = t.data[0].to_int_array(),
-            TokenType::KeyShift => { song.key_shift = var_extract(&t.data[0], song).to_i(); },
-            TokenType::TrackKey => { trk!(song).track_key = var_extract(&t.data[0], song).to_i(); },
+            TokenType::KeyShift => {
+                song.key_shift = var_extract(&t.data[0], song).to_i();
+            }
+            TokenType::TrackKey => {
+                trk!(song).track_key = var_extract(&t.data[0], song).to_i();
+            }
             TokenType::DefInt => {
                 let var_key = t.data[0].to_s().clone();
                 let var_val = var_extract(&t.data[1], song);
                 song.variables.insert(var_key, var_val);
-            },
+            }
             TokenType::DefStr => {
                 let var_key = t.data[0].to_s().clone();
                 let var_val = var_extract(&t.data[1], song);
                 song.variables.insert(var_key, var_val);
-            },
-            TokenType::PlayFrom => { song.play_from = trk!(song).timepos; },
-            TokenType::VelocityRandom => { trk!(song).v_rand = var_extract(&t.data[0], song).to_i(); },
-            TokenType::TimingRandom => { trk!(song).t_rand = var_extract(&t.data[0], song).to_i(); },
-            TokenType::QLenRandom => { trk!(song).q_rand = var_extract(&t.data[0], song).to_i(); },
+            }
+            TokenType::PlayFrom => {
+                song.play_from = trk!(song).timepos;
+            }
+            TokenType::VelocityRandom => {
+                trk!(song).v_rand = var_extract(&t.data[0], song).to_i();
+            }
+            TokenType::TimingRandom => {
+                trk!(song).t_rand = var_extract(&t.data[0], song).to_i();
+            }
+            TokenType::QLenRandom => {
+                trk!(song).q_rand = var_extract(&t.data[0], song).to_i();
+            }
             TokenType::VelocityOnTime => {
                 trk!(song).v_on_time_start = trk!(song).timepos;
                 trk!(song).v_on_time = Some(t.data[0].to_int_array());
-            },
+            }
             TokenType::VelocityOnNote => {
                 trk!(song).v_on_note_index = 0;
                 trk!(song).v_on_note = Some(t.data[0].to_int_array());
-            },
+            }
             TokenType::TimingOnNote => {
                 trk!(song).t_on_note_index = 0;
                 trk!(song).t_on_note = Some(t.data[0].to_int_array());
-            },
+            }
             TokenType::QLenOnNote => {
                 trk!(song).q_on_note_index = 0;
                 trk!(song).q_on_note = Some(t.data[0].to_int_array());
-            },
-            TokenType::CConTime => { trk!(song).write_cc_on_time(t.value, t.data[0].to_int_array()); },
-            TokenType::CConTimeFreq => { trk!(song).cc_on_time_freq = var_extract(&t.data[0], song).to_i(); },
-            TokenType::PBonTime => { trk!(song).write_pb_on_time(t.value, t.data[0].to_int_array(), song.timebase); },
-            TokenType::MeasureShift => { song.flags.measure_shift = var_extract(&t.data[0], song).to_i(); },
+            }
+            TokenType::CConTime => {
+                trk!(song).write_cc_on_time(t.value, t.data[0].to_int_array());
+            }
+            TokenType::CConTimeFreq => {
+                trk!(song).cc_on_time_freq = var_extract(&t.data[0], song).to_i();
+            }
+            TokenType::PBonTime => {
+                trk!(song).write_pb_on_time(t.value, t.data[0].to_int_array(), song.timebase);
+            }
+            TokenType::MeasureShift => {
+                song.flags.measure_shift = var_extract(&t.data[0], song).to_i();
+            }
             TokenType::TrackSync => song.track_sync(),
         }
         pos += 1;
@@ -254,22 +308,18 @@ fn var_extract(val: &SValue, song: &mut Song) -> SValue {
             if s.starts_with('=') && s.len() >= 2 {
                 let key = &s[1..];
                 match song.variables.get(key) {
-                    Some(v) => {
-                        v.clone()
-                    },
+                    Some(v) => v.clone(),
                     None => {
                         let err_msg = format!("[WARN] Undefined: {}", key);
                         song.logs.push(err_msg);
                         SValue::None
-                    },
+                    }
                 }
             } else {
                 SValue::from_str(&s)
             }
-        },
-        _ => {
-            val.clone()
         }
+        _ => val.clone(),
     }
 }
 
@@ -291,11 +341,17 @@ fn tempo_change_a_to_b(song: &mut Song, a: isize, b: isize, len: isize) {
 fn tempo_change(song: &mut Song, tempo: isize) {
     song.tempo = tempo;
     let mpq = if tempo > 0 { 60000000 / tempo } else { 120 };
-    let e = Event::meta(trk!(song).timepos, 0xFF, 0x51, 0x03, vec![
-        (mpq >> 16 & 0xFF) as u8,
-        (mpq >>  8 & 0xFF) as u8,
-        (mpq >>  0 & 0xFF) as u8,
-    ]);
+    let e = Event::meta(
+        trk!(song).timepos,
+        0xFF,
+        0x51,
+        0x03,
+        vec![
+            (mpq >> 16 & 0xFF) as u8,
+            (mpq >> 8 & 0xFF) as u8,
+            (mpq >> 0 & 0xFF) as u8,
+        ],
+    );
     song.add_event(e);
 }
 
@@ -332,9 +388,7 @@ fn exec_div(song: &mut Song, t: &Token) {
     }
     let _ = match &t.children {
         None => false,
-        Some(tokens) => {
-            exec(song, tokens)
-        },
+        Some(tokens) => exec(song, tokens),
     };
     // clean
     {
@@ -358,7 +412,9 @@ fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
         let note_len_s = t.data[0].to_s();
         let mut note_qlen = t.data[1].to_i();
         // parameters
-        if note_qlen < 0 { note_qlen = trk!(song).qlen; }
+        if note_qlen < 0 {
+            note_qlen = trk!(song).qlen;
+        }
         let note_len = calc_length(&note_len_s, song.timebase, trk!(song).length);
         // change event length
         while song.flags.harmony_events.len() > 0 {
@@ -382,23 +438,29 @@ fn exec_time(song: &mut Song, t: &Token) {
     let tick = t.data[2].to_i();
     // calc
     let base = song.timebase * 4 / song.timesig_deno;
-    let total = (mes-1) * (base * song.timesig_frac) + (beat-1) * base + tick;
+    let total = (mes - 1) * (base * song.timesig_frac) + (beat - 1) * base + tick;
     song.tracks[song.cur_track].timepos = total;
 }
 
 fn data_get_int(data: &Vec<SValue>) -> isize {
-    if data.len() == 0 { return 0; }
+    if data.len() == 0 {
+        return 0;
+    }
     data[0].to_i()
 }
 
 fn data_get_str(data: &Vec<SValue>, song: &mut Song) -> String {
-    if data.len() == 0 { return String::new(); }
+    if data.len() == 0 {
+        return String::new();
+    }
     var_extract(&data[0], song).to_s()
 }
 
 pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
     let mut res = def_len;
-    if len_str == "" { return def_len; }
+    if len_str == "" {
+        return def_len;
+    }
     let mut cur = TokenCursor::from(len_str);
     let mut step_mode = false;
     if cur.eq_char('%') {
@@ -419,7 +481,9 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
     }
     while !cur.is_eos() {
         let c = cur.peek_n(0);
-        if (c != '^') && (c != '+') { break; }
+        if (c != '^') && (c != '+') {
+            break;
+        }
         cur.next(); // skip '^'
         if cur.eq_char('%') {
             step_mode = true;
@@ -429,12 +493,16 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
             let mut n = if step_mode {
                 cur.get_int(0)
             } else {
-                let i = cur.get_int(0);
-                if i == 0 { def_len } else { timebase * 4 / i }
+                let i = cur.get_int(4);
+                if i == 0 {
+                    def_len
+                } else {
+                    timebase * 4 / i
+                }
             };
             if cur.peek_n(0) == '.' {
                 cur.next();
-                n = (res as f32 * 1.5) as isize;
+                n = (n as f32 * 1.5) as isize;
             }
             res += n;
         } else {
@@ -454,15 +522,35 @@ fn exec_note(song: &mut Song, t: &Token) {
     let data_note_vel = t.data[4].to_i(); // -1
     let data_note_t = t.data[5].to_i(); // isize::MIN
     let data_note_o = t.data[6].to_i(); // -1
-    // check parameters
-    let qlen = if data_note_qlen != 0 { data_note_qlen } else { trk!(song).qlen };
-    let v = if data_note_vel >= 0 { data_note_vel } else { trk!(song).velocity };
-    let t = if data_note_t != isize::MIN { data_note_t } else { trk!(song).timing };
-    let o = if data_note_o >= 0 { data_note_o } else { trk!(song).octave };
+                                        // check parameters
+    let qlen = if data_note_qlen != 0 {
+        data_note_qlen
+    } else {
+        trk!(song).qlen
+    };
+    let v = if data_note_vel >= 0 {
+        data_note_vel
+    } else {
+        trk!(song).velocity
+    };
+    let t = if data_note_t != isize::MIN {
+        data_note_t
+    } else {
+        trk!(song).timing
+    };
+    let o = if data_note_o >= 0 {
+        data_note_o
+    } else {
+        trk!(song).octave
+    };
     let timepos = trk!(song).timepos;
     // calc
     let mut noteno = o * 12 + note_no + data_note_flag;
-    noteno += if data_note_natural == 0 { song.key_flag[note_no as usize] } else { 0 };
+    noteno += if data_note_natural == 0 {
+        song.key_flag[note_no as usize]
+    } else {
+        0
+    };
     noteno += song.key_shift;
     noteno += trk!(song).track_key;
     // onTime / onNote
@@ -471,9 +559,21 @@ fn exec_note(song: &mut Song, t: &Token) {
     let t = trk!(song).calc_t_on_note(t);
     let qlen = trk!(song).calc_qlen_on_note(qlen);
     // Random
-    let v = if trk!(song).v_rand > 0 { song.calc_rand_value(v, trk!(song).v_rand) } else { v };
-    let t = if trk!(song).t_rand > 0 { song.calc_rand_value(t, trk!(song).t_rand) } else { t };
-    let qlen = if trk!(song).q_rand > 0 { song.calc_rand_value(qlen, trk!(song).q_rand) } else { qlen };
+    let v = if trk!(song).v_rand > 0 {
+        song.calc_rand_value(v, trk!(song).v_rand)
+    } else {
+        v
+    };
+    let t = if trk!(song).t_rand > 0 {
+        song.calc_rand_value(t, trk!(song).t_rand)
+    } else {
+        t
+    };
+    let qlen = if trk!(song).q_rand > 0 {
+        song.calc_rand_value(qlen, trk!(song).q_rand)
+    } else {
+        qlen
+    };
     // note len
     let notelen = calc_length(&data_note_len, song.timebase, trk!(song).length);
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
@@ -483,7 +583,7 @@ fn exec_note(song: &mut Song, t: &Token) {
     let event = Event::note(timepos + t, trk!(song).channel, noteno, notelen_real, v);
     // println!("- {}: note(no={},len={},qlen={},v={},t={},o={})", trk.timepos, noteno, notelen_real, qlen, v, t, o);
     trk!(song).timepos += notelen;
-    
+
     // harmony?
     if song.flags.harmony_flag {
         trk!(song).timepos = song.flags.harmony_time;
@@ -509,23 +609,53 @@ fn exec_note_n(song: &mut Song, t: &Token) {
 
     // check parameters
     let notelen = calc_length(&data_note_len, song.timebase, trk!(song).length);
-    let qlen = if data_note_qlen != 0 { data_note_qlen } else { trk!(song).qlen };
-    let v = if data_note_vel >= 0 { data_note_vel } else { trk!(song).velocity };
-    let t = if data_note_t != isize::MIN { data_note_t } else { trk!(song).timing };
+    let qlen = if data_note_qlen != 0 {
+        data_note_qlen
+    } else {
+        trk!(song).qlen
+    };
+    let v = if data_note_vel >= 0 {
+        data_note_vel
+    } else {
+        trk!(song).velocity
+    };
+    let t = if data_note_t != isize::MIN {
+        data_note_t
+    } else {
+        trk!(song).timing
+    };
     // onTime / onNote
     let v = trk!(song).calc_v_on_time(v);
     let v = trk!(song).calc_v_on_note(v);
     let t = trk!(song).calc_t_on_note(t);
     let qlen = trk!(song).calc_qlen_on_note(qlen);
     // Random
-    let v = if trk!(song).v_rand > 0 { song.calc_rand_value(v, trk!(song).v_rand) } else { v };
-    let t = if trk!(song).t_rand > 0 { song.calc_rand_value(t, trk!(song).t_rand) } else { t };
-    let qlen = if trk!(song).q_rand > 0 { song.calc_rand_value(qlen, trk!(song).q_rand) } else { qlen };
+    let v = if trk!(song).v_rand > 0 {
+        song.calc_rand_value(v, trk!(song).v_rand)
+    } else {
+        v
+    };
+    let t = if trk!(song).t_rand > 0 {
+        song.calc_rand_value(t, trk!(song).t_rand)
+    } else {
+        t
+    };
+    let qlen = if trk!(song).q_rand > 0 {
+        song.calc_rand_value(qlen, trk!(song).q_rand)
+    } else {
+        qlen
+    };
     // calc
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // range
     let v = value_range(0, v, 127);
-    let event = Event::note(trk!(song).timepos + t, trk!(song).channel, data_note_no, notelen_real, v);
+    let event = Event::note(
+        trk!(song).timepos + t,
+        trk!(song).channel,
+        data_note_no,
+        notelen_real,
+        v,
+    );
     // println!("- {}: note(no={},len={},qlen={},v={},t={})", trk!(song).timepos, notelen_real, notelen, qlen, v, t);
     // write event
     trk!(song).events.push(event);
@@ -547,7 +677,7 @@ fn exec_voice(song: &mut Song, t: &Token) {
         SValue::None => {
             song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
             return;
-        },
+        }
         _ => {
             let bank = var_extract(&t.data[1], song).to_i();
             song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0, bank)); // msb
@@ -558,7 +688,9 @@ fn exec_voice(song: &mut Song, t: &Token) {
 }
 fn exec_track(song: &mut Song, t: &Token) {
     let mut v = data_get_int(&t.data); // TR=0..
-    if v < 0 { v = 0; }
+    if v < 0 {
+        v = 0;
+    }
     song.cur_track = v as usize;
     // new track ?
     while song.tracks.len() <= song.cur_track {
@@ -597,16 +729,23 @@ mod tests {
         assert_eq!(calc_length("", 480, 480), 480);
         assert_eq!(calc_length("8", 480, 480), 240);
         assert_eq!(calc_length("8^", 480, 240), 480);
-        assert_eq!(calc_length("^^^", 480, 240), 480*2);
+        assert_eq!(calc_length("^^^", 480, 240), 480 * 2);
         assert_eq!(calc_length("4.", 480, 480), 480 + 240);
-        assert_eq!(calc_length("4.^", 480, 240), 240*4);
+        assert_eq!(calc_length("4.^", 480, 240), 240 * 4);
     }
     #[test]
-    fn test_calc_le2() {
+    fn test_calc_len2() {
         assert_eq!(calc_length("4", 96, 48), 96);
         assert_eq!(calc_length("", 96, 48), 48);
         assert_eq!(calc_length("^", 96, 48), 96);
-        assert_eq!(calc_length("^4", 96, 48), 48+96);
+        assert_eq!(calc_length("^4", 96, 48), 48 + 96);
+    }
+    #[test]
+    fn test_calc_len3() {
+        assert_eq!(calc_length("2", 48, 48), 96);
+        assert_eq!(calc_length("4^4", 48, 48), 96);
+        assert_eq!(calc_length("4.^8", 48, 48), 96);
+        assert_eq!(calc_length("8^4.", 48, 48), 96);
     }
     #[test]
     fn test_calc_len_step() {
@@ -617,21 +756,24 @@ mod tests {
     }
     #[test]
     fn test_calc_len_plus() {
-        assert_eq!(calc_length("4+4", 96, 96), 96*2);
+        assert_eq!(calc_length("4+4", 96, 96), 96 * 2);
         assert_eq!(calc_length("8+", 96, 48), 96);
     }
     #[test]
     fn test_exec1() {
         assert_eq!(exec_easy("PRINT{1}").get_logs_str(), "[PRINT](0) 1");
         assert_eq!(exec_easy("PRINT{abc}").get_logs_str(), "[PRINT](0) abc");
-        assert_eq!(exec_easy("STR A={abc} PRINT=A").get_logs_str(), "[PRINT](0) abc");
+        assert_eq!(
+            exec_easy("STR A={abc} PRINT=A").get_logs_str(),
+            "[PRINT](0) abc"
+        );
     }
     #[test]
     fn test_exec_harmony() {
         let song = exec_easy("q100 l8 'dg'^^^");
         let e = &song.tracks[0].events[0];
         assert_eq!(e.etype, EventType::NoteOn);
-        assert_eq!(e.v2, 96*2);
+        assert_eq!(e.v2, 96 * 2);
     }
     #[test]
     fn test_exec_track_sync() {
@@ -642,14 +784,14 @@ mod tests {
         //
         let song = exec_easy("TR=0 l4 c TR=2 cdef TrackSync;");
         let pos = song.tracks[0].timepos;
-        assert_eq!(pos, 96*4);
+        assert_eq!(pos, 96 * 4);
     }
     #[test]
     fn test_exec_mes_shift() {
         //
         let song = exec_easy("System.MeasureShift=1;TR=0 TIME(1:1:0)");
         let pos = song.tracks[0].timepos;
-        assert_eq!(pos, 96*4);
+        assert_eq!(pos, 96 * 4);
     }
     #[test]
     fn test_lex_macro_str() {
