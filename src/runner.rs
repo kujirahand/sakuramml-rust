@@ -522,7 +522,8 @@ fn exec_note(song: &mut Song, t: &Token) {
     let data_note_vel = t.data[4].to_i(); // -1
     let data_note_t = t.data[5].to_i(); // isize::MIN
     let data_note_o = t.data[6].to_i(); // -1
-                                        // check parameters
+    let _data_slur = t.data[7].to_i(); // 0 or 1 --- TODO: #7
+                                       // check parameters
     let qlen = if data_note_qlen != 0 {
         data_note_qlen
     } else {

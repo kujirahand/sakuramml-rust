@@ -1,4 +1,4 @@
-# テキスト音楽サクラ(Rust版)
+# テキスト音楽サクラ(Rust版) / ピコサクラ
 
 「ドレミ」や「cde」のテキストをMIDIファイルに変換するコンパイラです。手軽に音楽を作成できるツールです。
 Rustで作られておりマルチプラットフォーム(macOS/Windows/Linux/WebAssembly)で動作します。
@@ -24,7 +24,7 @@ Rustで作られておりマルチプラットフォーム(macOS/Windows/Linux/W
 - onCycle命令
 - FOR IF WHILE FUNCTION (別途スクリプト言語からMMLを動的に生成する方が実用的かと)
 
-# インストールについて
+# ピコサクラ - インストールについて
 
 Web版が「[こちら(ピコサクラ)](https://sakuramml.com/go.php?15)」です。
 ブラウザ上で手軽にMIDIファイルを再生できます。
@@ -33,7 +33,7 @@ Web版が「[こちら(ピコサクラ)](https://sakuramml.com/go.php?15)」で�
 
 - [Command line v0.1.13(win/mac/ubuntu)](https://github.com/kujirahand/sakuramml-rust/releases/tag/0.1.13)
 
-## 最新版のコンパイル
+## 最新版のコンパイル (Rust)
 
 最初に[Rust](https://www.rust-lang.org/tools/install)をインストールしておいてください。
 

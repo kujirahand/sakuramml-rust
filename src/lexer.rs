@@ -1,11 +1,11 @@
 //! lexer
 
-use crate::runner::calc_length;
-use crate::song::Song;
 use crate::cursor::TokenCursor;
-use crate::svalue::SValue;
-use crate::token::{Token, TokenType, zen2han};
+use crate::runner::calc_length;
 use crate::sakura_message::MessageKind;
+use crate::song::Song;
+use crate::svalue::SValue;
+use crate::token::{zen2han, Token, TokenType};
 
 const LEX_MAX_ERROR: usize = 30;
 
@@ -20,14 +20,16 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
         match ch {
             // <CHAR_COMMANDS>
             // space
-            ' ' | '\t' | '\r' | '|' | ';' => { }, // @ 空白文字
+            ' ' | '\t' | '\r' | '|' | ';' => {} // @ 空白文字
             // ret
-            '\n' => { cur.line += 1; },
+            '\n' => {
+                cur.line += 1;
+            }
             // lower command
             'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階)
             'n' => result.push(read_note_n(&mut cur, song)), // @ 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング)
-            'r' => result.push(read_rest(&mut cur)), // @ 休符
-            'l' => result.push(read_length(&mut cur)), // @ 音長の指定(例 l4)
+            'r' => result.push(read_rest(&mut cur)),         // @ 休符
+            'l' => result.push(read_length(&mut cur)),       // @ 音長の指定(例 l4)
             'o' => result.push(read_octave(&mut cur, song)), // @ 音階の指定(例 o5) 範囲:0-10
             'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ ピッチベンドの指定 範囲:0-127 (63が中央)
             'q' => result.push(read_qlen(&mut cur, song)), // @ ゲートの指定 (例 q90) 範囲:0-100
@@ -45,7 +47,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '(' => result.push(Token::new_value(TokenType::VelocityRel, -1 * song.v_add)), // @ 音量を8つ下げる
             // comment
             /*
-                "//" => // @ 一行コメント
+            "//" => // @ 一行コメント
                 "/*" .. "*/" => // @ 範囲コメント
              */
             '/' => {
@@ -54,31 +56,38 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                 } else if cur.eq_char('*') {
                     cur.get_token_s("*/");
                 }
-            },
+            }
             '[' => result.push(read_loop(&mut cur, song)), // @ ループ開始 (例 [4 cdeg])
             ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)), // @ ループ最終回に脱出 (例　[4 cde:g]e)
-            ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)), // @ ループ終了
+            ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)),   // @ ループ終了
             '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)), // @ 和音 (例 'ceg') 'ceg'(音長),(ゲート)
             '$' => read_def_rhythm_macro(&mut cur, song), // @ リズムマクロ定義 $文字{定義内容}
-            '{' => { // @ 連符 (例 {ceg}4) {c^d}(音長) 
+            '{' => {
+                // @ 連符 (例 {ceg}4) {c^d}(音長)
                 cur.prev();
                 result.push(read_command_div(&mut cur, song));
-            },
+            }
             '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)), // @ 一度だけ音階を+1する
             '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)), // @ 一度だけ音階を-1する
             '?' => result.push(Token::new_value(TokenType::PlayFrom, 0)), // @ ここから演奏する (=PLAY_FROM)
-            '&' => {}, // @ タイ(todo: 現在未実装)
+            '&' => {} // @ タイ(todo: 現在未実装)
             // </CHAR_COMMANDS>
             _ => {
                 if song.logs.len() == LEX_MAX_ERROR {
-                    song.logs.push(format!("[ERROR]({}) {}", cur.line, song.get_message(MessageKind::TooManyErrorsInLexer)));
+                    song.logs.push(format!(
+                        "[ERROR]({}) {}",
+                        cur.line,
+                        song.get_message(MessageKind::TooManyErrorsInLexer)
+                    ));
                 } else if song.logs.len() < LEX_MAX_ERROR {
                     let near = cur.peek_str_n(8).replace('\n', "↵");
                     let log = format!(
                         "[ERROR]({}) {}: '{}' {} \"{}\"",
                         cur.line,
-                        song.get_message(MessageKind::UnknownChar), ch,
-                        song.get_message(MessageKind::Near), near
+                        song.get_message(MessageKind::UnknownChar),
+                        ch,
+                        song.get_message(MessageKind::Near),
+                        near
                     );
                     song.logs.push(log);
                 }
@@ -90,135 +99,273 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
 
 /// read Upper case commands
 fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    cur.prev(); // back 1char    
+    cur.prev(); // back 1char
     match check_variables(cur, song) {
         Some(res) => return res,
-        None => {},
+        None => {}
     }
     let mut cmd = cur.get_word();
     // Systemの場合は"."に続く
     if cmd == "System" || cmd == "SYSTEM" {
         cmd = "System".to_string(); // convert "SYSTEM" to "System"
-        if cur.eq_char('.') { cur.next(); cmd.push('.'); }
+        if cur.eq_char('.') {
+            cur.next();
+            cmd.push('.');
+        }
         cmd.push_str(&cur.get_word());
     }
 
     // <UPPER_COMMANDS>
     // Track & Channel
-    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" { // @ トラック変更　TR=番号 範囲:0-
+    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" {
+        // @ トラック変更　TR=番号 範囲:0-
         let v = read_arg_value(cur, song);
         return Token::new(TokenType::Track, 0, vec![v]);
     }
-    if cmd == "CH" || cmd == "Channel" { // @ チャンネル変更 CH=番号 範囲:1-16
+    if cmd == "CH" || cmd == "Channel" {
+        // @ チャンネル変更 CH=番号 範囲:1-16
         let v = read_arg_value(cur, song);
         return Token::new(TokenType::Channel, 0, vec![v]);
     }
-    if cmd == "TIME" || cmd == "Time" { return read_command_time(cur, song); } // @ タイム変更 TIME(節:拍:ステップ)
-    if cmd == "RHYTHM" || cmd == "Rhythm" || cmd == "R" { return read_command_rhythm(cur, song) } // @ リズムモード
-    if cmd == "RYTHM" || cmd == "Rythm" { return read_command_rhythm(cur, song) } // @ リズムモード(v1の綴りミス対処[^^;])
-    if cmd == "DIV" || cmd == "Div" { return read_command_div(cur, song) } // @ 連符 (例 DIV{ceg} )
-    if cmd == "SUB" || cmd == "Sub" { return read_command_sub(cur, song) } // @ タイムポインタを戻す (例 SUB{ceg} egb)
+    if cmd == "TIME" || cmd == "Time" {
+        return read_command_time(cur, song);
+    } // @ タイム変更 TIME(節:拍:ステップ)
+    if cmd == "RHYTHM" || cmd == "Rhythm" || cmd == "R" {
+        return read_command_rhythm(cur, song);
+    } // @ リズムモード
+    if cmd == "RYTHM" || cmd == "Rythm" {
+        return read_command_rhythm(cur, song);
+    } // @ リズムモード(v1の綴りミス対処[^^;])
+    if cmd == "DIV" || cmd == "Div" {
+        return read_command_div(cur, song);
+    } // @ 連符 (例 DIV{ceg} )
+    if cmd == "SUB" || cmd == "Sub" {
+        return read_command_sub(cur, song);
+    } // @ タイムポインタを戻す (例 SUB{ceg} egb)
 
-    if cmd == "KF" || cmd == "KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
-    if cmd == "KEY" || cmd == "Key" || cmd == "KeyShift" { return read_command_key(cur, song); } // @ ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde)
-    if cmd == "TR_KEY" || cmd == "TrackKey" { return read_command_track_key(cur, song); } // @ トラック毎、ノート(cdefgab)のキーをn半音シフトする (例 TrackKey=3 cde)
-    if cmd == "INT" || cmd == "Int" { return read_def_int(cur, song); } // @ 変数を定義 (例 INT TestValue=30)
-    if cmd == "STR" || cmd == "Str" { return read_def_str(cur, song); } // @ 文字列変数を定義 (例 STR A={cde})
-    if cmd == "PLAY" || cmd == "Play" { return read_play(cur, song); } // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
-    if cmd == "PRINT" || cmd == "Print" { return read_print(cur, song); } // @ 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA))
-    if cmd == "PLAY_FROM" || cmd == "PlayFrom" { return read_playfrom(cur, song); } // @ ここから演奏する　(?と同じ意味)
-    if cmd == "System.MeasureShift" { return read_command_mes_shift(cur, song); } // @ 小節番号をシフトする (例 System.MeasureShift(1))
-    if cmd == "System.KeyFlag" { return read_key_flag(cur, song); } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
-    if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" || cmd == "TimeBase" { return read_timebase(cur, song); } // @ タイムベースを設定 (例 TIMEBASE=96)
-    if cmd == "TRACK_SYNC" || cmd == "TrackSync" { return Token::new_value(TokenType::TrackSync, 0) } // @ 全てのトラックのタイムポインタを同期する
-    if cmd == "SLUR" || cmd == "Slur" { return Token::new(TokenType::Empty, 0, read_arg_int_array(cur, song).to_array()); } // @ 未実装
-    if cmd == "System.Include" || cmd == "Include" || cmd == "INCLUDE" { // @ 未実装
+    if cmd == "KF" || cmd == "KeyFlag" {
+        return read_key_flag(cur, song);
+    } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    if cmd == "KEY" || cmd == "Key" || cmd == "KeyShift" {
+        return read_command_key(cur, song);
+    } // @ ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde)
+    if cmd == "TR_KEY" || cmd == "TrackKey" {
+        return read_command_track_key(cur, song);
+    } // @ トラック毎、ノート(cdefgab)のキーをn半音シフトする (例 TrackKey=3 cde)
+    if cmd == "INT" || cmd == "Int" {
+        return read_def_int(cur, song);
+    } // @ 変数を定義 (例 INT TestValue=30)
+    if cmd == "STR" || cmd == "Str" {
+        return read_def_str(cur, song);
+    } // @ 文字列変数を定義 (例 STR A={cde})
+    if cmd == "PLAY" || cmd == "Play" {
+        return read_play(cur, song);
+    } // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
+    if cmd == "PRINT" || cmd == "Print" {
+        return read_print(cur, song);
+    } // @ 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA))
+    if cmd == "PLAY_FROM" || cmd == "PlayFrom" {
+        return read_playfrom(cur, song);
+    } // @ ここから演奏する　(?と同じ意味)
+    if cmd == "System.MeasureShift" {
+        return read_command_mes_shift(cur, song);
+    } // @ 小節番号をシフトする (例 System.MeasureShift(1))
+    if cmd == "System.KeyFlag" {
+        return read_key_flag(cur, song);
+    } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" || cmd == "TimeBase" {
+        return read_timebase(cur, song);
+    } // @ タイムベースを設定 (例 TIMEBASE=96)
+    if cmd == "TRACK_SYNC" || cmd == "TrackSync" {
+        return Token::new_value(TokenType::TrackSync, 0);
+    } // @ 全てのトラックのタイムポインタを同期する
+    if cmd == "SLUR" || cmd == "Slur" {
+        return Token::new(
+            TokenType::Empty,
+            0,
+            read_arg_int_array(cur, song).to_array(),
+        );
+    } // @ 未実装
+    if cmd == "System.Include" || cmd == "Include" || cmd == "INCLUDE" {
+        // @ 未実装
         cur.skip_space();
-        let v = if cur.eq_char('(') { cur.get_token_nest('(', ')') } else { "".to_string() };
+        let v = if cur.eq_char('(') {
+            cur.get_token_nest('(', ')')
+        } else {
+            "".to_string()
+        };
         return Token::new_empty(&v);
     }
-    if cmd == "System.vAdd" || cmd == "vAdd" { return read_v_add(cur, song); } // @ ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8))
-    if cmd == "System.qAdd" || cmd == "qAdd" { read_arg_value(cur, song); return Token::new_empty("qAdd"); } // @ 未定義
-    if cmd == "SoundType" || cmd == "SOUND_TYPE" { return Token::new(TokenType::Empty, 0, read_arg_int_array(cur, song).to_array()); } // @ 未実装
+    if cmd == "System.vAdd" || cmd == "vAdd" {
+        return read_v_add(cur, song);
+    } // @ ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8))
+    if cmd == "System.qAdd" || cmd == "qAdd" {
+        read_arg_value(cur, song);
+        return Token::new_empty("qAdd");
+    } // @ 未定義
+    if cmd == "SoundType" || cmd == "SOUND_TYPE" {
+        return Token::new(
+            TokenType::Empty,
+            0,
+            read_arg_int_array(cur, song).to_array(),
+        );
+    } // @ 未実装
 
     // controll change
-    if cmd == "M" || cmd == "Modulation" { return read_command_cc(cur, 1, song); } // @ モジュレーション 範囲: 0-127
-    if cmd == "PT" || cmd == "PortamentoTime" { return read_command_cc(cur, 5, song); } // @ ポルタメント 範囲: 0-127
-    if cmd == "V" || cmd == "MainVolume" { return read_command_cc(cur, 7, song); } // @ メインボリューム 範囲: 0-127
-    if cmd == "P" || cmd == "Panpot" { return read_command_cc(cur, 10, song); } // @ パンポット 範囲: 0-63-127
-    if cmd == "EP" || cmd == "Expression" { return read_command_cc(cur, 11, song); } // @ エクスプレッション音量 範囲: 0-127
-    if cmd == "PS" || cmd == "PortamentoSwitch" { return read_command_cc(cur, 65, song); } // @ ポルタメントスイッチ
-    if cmd == "REV" || cmd == "Reverb" { return read_command_cc(cur, 91, song); } // @ リバーブ 範囲: 0-127
-    if cmd == "CHO" || cmd == "Chorus" { return read_command_cc(cur, 93, song); } // @ コーラス 範囲: 0-127
-    if cmd == "VAR" || cmd == "Variation" { return read_command_cc(cur, 94, song); } // @ バリエーション 範囲: 0-127
+    if cmd == "M" || cmd == "Modulation" {
+        return read_command_cc(cur, 1, song);
+    } // @ モジュレーション 範囲: 0-127
+    if cmd == "PT" || cmd == "PortamentoTime" {
+        return read_command_cc(cur, 5, song);
+    } // @ ポルタメント 範囲: 0-127
+    if cmd == "V" || cmd == "MainVolume" {
+        return read_command_cc(cur, 7, song);
+    } // @ メインボリューム 範囲: 0-127
+    if cmd == "P" || cmd == "Panpot" {
+        return read_command_cc(cur, 10, song);
+    } // @ パンポット 範囲: 0-63-127
+    if cmd == "EP" || cmd == "Expression" {
+        return read_command_cc(cur, 11, song);
+    } // @ エクスプレッション音量 範囲: 0-127
+    if cmd == "PS" || cmd == "PortamentoSwitch" {
+        return read_command_cc(cur, 65, song);
+    } // @ ポルタメントスイッチ
+    if cmd == "REV" || cmd == "Reverb" {
+        return read_command_cc(cur, 91, song);
+    } // @ リバーブ 範囲: 0-127
+    if cmd == "CHO" || cmd == "Chorus" {
+        return read_command_cc(cur, 93, song);
+    } // @ コーラス 範囲: 0-127
+    if cmd == "VAR" || cmd == "Variation" {
+        return read_command_cc(cur, 94, song);
+    } // @ バリエーション 範囲: 0-127
 
-    if cmd == "PB" || cmd == "PitchBend" { return read_command_pitch_bend_big(cur, song); } // @ ピッチベンドを指定 範囲: -8192~0~8191の範囲
-    if cmd == "BR" || cmd == "PitchBendSensitivity" { return read_command_rpn(cur, 0, 0, song); } // @ ピッチベンドの範囲を設定 範囲: 0-12半音
-    if cmd == "RPN" { return read_command_rpn_n(cur, song); } // @ RPNを書き込む (例 RPN=0,1,64)
-    if cmd == "NRPN" { return read_command_nrpn_n(cur, song); } // @ NRPNを書き込む (例 NRPN=1,0x64,10)
-    if cmd == "FineTune" { return read_command_rpn(cur, 0, 1, song); } // @ チューニングの微調整 範囲:0-64-127 (-100 - 0 - +99.99セント）
-    if cmd == "CoarseTune" { return read_command_rpn(cur, 0, 2, song); } // @ 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音)
-    if cmd == "VibratoRate" { return read_command_nrpn(cur, 1, 8, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
-    if cmd == "VibratoDepth" { return read_command_nrpn(cur, 1, 9, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
-    if cmd == "VibratoDelay" { return read_command_nrpn(cur, 1, 10, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
-    if cmd == "FilterCutoff" { return read_command_nrpn(cur, 1, 0x20, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
-    if cmd == "FilterResonance" { return read_command_nrpn(cur, 1, 0x21, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
-    if cmd == "EGAttack" { return read_command_nrpn(cur, 1, 0x63, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
-    if cmd == "EGDecay" { return read_command_nrpn(cur, 1, 0x64, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
-    if cmd == "EGRelease" { return read_command_nrpn(cur, 1, 0x66, song); } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "PB" || cmd == "PitchBend" {
+        return read_command_pitch_bend_big(cur, song);
+    } // @ ピッチベンドを指定 範囲: -8192~0~8191の範囲
+    if cmd == "BR" || cmd == "PitchBendSensitivity" {
+        return read_command_rpn(cur, 0, 0, song);
+    } // @ ピッチベンドの範囲を設定 範囲: 0-12半音
+    if cmd == "RPN" {
+        return read_command_rpn_n(cur, song);
+    } // @ RPNを書き込む (例 RPN=0,1,64)
+    if cmd == "NRPN" {
+        return read_command_nrpn_n(cur, song);
+    } // @ NRPNを書き込む (例 NRPN=1,0x64,10)
+    if cmd == "FineTune" {
+        return read_command_rpn(cur, 0, 1, song);
+    } // @ チューニングの微調整 範囲:0-64-127 (-100 - 0 - +99.99セント）
+    if cmd == "CoarseTune" {
+        return read_command_rpn(cur, 0, 2, song);
+    } // @ 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音)
+    if cmd == "VibratoRate" {
+        return read_command_nrpn(cur, 1, 8, song);
+    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "VibratoDepth" {
+        return read_command_nrpn(cur, 1, 9, song);
+    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "VibratoDelay" {
+        return read_command_nrpn(cur, 1, 10, song);
+    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "FilterCutoff" {
+        return read_command_nrpn(cur, 1, 0x20, song);
+    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "FilterResonance" {
+        return read_command_nrpn(cur, 1, 0x21, song);
+    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "EGAttack" {
+        return read_command_nrpn(cur, 1, 0x63, song);
+    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "EGDecay" {
+        return read_command_nrpn(cur, 1, 0x64, song);
+    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    if cmd == "EGRelease" {
+        return read_command_nrpn(cur, 1, 0x66, song);
+    } // @ 音色の編集(GS/XG) 範囲: 0-127
 
-    if cmd == "Fadein" || cmd == "FADEIN" { return read_fadein(cur, song, 1); }// @ 小節数を指定してフェードインする (例: Fadein(1))
-    if cmd == "Fadeout" || cmd == "FADEOUT" { return read_fadein(cur, song, -1); }// @ 小節数を指定してフェードアウトする (例: Fadeout(1))
+    if cmd == "Fadein" || cmd == "FADEIN" {
+        return read_fadein(cur, song, 1);
+    } // @ 小節数を指定してフェードインする (例: Fadein(1))
+    if cmd == "Fadeout" || cmd == "FADEOUT" {
+        return read_fadein(cur, song, -1);
+    } // @ 小節数を指定してフェードアウトする (例: Fadeout(1))
 
     // SysEx
-    if cmd == "ResetGM" { return Token::new_sysex(vec![0x7E,0x7F,0x9,0x1,0xF7]) } // @ GMリセットを送信
-    if cmd == "ResetGS" { return Token::new_sysex(vec![0x41,0x10,0x42,0x12,0x40,0x00,0x7F,0x00,0x41,0xF7]) } // @ GSリセットを送信
-    if cmd == "ResetXG" { return Token::new_sysex(vec![0x43,0x10,0x4c,0x00,0x00,0x7e,0x00,0xf7]) } // @ XGリセットを送信
+    if cmd == "ResetGM" {
+        return Token::new_sysex(vec![0x7E, 0x7F, 0x9, 0x1, 0xF7]);
+    } // @ GMリセットを送信
+    if cmd == "ResetGS" {
+        return Token::new_sysex(vec![
+            0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7,
+        ]);
+    } // @ GSリセットを送信
+    if cmd == "ResetXG" {
+        return Token::new_sysex(vec![0x43, 0x10, 0x4c, 0x00, 0x00, 0x7e, 0x00, 0xf7]);
+    } // @ XGリセットを送信
 
     // meta events
-    if cmd == "TEMPO" || cmd == "Tempo" || cmd == "T" { // @ テンポの指定
+    if cmd == "TEMPO" || cmd == "Tempo" || cmd == "T" {
+        // @ テンポの指定
         let v = read_arg_value(cur, song);
         return Token::new(TokenType::Tempo, 0, vec![v]);
     }
-    if cmd == "TempoChange" { return read_tempo_change(cur, song); } // @ テンポを連続で変更する (書式) TempoChange(開始値,終了値, !長さ)
-    if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" { // @ 拍子の指定
+    if cmd == "TempoChange" {
+        return read_tempo_change(cur, song);
+    } // @ テンポを連続で変更する (書式) TempoChange(開始値,終了値, !長さ)
+    if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" {
+        // @ 拍子の指定
         cur.skip_space();
-        if cur.eq_char('=') { cur.next(); }
+        if cur.eq_char('=') {
+            cur.next();
+        }
         cur.skip_space();
-        if cur.eq_char('(') { cur.next(); }
+        if cur.eq_char('(') {
+            cur.next();
+        }
         let frac = read_arg_value(cur, song);
         cur.skip_space();
-        if cur.eq_char(',') { cur.next(); }
+        if cur.eq_char(',') {
+            cur.next();
+        }
         let deno = read_arg_value(cur, song);
         cur.skip_space();
-        if cur.eq_char(')') { cur.next(); }
+        if cur.eq_char(')') {
+            cur.next();
+        }
         return Token::new(TokenType::TimeSignature, 0, vec![frac, deno]);
     }
-    if cmd == "MetaText" || cmd == "TEXT" || cmd == "Text" { // @ メタテキスト (例 TEXT{"abcd"})
+    if cmd == "MetaText" || cmd == "TEXT" || cmd == "Text" {
+        // @ メタテキスト (例 TEXT{"abcd"})
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 1, vec![v]);
     }
-    if cmd == "COPYRIGHT" || cmd == "Copyright" { // @ メタテキスト著作権 (例 COPYRIGHT{"aaa"})
+    if cmd == "COPYRIGHT" || cmd == "Copyright" {
+        // @ メタテキスト著作権 (例 COPYRIGHT{"aaa"})
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 2, vec![v]);
     }
-    if cmd == "TRACK_NAME" || cmd == "TrackName" { // @ 曲名 (例 TRACK_NAME{"aaa"})
+    if cmd == "TRACK_NAME" || cmd == "TrackName" {
+        // @ 曲名 (例 TRACK_NAME{"aaa"})
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 3, vec![v]);
     }
-    if cmd == "InstrumentName" { // @ 楽器名 (例 InstrumentName{"aaa"})
+    if cmd == "InstrumentName" {
+        // @ 楽器名 (例 InstrumentName{"aaa"})
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 4, vec![v]);
     }
-    if cmd == "LYRIC" || cmd == "Lyric" { // @ メタテキスト歌詞 (例 LYRIC{"aaa"})
+    if cmd == "LYRIC" || cmd == "Lyric" {
+        // @ メタテキスト歌詞 (例 LYRIC{"aaa"})
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 5, vec![v]);
     }
-    if cmd == "MAKER" || cmd == "Marker" { // @ マーカー (例 MAKER{"aaa"})
+    if cmd == "MAKER" || cmd == "Marker" {
+        // @ マーカー (例 MAKER{"aaa"})
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 6, vec![v]);
     }
-    if cmd == "CuePoint" { // @ キューポイント (例 CuePoint{"aaa"})
+    if cmd == "CuePoint" {
+        // @ キューポイント (例 CuePoint{"aaa"})
         let v = read_arg_str(cur, song);
         return Token::new(TokenType::MetaText, 7, vec![v]);
     }
@@ -226,7 +373,8 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // Error message
     if song.logs.len() < LEX_MAX_ERROR {
         let near = cur.peek_str_n(8).replace('\n', "↵");
-        song.logs.push(format!("[ERROR]({}) {} \"{}\" {} \"{}\"", 
+        song.logs.push(format!(
+            "[ERROR]({}) {} \"{}\" {} \"{}\"",
             cur.line,
             song.get_message(MessageKind::UnknownCommand),
             cmd,
@@ -244,7 +392,8 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
     // macro define?
     if ch == '#' {
         cur.skip_space();
-        if cur.eq_char('=') { // DEFINE MACRO
+        if cur.eq_char('=') {
+            // DEFINE MACRO
             cur.index = cur_pos;
             return Some(read_def_str(cur, song));
         }
@@ -255,8 +404,8 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
         Some(sval) => {
             // get variable
             return Some(read_variables(cur, song, &cmd, sval.clone()));
-        },
-        None => {},
+        }
+        None => {}
     };
     cur.index = cur_pos;
     None
@@ -269,23 +418,24 @@ fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SVal
             // replace macro ?
             match src.find("#?1") {
                 Some(_) => {
-                    if cur.eq_char('(') || cur.eq_char('=') || cur.eq_char('{') { // has parameters
+                    if cur.eq_char('(') || cur.eq_char('=') || cur.eq_char('{') {
+                        // has parameters
                         let mut args = read_arg_value_sv_array(cur, song).to_array();
                         for (i, v) in args.iter_mut().enumerate() {
-                            let pat = format!("#?{}", i+1);
+                            let pat = format!("#?{}", i + 1);
                             src = src.replace(&pat, &v.to_s());
                         }
                     }
-                },
-                None => {},
+                }
+                None => {}
             }
             // lex source
             let tokens = lex(song, &src, line_no);
-            return Token::new_tokens(TokenType::Tokens, line_no, tokens);    
-        },
+            return Token::new_tokens(TokenType::Tokens, line_no, tokens);
+        }
         _ => {
             return Token::new_empty(&format!("Could not execute: {}", name));
-        },
+        }
     }
 }
 
@@ -294,17 +444,15 @@ fn normalize_tokens(tokens: Vec<Token>) -> Vec<Token> {
     let mut res = vec![];
     for t in tokens.into_iter() {
         match t.ttype {
-            TokenType::Empty => {},
-            TokenType::Tokens => {
-                match t.children {
-                    Some(sub_tt) => {
-                        let sub_tt2 = normalize_tokens(sub_tt);
-                        for tt in sub_tt2.into_iter() {
-                            res.push(tt);
-                        }
-                    },
-                    None => {},
+            TokenType::Empty => {}
+            TokenType::Tokens => match t.children {
+                Some(sub_tt) => {
+                    let sub_tt2 = normalize_tokens(sub_tt);
+                    for tt in sub_tt2.into_iter() {
+                        res.push(tt);
+                    }
                 }
+                None => {}
             },
             _ => {
                 res.push(t);
@@ -314,8 +462,6 @@ fn normalize_tokens(tokens: Vec<Token>) -> Vec<Token> {
     res
 }
 
-
-
 fn read_arg_value(cur: &mut TokenCursor, song: &mut Song) -> SValue {
     cur.skip_space();
     let ch = cur.peek_n(0);
@@ -323,37 +469,38 @@ fn read_arg_value(cur: &mut TokenCursor, song: &mut Song) -> SValue {
         'A'..='Z' => {
             let vname = cur.get_word();
             match song.variables.get(&vname) {
-                Some(v) =>  v.clone(),
+                Some(v) => v.clone(),
                 None => SValue::from_s(format!("={}", vname)), // 変数への参照
             }
-        },
-        '!' => { // timebase length
+        }
+        '!' => {
+            // timebase length
             cur.next(); // skip !
             let len_str = cur.get_note_length();
             SValue::from_i(calc_length(&len_str, song.timebase, song.timebase))
-        },
+        }
         '-' | '0'..='9' => {
             let v = cur.get_int(0);
             SValue::from_i(v)
-        },
+        }
         '=' => {
             cur.next(); // skip =
             read_arg_value(cur, song)
-        },
+        }
         '(' => {
             cur.next(); // skip (
             let v = read_arg_value(cur, song);
             cur.skip_space();
-            if cur.eq_char(')') { cur.next(); }
+            if cur.eq_char(')') {
+                cur.next();
+            }
             v
-        },
+        }
         '{' => {
             let s = cur.get_token_nest('{', '}');
             SValue::from_s(s)
-        },
-        _ => {
-            SValue::None   
         }
+        _ => SValue::None,
     }
 }
 
@@ -364,7 +511,9 @@ fn read_arg_value_int_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
         let v = read_arg_value(cur, song);
         a.push(v.to_i());
         cur.skip_space();
-        if ! cur.eq_char(',') { break; }
+        if !cur.eq_char(',') {
+            break;
+        }
         cur.next(); // skip ,
     }
     SValue::from_int_array(a)
@@ -378,16 +527,16 @@ fn read_arg_int_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
             cur.next(); // skip '('
             let sv = read_arg_value_int_array(cur, song);
             cur.skip_space();
-            if cur.peek_n(0) == ')' { cur.next(); }
+            if cur.peek_n(0) == ')' {
+                cur.next();
+            }
             return sv;
-        },
+        }
         '=' => {
             cur.next();
             read_arg_value_int_array(cur, song)
-        },
-        _ => {
-            SValue::None
         }
+        _ => SValue::None,
     }
 }
 
@@ -398,7 +547,9 @@ fn read_arg_value_sv_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
         let v = read_arg_value(cur, song);
         a.push(v);
         cur.skip_space();
-        if ! cur.eq_char(',') { break; }
+        if !cur.eq_char(',') {
+            break;
+        }
         cur.next(); // skip ,
     }
     SValue::Array(a)
@@ -412,19 +563,17 @@ fn read_arg_str(cur: &mut TokenCursor, song: &mut Song) -> SValue {
             cur.next(); // skip '('
             let sv = read_arg_value(cur, song);
             cur.skip_space();
-            if cur.peek_n(0) == ')' { cur.next(); }
+            if cur.peek_n(0) == ')' {
+                cur.next();
+            }
             return sv;
-        },
+        }
         '=' => {
             cur.next();
             read_arg_value(cur, song)
-        },
-        '{' => {
-            read_arg_value(cur, song)
-        },
-        _ => {
-            SValue::None
         }
+        '{' => read_arg_value(cur, song),
+        _ => SValue::None,
     }
 }
 
@@ -432,7 +581,7 @@ fn read_harmony_flag(cur: &mut TokenCursor, flag_harmony: &mut bool) -> Token {
     // begin
     if !*flag_harmony {
         *flag_harmony = true;
-        return Token::new(TokenType::HarmonyBegin, 0, vec![])
+        return Token::new(TokenType::HarmonyBegin, 0, vec![]);
     }
     // end
     *flag_harmony = false;
@@ -446,16 +595,15 @@ fn read_harmony_flag(cur: &mut TokenCursor, flag_harmony: &mut bool) -> Token {
         cur.next();
         qlen = SValue::from_i(cur.get_int(-1));
     }
-    Token::new(TokenType::HarmonyEnd, 0, vec![
-        len_s,
-        qlen,
-    ])
+    Token::new(TokenType::HarmonyEnd, 0, vec![len_s, qlen])
 }
 
 fn scan_chars(s: &str, c: char) -> isize {
     let mut cnt = 0;
     for ch in s.chars() {
-        if ch == c { cnt += 1; }
+        if ch == c {
+            cnt += 1;
+        }
     }
     cnt
 }
@@ -463,7 +611,9 @@ fn scan_chars(s: &str, c: char) -> isize {
 fn read_timebase(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let v = read_arg_value(cur, song);
     song.timebase = v.to_i();
-    if song.timebase <= 48 { song.timebase = 48; }
+    if song.timebase <= 48 {
+        song.timebase = 48;
+    }
     Token::new_empty(&format!("TIMEBASE={}", v.to_i()))
 }
 
@@ -475,20 +625,30 @@ fn read_v_add(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_key_flag(cur: &mut TokenCursor, _song: &mut Song) -> Token {
     let mut flag = 1;
-    let mut key_flag = vec![0,0,0,0,0,0,0,0,0,0,0,0];
-    let key_flag_index_a = [0,2,4,5,7,9,11];
+    let mut key_flag = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let key_flag_index_a = [0, 2, 4, 5, 7, 9, 11];
     cur.skip_space();
-    if cur.eq_char('=') { cur.next(); }
+    if cur.eq_char('=') {
+        cur.next();
+    }
     cur.skip_space();
     // flag
     match cur.peek_n(0) {
-        '+' | '#' => { cur.next(); flag = 1; },
-        '-' => { cur.next(); flag = -1; }
-        _ => {},
+        '+' | '#' => {
+            cur.next();
+            flag = 1;
+        }
+        '-' => {
+            cur.next();
+            flag = -1;
+        }
+        _ => {}
     }
     // check note
     cur.skip_space();
-    if cur.eq_char('(') { cur.next(); }
+    if cur.eq_char('(') {
+        cur.next();
+    }
     let mut idx = 0;
     while !cur.is_eos() {
         cur.skip_space();
@@ -497,27 +657,58 @@ fn read_key_flag(cur: &mut TokenCursor, _song: &mut Song) -> Token {
             let v = cur.get_int(0);
             key_flag[key_flag_index_a[idx]] = v;
             idx += 1;
-            if idx >= 8 { break; }
+            if idx >= 8 {
+                break;
+            }
             cur.skip_space();
-            if cur.eq_char(',') { cur.next(); }
+            if cur.eq_char(',') {
+                cur.next();
+            }
             continue;
         }
         // note name value
         match cur.peek_n(0) {
-            'c' => { cur.next(); key_flag[0] = flag; },
-            'd' => { cur.next(); key_flag[2] = flag; },
-            'e' => { cur.next(); key_flag[4] = flag; },
-            'f' => { cur.next(); key_flag[5] = flag; },
-            'g' => { cur.next(); key_flag[7] = flag; },
-            'a' => { cur.next(); key_flag[9] = flag; },
-            'b' => { cur.next(); key_flag[11] = flag; },
+            'c' => {
+                cur.next();
+                key_flag[0] = flag;
+            }
+            'd' => {
+                cur.next();
+                key_flag[2] = flag;
+            }
+            'e' => {
+                cur.next();
+                key_flag[4] = flag;
+            }
+            'f' => {
+                cur.next();
+                key_flag[5] = flag;
+            }
+            'g' => {
+                cur.next();
+                key_flag[7] = flag;
+            }
+            'a' => {
+                cur.next();
+                key_flag[9] = flag;
+            }
+            'b' => {
+                cur.next();
+                key_flag[11] = flag;
+            }
             _ => break,
         }
     }
     cur.skip_space();
-    if cur.eq_char(')') { cur.next(); }
+    if cur.eq_char(')') {
+        cur.next();
+    }
     // token
-    let tok = Token::new(TokenType::KeyFlag, 0, vec![SValue::from_int_array(key_flag)]);
+    let tok = Token::new(
+        TokenType::KeyFlag,
+        0,
+        vec![SValue::from_int_array(key_flag)],
+    );
     tok
 }
 
@@ -525,16 +716,22 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     let var_name = cur.get_word();
     if var_name == "" {
-        song.logs.push(format!("[ERROR]({}): INT command should use Upper case like \"Test\".", cur.line));
+        song.logs.push(format!(
+            "[ERROR]({}): INT command should use Upper case like \"Test\".",
+            cur.line
+        ));
         return Token::new_empty("Failed to def INT");
     }
     cur.skip_space();
-    if cur.eq_char('=') { cur.next(); }
+    if cur.eq_char('=') {
+        cur.next();
+    }
     let var_value = read_arg_value(cur, song);
-    let tok = Token::new(TokenType::DefInt, 0, vec![
-        SValue::from_s(var_name),
-        var_value,
-    ]);
+    let tok = Token::new(
+        TokenType::DefInt,
+        0,
+        vec![SValue::from_s(var_name), var_value],
+    );
     tok
 }
 
@@ -549,7 +746,6 @@ fn read_playfrom(cur: &mut TokenCursor, song: &mut Song) -> Token {
     Token::new_value(TokenType::PlayFrom, 0)
 }
 
-
 fn read_print(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
     let val = read_arg_value(cur, song);
@@ -560,30 +756,40 @@ fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let mut tokens: Vec<Token> = vec![];
     let mut track_no = 1;
     cur.skip_space();
-    if cur.eq_char('=') { cur.next(); }
+    if cur.eq_char('=') {
+        cur.next();
+    }
     cur.skip_space();
-    if cur.eq_char('(') { cur.next(); }
+    if cur.eq_char('(') {
+        cur.next();
+    }
     loop {
         let tt = lex(song, &format!("TR={}", track_no), cur.line);
-        for t in tt.into_iter() { tokens.push(t); }
+        for t in tt.into_iter() {
+            tokens.push(t);
+        }
         cur.skip_space();
         match cur.peek_n(0) {
             'A'..='Z' | '_' | '#' => {
                 let name = cur.get_word();
                 match song.variables.get(&name) {
-                    None => {},
+                    None => {}
                     Some(sv) => {
                         let (src, lineno) = sv.get_str_and_tag();
                         let tt = lex(song, &src, lineno);
-                        for t in tt.into_iter() { tokens.push(t); }
-                    },
+                        for t in tt.into_iter() {
+                            tokens.push(t);
+                        }
+                    }
                 }
-            },
-            '{' .. => {
+            }
+            '{'.. => {
                 let src = cur.get_token_nest('{', '}');
                 let tt = lex(song, &src, cur.line);
-                for t in tt.into_iter() { tokens.push(t); }
-            },
+                for t in tt.into_iter() {
+                    tokens.push(t);
+                }
+            }
             _ => break,
         }
         cur.skip_space();
@@ -594,7 +800,9 @@ fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
         }
         track_no += 1;
     }
-    if cur.eq_char(')') { cur.next(); }
+    if cur.eq_char(')') {
+        cur.next();
+    }
     let tokens_tok = Token::new_tokens(TokenType::Tokens, 0, tokens);
     tokens_tok
 }
@@ -603,14 +811,22 @@ fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     let var_name = cur.get_word();
     if var_name == "" {
-        song.logs.push(format!("[ERROR]({}): STR command should use Upper case like \"Test\"", cur.line));
+        song.logs.push(format!(
+            "[ERROR]({}): STR command should use Upper case like \"Test\"",
+            cur.line
+        ));
         return Token::new_empty("Failed to def STR");
     }
     cur.skip_space();
-    if cur.eq_char('=') { cur.next(); }
+    if cur.eq_char('=') {
+        cur.next();
+    }
     cur.skip_space();
     if !cur.eq_char('{') {
-        song.logs.push(format!("[ERROR]({}): STR command should set string", cur.line));
+        song.logs.push(format!(
+            "[ERROR]({}): STR command should set string",
+            cur.line
+        ));
         return Token::new_empty("Failed to def STR");
     }
     let line_no = cur.line;
@@ -646,27 +862,27 @@ fn read_command_div(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let block = cur.get_token_nest('{', '}');
     let len_s = cur.get_note_length();
     let tokens = lex(song, &block, cur.line);
-    // count note 
+    // count note
     let mut cnt = 0;
     for t in tokens.iter() {
         match t.ttype {
             TokenType::Note => {
                 cnt += 1;
                 cnt += scan_chars(&t.data[1].to_s(), '^');
-            },
+            }
             TokenType::NoteN => {
                 cnt += 1;
                 cnt += scan_chars(&t.data[1].to_s(), '^');
-            },
+            }
             TokenType::Div => {
                 cnt += 1;
                 cnt += scan_chars(&t.data[0].to_s(), '^');
-            },
+            }
             TokenType::Rest => {
                 cnt += 1;
                 cnt += scan_chars(&t.data[0].to_s(), '^');
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
     let mut tok = Token::new(TokenType::Div, cnt, vec![SValue::from_s(len_s)]);
@@ -703,7 +919,7 @@ fn read_command_rhythm(cur: &mut TokenCursor, song: &mut Song) -> Token {
                 } else {
                     result.push_str(m);
                 }
-            },
+            }
             _ => {
                 result.push(ch);
             }
@@ -717,31 +933,46 @@ fn read_command_rhythm(cur: &mut TokenCursor, song: &mut Song) -> Token {
 fn read_def_rhythm_macro(cur: &mut TokenCursor, song: &mut Song) {
     let ch = cur.get_char(); // macro char
     cur.skip_space();
-    if cur.eq_char('=') { cur.next(); }
+    if cur.eq_char('=') {
+        cur.next();
+    }
     cur.skip_space();
     let s = cur.get_token_nest('{', '}');
     if 0x40 <= ch as u8 && ch as u8 <= 0x7F {
         song.rhthm_macro[ch as usize - 0x40] = s;
     } else {
-        song.add_log(format!("[ERROR]({}) could not define Rhythm macro '{}' ", cur.line, ch));
+        song.add_log(format!(
+            "[ERROR]({}) could not define Rhythm macro '{}' ",
+            cur.line, ch
+        ));
     }
 }
 
 fn read_command_time(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
-    if cur.eq_char('=') { cur.next(); }
+    if cur.eq_char('=') {
+        cur.next();
+    }
     cur.skip_space();
-    if cur.eq_char('(') { cur.next(); }
-    
+    if cur.eq_char('(') {
+        cur.next();
+    }
+
     let v1 = read_arg_value(cur, song);
     cur.skip_space();
-    if cur.eq_char(':') { cur.next(); }
+    if cur.eq_char(':') {
+        cur.next();
+    }
     let v2 = read_arg_value(cur, song);
     cur.skip_space();
-    if cur.eq_char(':') { cur.next(); }
+    if cur.eq_char(':') {
+        cur.next();
+    }
     let v3 = read_arg_value(cur, song);
     cur.skip_space();
-    if cur.eq_char(')') { cur.next(); }
+    if cur.eq_char(')') {
+        cur.next();
+    }
 
     return Token::new(TokenType::Time, 0, vec![v1, v2, v3]);
 }
@@ -794,8 +1025,16 @@ fn read_command_rpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut So
     let val = read_arg_value(cur, song);
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(101), SValue::from_i(msb)]),
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(100), SValue::from_i(lsb)]),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(101), SValue::from_i(msb)],
+        ),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(100), SValue::from_i(lsb)],
+        ),
         Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), val]),
     ]);
     tokens
@@ -809,9 +1048,21 @@ fn read_command_rpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(101), a[0].clone()]),
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(100), a[1].clone()]),
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), a[2].clone()]),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(101), a[0].clone()],
+        ),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(100), a[1].clone()],
+        ),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(6), a[2].clone()],
+        ),
     ]);
     tokens
 }
@@ -820,8 +1071,16 @@ fn read_command_nrpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut S
     let val = read_arg_value(cur, song);
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(99), SValue::from_i(msb)]),
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(98), SValue::from_i(lsb)]),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(99), SValue::from_i(msb)],
+        ),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(98), SValue::from_i(lsb)],
+        ),
         Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), val]),
     ]);
     tokens
@@ -835,9 +1094,21 @@ fn read_command_nrpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(99), a[0].clone()]),
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(98), a[1].clone()]),
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), a[2].clone()]),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(99), a[0].clone()],
+        ),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(98), a[1].clone()],
+        ),
+        Token::new(
+            TokenType::ControllChange,
+            0,
+            vec![SValue::from_i(6), a[2].clone()],
+        ),
     ]);
     tokens
 }
@@ -848,7 +1119,9 @@ fn read_voice(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let bank = if cur.eq_char(',') {
         cur.next();
         read_arg_value(cur, song)
-    } else { SValue::None };
+    } else {
+        SValue::None
+    };
     Token::new(TokenType::Voice, 0, vec![value, bank])
 }
 
@@ -863,11 +1136,12 @@ fn read_octave(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    if cur.eq("__") { // dummy
-        cur.next(); cur.next();
+    if cur.eq("__") {
+        // dummy
+        cur.next();
+        cur.next();
         cur.get_int(0);
-    }
-    else if cur.eq("_") {
+    } else if cur.eq("_") {
         cur.next();
         cur.get_int(0);
     }
@@ -876,7 +1150,7 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
         let cmd = cur.get_word();
         if cmd == "Random" {
             let r = read_arg_value(cur, song);
-            return Token::new(TokenType::QLenRandom, 0, vec![r])
+            return Token::new(TokenType::QLenRandom, 0, vec![r]);
         }
         if cmd == "onTime" || cmd == "T" {
             let _av = read_arg_int_array(cur, song);
@@ -884,7 +1158,7 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
         }
         if cmd == "onNote" || cmd == "N" {
             let av = read_arg_int_array(cur, song);
-            return Token::new(TokenType::QLenOnNote, 0, vec![av])
+            return Token::new(TokenType::QLenOnNote, 0, vec![av]);
         }
         if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported
@@ -898,11 +1172,12 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let mut ino = -1;
-    if cur.eq("__") { // sub velocity
-        cur.next(); cur.next();
+    if cur.eq("__") {
+        // sub velocity
+        cur.next();
+        cur.next();
         ino = cur.get_int(0);
-    }
-    else if cur.eq("_") {
+    } else if cur.eq("_") {
         cur.next();
         cur.get_int(0);
         ino = 0;
@@ -912,15 +1187,15 @@ fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
         let cmd = cur.get_word();
         if cmd == "Random" {
             let r = read_arg_value(cur, song);
-            return Token::new(TokenType::VelocityRandom, 0, vec![r])
+            return Token::new(TokenType::VelocityRandom, 0, vec![r]);
         }
         if cmd == "onTime" || cmd == "T" {
             let av = read_arg_int_array(cur, song);
-            return Token::new(TokenType::VelocityOnTime, 0, vec![av])
+            return Token::new(TokenType::VelocityOnTime, 0, vec![av]);
         }
         if cmd == "onNote" || cmd == "N" {
             let av = read_arg_int_array(cur, song);
-            return Token::new(TokenType::VelocityOnNote, 0, vec![av])
+            return Token::new(TokenType::VelocityOnNote, 0, vec![av]);
         }
         if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported
@@ -934,11 +1209,12 @@ fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_timing(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    if cur.eq("__") { // dummy
-        cur.next(); cur.next();
+    if cur.eq("__") {
+        // dummy
+        cur.next();
+        cur.next();
         cur.get_int(0);
-    }
-    else if cur.eq_char('_') {
+    } else if cur.eq_char('_') {
         cur.next();
     }
     if cur.eq_char('.') {
@@ -948,11 +1224,11 @@ fn read_timing(cur: &mut TokenCursor, song: &mut Song) -> Token {
         if cmd == "Random" {
             cur.index += 7;
             let r = read_arg_value(cur, song);
-            return Token::new(TokenType::TimingRandom, 0, vec![r])
+            return Token::new(TokenType::TimingRandom, 0, vec![r]);
         }
         if cmd == "onNote" || cmd == "N" {
             let av = read_arg_int_array(cur, song);
-            return Token::new(TokenType::TimingOnNote, 0, vec![av])
+            return Token::new(TokenType::TimingOnNote, 0, vec![av]);
         }
         if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported
@@ -996,7 +1272,7 @@ fn read_pitch_bend_small(cur: &mut TokenCursor, song: &mut Song) -> Token {
 fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // red CC no
     let no = read_arg_value(cur, song);
-    
+
     // .onTime
     if cur.eq_char('.') {
         cur.next();
@@ -1017,8 +1293,14 @@ fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
     cur.skip_space();
     if !cur.eq_char(',') && !cur.eq_char('(') {
-        return Token::new(TokenType::Error, 0, vec![
-            SValue::from_s(format!("[ERROR]({}): Faild to set Controll Change", cur.line + 1))]);
+        return Token::new(
+            TokenType::Error,
+            0,
+            vec![SValue::from_s(format!(
+                "[ERROR]({}): Faild to set Controll Change",
+                cur.line + 1
+            ))],
+        );
     }
     cur.next();
     let val = read_arg_value(cur, song);
@@ -1037,7 +1319,9 @@ fn read_loop(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_rest(cur: &mut TokenCursor) -> Token {
     // '*'
-    if cur.eq_char('*') { cur.next(); }
+    if cur.eq_char('*') {
+        cur.next();
+    }
     // length
     let mut dir = 1;
     if cur.eq_char('-') {
@@ -1053,32 +1337,51 @@ fn read_note_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // note no
     let note_no = read_arg_value(cur, song);
     cur.skip_space();
-    if cur.eq_char(',') { cur.next(); }
+    if cur.eq_char(',') {
+        cur.next();
+    }
     // length
     let note_len = cur.get_note_length();
     cur.skip_space();
     // qlen
-    let qlen = if !cur.eq_char(',') { 0 } else {
+    let qlen = if !cur.eq_char(',') {
+        0
+    } else {
         cur.next();
         cur.skip_space();
         cur.get_int(0)
     };
     cur.skip_space();
     // velocity
-    let vel = if !cur.eq_char(',') { -1 } else {
+    let vel = if !cur.eq_char(',') {
+        -1
+    } else {
         cur.next();
         cur.skip_space();
-        if cur.eq_char('+') { cur.next(); } // 現状 +/- を無視する (TODO)
+        if cur.eq_char('+') {
+            cur.next();
+        } // 現状 +/- を無視する (TODO)
         cur.get_int(-1)
     };
     cur.skip_space();
     // timing
-    let timing = if !cur.eq_char(',') { isize::MIN } else {
+    let timing = if !cur.eq_char(',') {
+        isize::MIN
+    } else {
         cur.next();
         cur.skip_space();
-        if cur.eq_char('+') { cur.next(); }
+        if cur.eq_char('+') {
+            cur.next();
+        }
         cur.get_int(isize::MIN)
     };
+    // Slur or Tie
+    let mut slur = SValue::None;
+    if cur.eq_char('&') {
+        cur.next(); // skip &
+        cur.skip_space();
+        slur = SValue::Int(1);
+    }
     Token::new(
         TokenType::NoteN,
         0,
@@ -1088,7 +1391,8 @@ fn read_note_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
             SValue::from_i(qlen),
             SValue::from_i(vel),
             SValue::from_i(timing),
-        ]
+            slur,
+        ],
     )
 }
 
@@ -1098,9 +1402,18 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
     let mut flag_natual = false;
     loop {
         match cur.peek_n(0) {
-            '+' | '#' => { note_flag += 1; cur.next(); },
-            '-' => { note_flag -= 1; cur.next(); },
-            '*' => { cur.next(); flag_natual = true; }
+            '+' | '#' => {
+                note_flag += 1;
+                cur.next();
+            }
+            '-' => {
+                note_flag -= 1;
+                cur.next();
+            }
+            '*' => {
+                cur.next();
+                flag_natual = true;
+            }
             _ => break,
         }
     }
@@ -1108,32 +1421,49 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
     let note_len = cur.get_note_length();
     cur.skip_space();
     // qlen
-    let qlen = if !cur.eq_char(',') { 0 } else {
+    let qlen = if !cur.eq_char(',') {
+        0
+    } else {
         cur.next();
         cur.skip_space();
         cur.get_int(0)
     };
     cur.skip_space();
     // veolocity
-    let vel = if !cur.eq_char(',') { -1 } else {
+    let vel = if !cur.eq_char(',') {
+        -1
+    } else {
         cur.next();
         cur.skip_space();
-        if cur.eq_char('+') { cur.next(); } // 現状 +/- を無視する (TODO)
+        if cur.eq_char('+') {
+            cur.next();
+        } // 現状 +/- を無視する (TODO)
         cur.get_int(0)
     };
     cur.skip_space();
     // timing
-    let timing = if !cur.eq_char(',') { isize::MIN } else {
+    let timing = if !cur.eq_char(',') {
+        isize::MIN
+    } else {
         cur.next();
         cur.skip_space();
         cur.get_int(isize::MIN)
     };
     // octave
-    let octabe = if !cur.eq_char(',') { -1 } else {
+    let octabe = if !cur.eq_char(',') {
+        -1
+    } else {
         cur.next();
         cur.skip_space();
         cur.get_int(0)
     };
+    // Slur or Tie
+    let mut slur = SValue::None;
+    if cur.eq_char('&') {
+        cur.next(); // skip &
+        cur.skip_space();
+        slur = SValue::Int(1);
+    }
     Token::new(
         TokenType::Note,
         match ch {
@@ -1148,13 +1478,14 @@ fn read_note(cur: &mut TokenCursor, ch: char) -> Token {
         },
         vec![
             SValue::from_i(note_flag),
-            SValue::from_i(if flag_natual { 1 }else{ 0 }),
+            SValue::from_i(if flag_natual { 1 } else { 0 }),
             SValue::from_s(note_len),
             SValue::from_i(qlen),
             SValue::from_i(vel),
             SValue::from_i(timing),
             SValue::from_i(octabe),
-        ]
+            slur,
+        ],
     )
 }
 
@@ -1166,41 +1497,94 @@ mod tests {
     #[test]
     fn test_lex1() {
         let mut song = Song::new();
-        assert_eq!(&tokens_to_str(&lex(&mut song, "cdefgab", 0)), "[Note,0][Note,2][Note,4][Note,5][Note,7][Note,9][Note,11]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "l4c", 0)), "[Length,0][Note,0]");
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "cdefgab", 0)),
+            "[Note,0][Note,2][Note,4][Note,5][Note,7][Note,9][Note,11]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "l4c", 0)),
+            "[Length,0][Note,0]"
+        );
         assert_eq!(&tokens_to_str(&lex(&mut song, "TR=1", 0)), "[Track,0]");
         assert_eq!(&tokens_to_str(&lex(&mut song, "TR(1)", 0)), "[Track,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "INT A=1;TR(A)", 0)), "[DefInt,0][Track,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "INT A=1;TR=A", 0)), "[DefInt,0][Track,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "COPYRIGHT{a}", 0)), "[MetaText,2]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "COPYRIGHT={a}", 0)), "[MetaText,2]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "TimeSig=4,4", 0)), "[TimeSignature,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "TimeSig=(4,4)", 0)), "[TimeSignature,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "TimeSig(4,4)", 0)), "[TimeSignature,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "TIME(1:1:0)", 0)), "[Time,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "TIME=(1:1:0)", 0)), "[Time,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "TIME(1:1:0)", 0)), "[Time,0]");
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "INT A=1;TR(A)", 0)),
+            "[DefInt,0][Track,0]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "INT A=1;TR=A", 0)),
+            "[DefInt,0][Track,0]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "COPYRIGHT{a}", 0)),
+            "[MetaText,2]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "COPYRIGHT={a}", 0)),
+            "[MetaText,2]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "TimeSig=4,4", 0)),
+            "[TimeSignature,0]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "TimeSig=(4,4)", 0)),
+            "[TimeSignature,0]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "TimeSig(4,4)", 0)),
+            "[TimeSignature,0]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "TIME(1:1:0)", 0)),
+            "[Time,0]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "TIME=(1:1:0)", 0)),
+            "[Time,0]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "TIME(1:1:0)", 0)),
+            "[Time,0]"
+        );
         assert_eq!(&tokens_to_str(&lex(&mut song, "TIME=1:1:0", 0)), "[Time,0]");
     }
     #[test]
     fn test_lex_harmony() {
         let mut song = Song::new();
-        assert_eq!(&tokens_to_str(&lex(&mut song, "'dg'", 0)), "[HarmonyBegin,0][Note,2][Note,7][HarmonyEnd,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "'dg'^^^", 0)), "[HarmonyBegin,0][Note,2][Note,7][HarmonyEnd,0]");
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "'dg'", 0)),
+            "[HarmonyBegin,0][Note,2][Note,7][HarmonyEnd,0]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "'dg'^^^", 0)),
+            "[HarmonyBegin,0][Note,2][Note,7][HarmonyEnd,0]"
+        );
     }
     #[test]
     fn test_lex_macro_extract() {
         let mut song = Song::new();
-        assert_eq!(&tokens_to_str(&lex(&mut song, "STR A={c} A", 0)), "[Note,0]");
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "STR A={c} A", 0)),
+            "[Note,0]"
+        );
         assert_eq!(&tokens_to_str(&lex(&mut song, "#A={d} #A", 0)), "[Note,2]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "STR A={#?1} A{e}", 0)), "[Note,4]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "#A={#?1} #A{f}", 0)), "[Note,5]");
-
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "STR A={#?1} A{e}", 0)),
+            "[Note,4]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "#A={#?1} #A{f}", 0)),
+            "[Note,5]"
+        );
     }
     #[test]
     fn test_lex_rhythm_macro() {
         let mut song = Song::new();
         assert_eq!(&tokens_to_str(&lex(&mut song, "RHYTHM{b}", 0)), "[NoteN,0]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "RHYTHM{(Sub){b}}", 0)), "[Sub,0]");
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "RHYTHM{(Sub){b}}", 0)),
+            "[Sub,0]"
+        );
     }
 }
