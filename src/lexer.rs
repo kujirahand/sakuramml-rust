@@ -48,7 +48,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             // comment
             /*
             "//" => // @ 一行コメント
-                "/*" .. "*/" => // @ 範囲コメント
+            "/*" .. "*/" => // @ 範囲コメント
              */
             '/' => {
                 if cur.eq_char('/') {
@@ -62,11 +62,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)),   // @ ループ終了
             '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)), // @ 和音 (例 'ceg') 'ceg'(音長),(ゲート)
             '$' => read_def_rhythm_macro(&mut cur, song), // @ リズムマクロ定義 $文字{定義内容}
-            '{' => {
-                // @ 連符 (例 {ceg}4) {c^d}(音長)
-                cur.prev();
-                result.push(read_command_div(&mut cur, song));
-            }
+            '{' => result.push(read_command_div(&mut cur, song, true)), // @ 連符 (例 {ceg}4) {c^d}(音長)
             '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)), // @ 一度だけ音階を+1する
             '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)), // @ 一度だけ音階を-1する
             '?' => result.push(Token::new_value(TokenType::PlayFrom, 0)), // @ ここから演奏する (=PLAY_FROM)
@@ -128,64 +124,82 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new(TokenType::Channel, 0, vec![v]);
     }
     if cmd == "TIME" || cmd == "Time" {
+        // @ タイム変更 TIME(節:拍:ステップ)
         return read_command_time(cur, song);
-    } // @ タイム変更 TIME(節:拍:ステップ)
+    }
     if cmd == "RHYTHM" || cmd == "Rhythm" || cmd == "R" {
+        // @ リズムモード
         return read_command_rhythm(cur, song);
-    } // @ リズムモード
+    }
     if cmd == "RYTHM" || cmd == "Rythm" {
+        // @ リズムモード(v1の綴りミス対処[^^;])
         return read_command_rhythm(cur, song);
-    } // @ リズムモード(v1の綴りミス対処[^^;])
+    }
     if cmd == "DIV" || cmd == "Div" {
-        return read_command_div(cur, song);
-    } // @ 連符 (例 DIV{ceg} )
+        // @ 連符 (例 DIV{ceg} )
+        return read_command_div(cur, song, false);
+    }
     if cmd == "SUB" || cmd == "Sub" {
+        // @ タイムポインタを戻す (例 SUB{ceg} egb)
         return read_command_sub(cur, song);
-    } // @ タイムポインタを戻す (例 SUB{ceg} egb)
+    }
 
     if cmd == "KF" || cmd == "KeyFlag" {
+        // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
         return read_key_flag(cur, song);
-    } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    }
     if cmd == "KEY" || cmd == "Key" || cmd == "KeyShift" {
+        // @ ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde)
         return read_command_key(cur, song);
-    } // @ ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde)
+    }
     if cmd == "TR_KEY" || cmd == "TrackKey" {
+        // @ トラック毎、ノート(cdefgab)のキーをn半音シフトする (例 TrackKey=3 cde)
         return read_command_track_key(cur, song);
-    } // @ トラック毎、ノート(cdefgab)のキーをn半音シフトする (例 TrackKey=3 cde)
+    }
     if cmd == "INT" || cmd == "Int" {
+        // @ 変数を定義 (例 INT TestValue=30)
         return read_def_int(cur, song);
-    } // @ 変数を定義 (例 INT TestValue=30)
+    }
     if cmd == "STR" || cmd == "Str" {
+        // @ 文字列変数を定義 (例 STR A={cde})
         return read_def_str(cur, song);
-    } // @ 文字列変数を定義 (例 STR A={cde})
+    }
     if cmd == "PLAY" || cmd == "Play" {
+        // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
         return read_play(cur, song);
-    } // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
+    }
     if cmd == "PRINT" || cmd == "Print" {
+        // @ 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA))
         return read_print(cur, song);
-    } // @ 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA))
+    }
     if cmd == "PLAY_FROM" || cmd == "PlayFrom" {
+        // @ ここから演奏する　(?と同じ意味)
         return read_playfrom(cur, song);
-    } // @ ここから演奏する　(?と同じ意味)
+    }
     if cmd == "System.MeasureShift" {
+        // @ 小節番号をシフトする (例 System.MeasureShift(1))
         return read_command_mes_shift(cur, song);
-    } // @ 小節番号をシフトする (例 System.MeasureShift(1))
+    }
     if cmd == "System.KeyFlag" {
+        // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
         return read_key_flag(cur, song);
-    } // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    }
     if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" || cmd == "TimeBase" {
+        // @ タイムベースを設定 (例 TIMEBASE=96)
         return read_timebase(cur, song);
-    } // @ タイムベースを設定 (例 TIMEBASE=96)
+    }
     if cmd == "TRACK_SYNC" || cmd == "TrackSync" {
+        // @ 全てのトラックのタイムポインタを同期する
         return Token::new_value(TokenType::TrackSync, 0);
-    } // @ 全てのトラックのタイムポインタを同期する
+    }
     if cmd == "SLUR" || cmd == "Slur" {
+        // @ 未実装
         return Token::new(
             TokenType::Empty,
             0,
             read_arg_int_array(cur, song).to_array(),
         );
-    } // @ 未実装
+    }
     if cmd == "System.Include" || cmd == "Include" || cmd == "INCLUDE" {
         // @ 未実装
         cur.skip_space();
@@ -197,111 +211,142 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new_empty(&v);
     }
     if cmd == "System.vAdd" || cmd == "vAdd" {
+        // @ ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8))
         return read_v_add(cur, song);
-    } // @ ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8))
+    }
     if cmd == "System.qAdd" || cmd == "qAdd" {
+        // @ 未定義
         read_arg_value(cur, song);
         return Token::new_empty("qAdd");
-    } // @ 未定義
+    }
     if cmd == "SoundType" || cmd == "SOUND_TYPE" {
+        // @ 未実装
         return Token::new(
             TokenType::Empty,
             0,
             read_arg_int_array(cur, song).to_array(),
         );
-    } // @ 未実装
+    }
 
     // controll change
     if cmd == "M" || cmd == "Modulation" {
+        // @ モジュレーション 範囲: 0-127
         return read_command_cc(cur, 1, song);
-    } // @ モジュレーション 範囲: 0-127
+    }
     if cmd == "PT" || cmd == "PortamentoTime" {
+        // @ ポルタメント 範囲: 0-127
         return read_command_cc(cur, 5, song);
-    } // @ ポルタメント 範囲: 0-127
+    }
     if cmd == "V" || cmd == "MainVolume" {
+        // @ メインボリューム 範囲: 0-127
         return read_command_cc(cur, 7, song);
-    } // @ メインボリューム 範囲: 0-127
+    }
     if cmd == "P" || cmd == "Panpot" {
+        // @ パンポット 範囲: 0-63-127
         return read_command_cc(cur, 10, song);
-    } // @ パンポット 範囲: 0-63-127
+    }
     if cmd == "EP" || cmd == "Expression" {
+        // @ エクスプレッション音量 範囲: 0-127
         return read_command_cc(cur, 11, song);
-    } // @ エクスプレッション音量 範囲: 0-127
+    }
     if cmd == "PS" || cmd == "PortamentoSwitch" {
+        // @ ポルタメントスイッチ
         return read_command_cc(cur, 65, song);
-    } // @ ポルタメントスイッチ
+    }
     if cmd == "REV" || cmd == "Reverb" {
+        // @ リバーブ 範囲: 0-127
         return read_command_cc(cur, 91, song);
-    } // @ リバーブ 範囲: 0-127
+    }
     if cmd == "CHO" || cmd == "Chorus" {
+        // @ コーラス 範囲: 0-127
         return read_command_cc(cur, 93, song);
-    } // @ コーラス 範囲: 0-127
+    }
     if cmd == "VAR" || cmd == "Variation" {
+        // @ バリエーション 範囲: 0-127
         return read_command_cc(cur, 94, song);
-    } // @ バリエーション 範囲: 0-127
+    }
 
     if cmd == "PB" || cmd == "PitchBend" {
+        // @ ピッチベンドを指定 範囲: -8192~0~8191の範囲
         return read_command_pitch_bend_big(cur, song);
-    } // @ ピッチベンドを指定 範囲: -8192~0~8191の範囲
+    }
     if cmd == "BR" || cmd == "PitchBendSensitivity" {
+        // @ ピッチベンドの範囲を設定 範囲: 0-12半音
         return read_command_rpn(cur, 0, 0, song);
-    } // @ ピッチベンドの範囲を設定 範囲: 0-12半音
+    }
     if cmd == "RPN" {
+        // @ RPNを書き込む (例 RPN=0,1,64)
         return read_command_rpn_n(cur, song);
-    } // @ RPNを書き込む (例 RPN=0,1,64)
+    }
     if cmd == "NRPN" {
+        // @ NRPNを書き込む (例 NRPN=1,0x64,10)
         return read_command_nrpn_n(cur, song);
-    } // @ NRPNを書き込む (例 NRPN=1,0x64,10)
+    }
     if cmd == "FineTune" {
+        // @ チューニングの微調整 範囲:0-64-127 (-100 - 0 - +99.99セント）
         return read_command_rpn(cur, 0, 1, song);
-    } // @ チューニングの微調整 範囲:0-64-127 (-100 - 0 - +99.99セント）
+    }
     if cmd == "CoarseTune" {
+        // @ 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音)
         return read_command_rpn(cur, 0, 2, song);
-    } // @ 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音)
+    }
     if cmd == "VibratoRate" {
+        // @ 音色の編集(GS/XG) 範囲: 0-127
         return read_command_nrpn(cur, 1, 8, song);
-    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    }
     if cmd == "VibratoDepth" {
+        // @ 音色の編集(GS/XG) 範囲: 0-127
         return read_command_nrpn(cur, 1, 9, song);
-    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    }
     if cmd == "VibratoDelay" {
+        // @ 音色の編集(GS/XG) 範囲: 0-127
         return read_command_nrpn(cur, 1, 10, song);
-    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    }
     if cmd == "FilterCutoff" {
+        // @ 音色の編集(GS/XG) 範囲: 0-127
         return read_command_nrpn(cur, 1, 0x20, song);
-    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    }
     if cmd == "FilterResonance" {
+        // @ 音色の編集(GS/XG) 範囲: 0-127
         return read_command_nrpn(cur, 1, 0x21, song);
-    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    }
     if cmd == "EGAttack" {
+        // @ 音色の編集(GS/XG) 範囲: 0-127
         return read_command_nrpn(cur, 1, 0x63, song);
-    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    }
     if cmd == "EGDecay" {
+        // @ 音色の編集(GS/XG) 範囲: 0-127
         return read_command_nrpn(cur, 1, 0x64, song);
-    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    }
     if cmd == "EGRelease" {
+        // @ 音色の編集(GS/XG) 範囲: 0-127
         return read_command_nrpn(cur, 1, 0x66, song);
-    } // @ 音色の編集(GS/XG) 範囲: 0-127
+    }
 
     if cmd == "Fadein" || cmd == "FADEIN" {
+        // @ 小節数を指定してフェードインする (例: Fadein(1))
         return read_fadein(cur, song, 1);
-    } // @ 小節数を指定してフェードインする (例: Fadein(1))
+    }
     if cmd == "Fadeout" || cmd == "FADEOUT" {
+        // @ 小節数を指定してフェードアウトする (例: Fadeout(1))
         return read_fadein(cur, song, -1);
-    } // @ 小節数を指定してフェードアウトする (例: Fadeout(1))
+    }
 
     // SysEx
     if cmd == "ResetGM" {
+        // @ GMリセットを送信
         return Token::new_sysex(vec![0x7E, 0x7F, 0x9, 0x1, 0xF7]);
-    } // @ GMリセットを送信
+    }
     if cmd == "ResetGS" {
+        // @ GSリセットを送信
         return Token::new_sysex(vec![
             0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7,
         ]);
-    } // @ GSリセットを送信
+    }
     if cmd == "ResetXG" {
+        // @ XGリセットを送信
         return Token::new_sysex(vec![0x43, 0x10, 0x4c, 0x00, 0x00, 0x7e, 0x00, 0xf7]);
-    } // @ XGリセットを送信
+    }
 
     // meta events
     if cmd == "TEMPO" || cmd == "Tempo" || cmd == "T" {
@@ -310,8 +355,9 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new(TokenType::Tempo, 0, vec![v]);
     }
     if cmd == "TempoChange" {
+        // @ テンポを連続で変更する (書式) TempoChange(開始値,終了値, !長さ)
         return read_tempo_change(cur, song);
-    } // @ テンポを連続で変更する (書式) TempoChange(開始値,終了値, !長さ)
+    }
     if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" {
         // @ 拍子の指定
         cur.skip_space();
@@ -857,8 +903,13 @@ fn read_command_track_key(cur: &mut TokenCursor, song: &mut Song) -> Token {
     tok
 }
 
-fn read_command_div(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    cur.skip_space();
+fn read_command_div(cur: &mut TokenCursor, song: &mut Song, need2back: bool) -> Token {
+    // is 1char command
+    if need2back {
+        cur.prev();
+    } else {
+        cur.skip_space();
+    }
     let block = cur.get_token_nest('{', '}');
     let len_s = cur.get_note_length();
     let tokens = lex(song, &block, cur.line);
