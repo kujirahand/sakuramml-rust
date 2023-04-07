@@ -474,10 +474,10 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
             let i = cur.get_int(4);
             res = if i > 0 { timebase * 4 / i } else { 0 };
         }
-        if cur.peek_n(0) == '.' {
-            cur.next();
-            res = (res as f32 * 1.5) as isize;
-        }
+    }
+    if cur.peek_n(0) == '.' {
+        cur.next();
+        res = (res as f32 * 1.5) as isize;
     }
     while !cur.is_eos() {
         let c = cur.peek_n(0);
@@ -759,6 +759,10 @@ mod tests {
     fn test_calc_len_plus() {
         assert_eq!(calc_length("4+4", 96, 96), 96 * 2);
         assert_eq!(calc_length("8+", 96, 48), 96);
+    }
+    #[test]
+    fn test_calc_len_dot() {
+        assert_eq!(calc_length(".", 96, 96), 96 + 48);
     }
     #[test]
     fn test_exec1() {
