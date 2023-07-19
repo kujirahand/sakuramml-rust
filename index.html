@@ -11,7 +11,7 @@
 
 <script type="module">
   // WebAssemblyを読み込む
-  import init, {compile, get_version, SakuraCompiler} from './pkg/sakuramml.js';
+  import init, {get_version, SakuraCompiler} from './pkg/sakuramml.js';
   // Promiseの仕組みでライブラリを読み込む
   init().then(() => {
     console.log('ok')
@@ -21,11 +21,6 @@
     console.error(err);
     document.getElementById('msg').innerHTML = '[LOAD_ERROR]' + tohtml(err.toString())
   });
-  // これが必要
-  window.sakura_log = function (s) {
-    console.log('[LOG]', s)
-    document.getElementById('msg').innerHTML = tohtml(s)
-  }
   function tohtml(s) {
     s = s.replace(/&/g,'&amp;')
     s = s.replace(/</g,'&lt;')
@@ -58,12 +53,12 @@
     try {
       const com = SakuraCompiler.new()
       com.set_language('ja')
+      com.set_debug_level(1)
       const a = com.compile(txt.value)
       const log = com.get_log()
       console.log(log)
-      if (log) {
-        document.getElementById('msg').innerHTML = tohtml(log)
-      }
+      // log
+      document.getElementById('msg').innerHTML = tohtml(log)
       const smfData = new Uint8Array(a);
       if (pico.checked) {
         if (window.player_jzz) {

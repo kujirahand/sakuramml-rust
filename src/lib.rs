@@ -17,6 +17,11 @@ pub mod mml_def;
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 
+/// Debug level - no info
+pub const SAKURA_DEBUG_NONE: u32 = 0;
+/// Debug level - show info
+pub const SAKURA_DEBUG_INFO: u32 = 1;
+
 // ------------------------------------------
 // Functions for JavaScript
 // ------------------------------------------
@@ -31,6 +36,7 @@ pub fn get_version() -> String {
 pub struct SakuraCompiler {
     song: song::Song,
     log: String,
+    debug_level: u32,
 }
 #[wasm_bindgen]
 impl SakuraCompiler {
@@ -39,10 +45,14 @@ impl SakuraCompiler {
         SakuraCompiler {
             song: song::Song::new(),
             log: String::new(),
+            debug_level: 0,
         }
     }
     /// compile to MIDI data
     pub fn compile(&mut self, source: &str) -> Vec<u8> {
+        if self.debug_level > 0 {
+            self.song.debug = true;
+        }
         let source_mml = sutoton::convert(source);
         let tokens = lexer::lex(&mut self.song, &source_mml, 0);
         runner::exec(&mut self.song, &tokens);
@@ -60,6 +70,10 @@ impl SakuraCompiler {
     pub fn get_log(&self) -> String {
         return self.log.clone();
     }
+    /// set debug level
+    pub fn set_debug_level(&mut self, level: u32) {
+        self.debug_level = level;
+    }
 }
 
 // ------------------------------------------
@@ -73,8 +87,11 @@ pub struct SakuraResult {
     pub log: String,
 }
 /// compile source to MIDI data
-pub fn compile(source: &str) -> SakuraResult {
+pub fn compile(source: &str, debug_level: u32) -> SakuraResult {
     let mut song = song::Song::new();
+    if debug_level >= 1 {
+        song.debug = true;
+    }
     let source_mml = sutoton::convert(source);
     let tokens = lexer::lex(&mut song, &source_mml, 0);
     runner::exec(&mut song, &tokens);
