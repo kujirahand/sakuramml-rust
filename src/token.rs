@@ -68,13 +68,28 @@ pub struct Token {
 
 impl Token {
     pub fn new(ttype: TokenType, value: isize, data: Vec<SValue>) -> Self {
-        Self { ttype, value, data, children: None }
+        Self {
+            ttype,
+            value,
+            data,
+            children: None,
+        }
     }
     pub fn new_value(ttype: TokenType, value: isize) -> Self {
-        Self { ttype, value, data: vec![], children: None }
+        Self {
+            ttype,
+            value,
+            data: vec![],
+            children: None,
+        }
     }
     pub fn new_tokens(ttype: TokenType, value: isize, tokens: Vec<Token>) -> Self {
-        Self { ttype, value, data: vec![], children: Some(tokens) }
+        Self {
+            ttype,
+            value,
+            data: vec![],
+            children: Some(tokens),
+        }
     }
     pub fn new_empty(cmd: &str) -> Self {
         Self::new(TokenType::Empty, 0, vec![SValue::from_s(cmd.to_string())])
@@ -82,7 +97,9 @@ impl Token {
     pub fn new_sysex(a: Vec<isize>) -> Self {
         let mut sa: Vec<SValue> = vec![];
         for (i, v) in a.iter().enumerate() {
-            if i == 0 && *v == 0xF0 { continue; }
+            if i == 0 && *v == 0xF0 {
+                continue;
+            }
             sa.push(SValue::from_i(*v));
         }
         Self::new(TokenType::SysEx, 0, sa)

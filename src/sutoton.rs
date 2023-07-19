@@ -34,14 +34,18 @@ impl SutotonList {
         self.sorted = false;
     }
     fn sort_items(&mut self) {
-        if self.sorted { return; }
+        if self.sorted {
+            return;
+        }
         self.items.sort_by(|a, b| b.name.len().cmp(&a.name.len()));
         self.sorted = true;
     }
     fn set_item(&mut self, name: &str, value: &str) {
         let len = name.chars().count();
         for it in self.items.iter_mut() {
-            if it.length != len { continue; }
+            if it.length != len {
+                continue;
+            }
             if it.name == name {
                 it.value = value.to_string();
                 return;
@@ -152,7 +156,7 @@ pub fn convert(src: &str) -> String {
                 res.push(ch);
                 cur.next();
                 continue;
-            },
+            }
             /*
             '\u{0020}'..='\u{007D}' => {
                 res.push(ch);
@@ -164,19 +168,24 @@ pub fn convert(src: &str) -> String {
             '~' | '‾' => {
                 cur.next(); // skip '~'
                 cur.skip_space();
-                if cur.peek_n(0) != '{' { continue; }
+                if cur.peek_n(0) != '{' {
+                    continue;
+                }
                 let name = cur.get_token_nest('{', '}');
                 cur.skip_space();
-                if cur.eq_char('=') { cur.next(); } // skip '='
+                if cur.eq_char('=') {
+                    cur.next();
+                } // skip '='
                 cur.skip_space();
-                if cur.peek_n(0) != '{' { continue; }
+                if cur.peek_n(0) != '{' {
+                    continue;
+                }
                 let value = cur.get_token_nest('{', '}');
                 items.set_item(&name, &value);
                 items.sort_items();
                 continue;
             }
-            _ => {
-            }
+            _ => {}
         }
         // check sutoton
         let mut found = false;
@@ -207,7 +216,9 @@ mod tests {
     #[test]
     fn test_ex() {
         assert_eq!(convert("~{ど}={c}ドレミどレミ"), String::from("cdecde"));
-        assert_eq!(convert("~{じゅー}={c}ドレミじゅーレミ"), String::from("cdecde"));
+        assert_eq!(
+            convert("~{じゅー}={c}ドレミじゅーレミ"),
+            String::from("cdecde")
+        );
     }
 }
-

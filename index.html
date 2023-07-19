@@ -23,7 +23,7 @@
   });
   // これが必要
   window.sakura_log = function (s) {
-    console.log(s)
+    console.log('[LOG]', s)
     document.getElementById('msg').innerHTML = tohtml(s)
   }
   function tohtml(s) {
@@ -59,6 +59,11 @@
       const com = SakuraCompiler.new()
       com.set_language('ja')
       const a = com.compile(txt.value)
+      const log = com.get_log()
+      console.log(log)
+      if (log) {
+        document.getElementById('msg').innerHTML = tohtml(log)
+      }
       const smfData = new Uint8Array(a);
       if (pico.checked) {
         if (window.player_jzz) {

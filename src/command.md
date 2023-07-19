@@ -186,10 +186,6 @@
 
 | 変数名 | 値    |
 |---------|--------|
-| OctaveUnison |  オクターブユニゾンを演奏 (例 OctaveUnison{cde}) (値:"Sub{> #?1 <} #?1") |
-| Unison5th |  5度のユニゾンを演奏 (例 Unison5th{cde}) (値:"Sub{ Key=7 #?1 Key=0 } #?1") |
-| Unison3th |  3度のユニゾンを演奏 (例 Unison3th{cde}) (値:"Sub{ Key=4 #?1 Key=0 } #?1") |
-| Unison |  N度のユニゾンを演奏 (例 Unison{cde},7) (値:"Sub{ Key=#?2 #?1 Key=0 } #?1") |
 | GrandPiano |  音色:GrandPiano (値:1) |
 | BrightPiano |  音色:BrightPiano (値:2) |
 | ElectricGrandPiano |  音色:ElectricGrandPiano (値:3) |

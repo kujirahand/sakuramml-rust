@@ -1,8 +1,8 @@
 //! Define MML Commands and Macros
 
-use std::collections::HashMap;
-use crate::svalue::SValue;
 use crate::sakura_version;
+use crate::svalue::SValue;
+use std::collections::HashMap;
 
 pub fn init_rhythm_macro() -> Vec<String> {
     // Rhythm macro ... 1 char macro
@@ -27,12 +27,27 @@ pub fn init_rhythm_macro() -> Vec<String> {
 pub fn init_variables() -> HashMap<String, SValue> {
     let mut var = HashMap::new();
     //<VARIABLES>
-    var.insert(String::from("SAKURA_VERSION"), SValue::from_s(sakura_version::SAKURA_VERSION.to_string())); // @ サクラのバージョン情報を得る
-    var.insert(String::from("OctaveUnison"), SValue::from_str("Sub{> #?1 <} #?1")); // @ オクターブユニゾンを演奏 (例 OctaveUnison{cde})
-    var.insert(String::from("Unison5th"), SValue::from_str("Sub{ Key=7 #?1 Key=0 } #?1")); // @ 5度のユニゾンを演奏 (例 Unison5th{cde})
-    var.insert(String::from("Unison3th"), SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1")); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})
-    var.insert(String::from("Unison"), SValue::from_str("Sub{ Key=#?2 #?1 Key=0 } #?1")); // @ N度のユニゾンを演奏 (例 Unison{cde},7)
-    //
+    var.insert(
+        String::from("SAKURA_VERSION"),
+        SValue::from_s(sakura_version::SAKURA_VERSION.to_string()),
+    ); // @ サクラのバージョン情報を得る
+    var.insert(
+        String::from("OctaveUnison"),
+        SValue::from_str("Sub{> #?1 <} #?1"),
+    ); // @ オクターブユニゾンを演奏 (例 OctaveUnison{cde})
+    var.insert(
+        String::from("Unison5th"),
+        SValue::from_str("Sub{ Key=7 #?1 Key=0 } #?1"),
+    ); // @ 5度のユニゾンを演奏 (例 Unison5th{cde})
+    var.insert(
+        String::from("Unison3th"),
+        SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1"),
+    ); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})
+    var.insert(
+        String::from("Unison"),
+        SValue::from_str("Sub{ Key=#?2 #?1 Key=0 } #?1"),
+    ); // @ N度のユニゾンを演奏 (例 Unison{cde},7)
+       //
     var.insert(String::from("GrandPiano"), SValue::from_i(1)); // @ 音色:GrandPiano
     var.insert(String::from("BrightPiano"), SValue::from_i(2)); // @ 音色:BrightPiano
     var.insert(String::from("ElectricGrandPiano"), SValue::from_i(3)); // @ 音色:ElectricGrandPiano
@@ -236,6 +251,6 @@ pub fn init_variables() -> HashMap<String, SValue> {
     var.insert(String::from("Castanets"), SValue::from_i(85)); // @ 音色:Castanets
     var.insert(String::from("MuteSurdo"), SValue::from_i(86)); // @ 音色:MuteSurdo
     var.insert(String::from("OpenSurdo"), SValue::from_i(87)); // @ 音色:OpenSurdo
-  //</VARIABLES>
-  var
+                                                               //</VARIABLES>
+    var
 }

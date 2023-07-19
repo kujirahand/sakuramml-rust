@@ -18,16 +18,7 @@ extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 
 // ------------------------------------------
-// JavaScript Functions for Rust
-// ------------------------------------------
-#[wasm_bindgen]
-extern {
-    /// should define log function in JavaScript code
-    pub fn sakura_log(s: &str);
-}
-
-// ------------------------------------------
-// Rust Functions for JavaScript
+// Functions for JavaScript
 // ------------------------------------------
 /// get sakura compiler version info
 #[wasm_bindgen]
@@ -35,23 +26,11 @@ pub fn get_version() -> String {
     sakura_version::SAKURA_VERSION.to_string()
 }
 
-/// compile source to MIDI data
-#[wasm_bindgen]
-pub fn compile(source: &str) -> Vec<u8> {
-    let mut song = song::Song::new();
-    let source_mml = sutoton::convert(source);
-    let tokens = lexer::lex(&mut song, &source_mml, 0);
-    runner::exec(&mut song, &tokens);
-    let bin = midi::generate(&mut song);
-    let log_text = song.get_logs_str();
-    sakura_log(&log_text);
-    return bin;
-}
-
 /// SakuraCompiler Object
 #[wasm_bindgen]
 pub struct SakuraCompiler {
     song: song::Song,
+    log: String,
 }
 #[wasm_bindgen]
 impl SakuraCompiler {
@@ -59,6 +38,7 @@ impl SakuraCompiler {
     pub fn new() -> Self {
         SakuraCompiler {
             song: song::Song::new(),
+            log: String::new(),
         }
     }
     /// compile to MIDI data
@@ -68,11 +48,40 @@ impl SakuraCompiler {
         runner::exec(&mut self.song, &tokens);
         let bin = midi::generate(&mut self.song);
         let log_text = self.song.get_logs_str();
-        sakura_log(&log_text);
+        self.log.push_str(&log_text);
+        // sakura_log(&log_text);
         return bin;
     }
     /// set message language
     pub fn set_language(&mut self, code: &str) {
         self.song.set_language(code);
+    }
+    /// get log text
+    pub fn get_log(&self) -> String {
+        return self.log.clone();
+    }
+}
+
+// ------------------------------------------
+// Functions for Rust
+// ------------------------------------------
+#[derive(Debug)]
+pub struct SakuraResult {
+    /// MIDI binary data
+    pub bin: Vec<u8>,
+    /// MIDI binary data
+    pub log: String,
+}
+/// compile source to MIDI data
+pub fn compile(source: &str) -> SakuraResult {
+    let mut song = song::Song::new();
+    let source_mml = sutoton::convert(source);
+    let tokens = lexer::lex(&mut song, &source_mml, 0);
+    runner::exec(&mut song, &tokens);
+    let bin = midi::generate(&mut song);
+    let log_text = song.get_logs_str();
+    SakuraResult {
+        bin,
+        log: log_text
     }
 }

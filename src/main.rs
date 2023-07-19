@@ -29,12 +29,12 @@ fn version() {
     println!("{}", SAKURA_VERSION);
 }
 fn main() {
-    let mut song = Song::new();
     let args: Vec<String> = std::env::args().collect();
     let mut filename = String::new();
     let mut outfile = String::new();
     let mut eval_mml = String::new();
     let mut mode = String::from("mml2mid");
+    let mut debug = false;
     let mut i = 1;
     while i < args.len() {
         let arg = &args[i];
@@ -47,7 +47,7 @@ fn main() {
             return;
         }
         else if arg == "--debug" || arg == "-d" || arg == "debug" || arg == "d" {
-            song.debug = true;
+            debug = true;
         }
         else if arg == "--eval" || arg == "-e" || arg == "eval" || arg == "e" {
             i += 1;
@@ -70,7 +70,9 @@ fn main() {
         return;
     }
     if outfile == "" {
-        outfile = filename.replace(".mml", ".mid");
+        outfile.push_str(&filename);
+        outfile.push_str(".mid");
+        outfile = outfile.replace(".mml.mid", ".mid");
     }
     // dump mode
     if mode == "dump" {
@@ -88,7 +90,7 @@ fn main() {
         }
     }
     // read file
-    let mut src: String;
+    let src: String;
     if eval_mml != "" {
         src = eval_mml;
     } else {
@@ -100,14 +102,21 @@ fn main() {
             }
         };
     }
+    // --- compile mml to midi ---
+    compile_to_midi(&src, &outfile, debug);
+}
+
+fn compile_to_midi(src: &str, midifile: &str, debug: bool) {
+    let mut song = Song::new();
+    song.debug = debug;
     // sutoton
-    src = sakuramml::sutoton::convert(&src);
+    let src = sakuramml::sutoton::convert(&src);
     // println!("{}", src);
     let tokens = lex(&mut song, &src, 0);
     // println!("lex= {:?}", tokens); 
     exec(&mut song, &tokens);
     // println!("song= {:?}", song);
-    save_to_file(&mut song, &outfile);
+    save_to_file(&mut song, &midifile);
     println!("{}\nok.", song.logs.join("\n").trim());
 }
 
