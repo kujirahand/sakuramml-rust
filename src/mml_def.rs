@@ -4,6 +4,12 @@ use crate::sakura_version;
 use crate::svalue::SValue;
 use std::collections::HashMap;
 
+// Tie & Slur Mode
+pub const TIE_MODE_PORT: isize = 0; // グリッサンド : ノートオンを、ポルタメントでつなぐ
+pub const TIE_MODE_BEND: isize = 1; // 異音程をベンドで表現、ギターのハンマリングに近い : ノートオンを、ベンドでつなぐ
+pub const TIE_MODE_GATE: isize = 2; // ノートオンのゲートを100%にする ( ＆のついた音符のゲートを、valueにする ... )
+pub const TIE_MODE_ALPE: isize = 3; // ＆でつないだ音符の終わりまでゲートを伸ばす。どんどん重なる。
+
 pub fn init_rhythm_macro() -> Vec<String> {
     // Rhythm macro ... 1 char macro
     let mut rhthm_macro: Vec<String> = vec![];
@@ -27,27 +33,17 @@ pub fn init_rhythm_macro() -> Vec<String> {
 pub fn init_variables() -> HashMap<String, SValue> {
     let mut var = HashMap::new();
     //<VARIABLES>
-    var.insert(
-        String::from("SAKURA_VERSION"),
-        SValue::from_s(sakura_version::SAKURA_VERSION.to_string()),
-    ); // @ サクラのバージョン情報を得る
-    var.insert(
-        String::from("OctaveUnison"),
-        SValue::from_str("Sub{> #?1 <} #?1"),
-    ); // @ オクターブユニゾンを演奏 (例 OctaveUnison{cde})
-    var.insert(
-        String::from("Unison5th"),
-        SValue::from_str("Sub{ Key=7 #?1 Key=0 } #?1"),
-    ); // @ 5度のユニゾンを演奏 (例 Unison5th{cde})
-    var.insert(
-        String::from("Unison3th"),
-        SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1"),
-    ); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})
-    var.insert(
-        String::from("Unison"),
-        SValue::from_str("Sub{ Key=#?2 #?1 Key=0 } #?1"),
-    ); // @ N度のユニゾンを演奏 (例 Unison{cde},7)
-       //
+    var.insert(String::from("SAKURA_VERSION"), SValue::from_s(sakura_version::SAKURA_VERSION.to_string())); // @ サクラのバージョン情報を得る
+    var.insert(String::from("OctaveUnison"), SValue::from_str("Sub{> #?1 <} #?1")); // @ オクターブユニゾンを演奏 (例 OctaveUnison{cde})
+    var.insert(String::from("Unison5th"), SValue::from_str("Sub{ Key=7 #?1 Key=0 } #?1")); // @ 5度のユニゾンを演奏 (例 Unison5th{cde})
+    var.insert(String::from("Unison3th"), SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1")); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})
+    var.insert(String::from("Unison"), SValue::from_str("Sub{ Key=#?2 #?1 Key=0 } #?1")); // @ N度のユニゾンを演奏 (例 Unison{cde},7)
+    // tie/slur mode
+    var.insert(String::from("SlurModePort"), SValue::from_i(0)); // @ SLUR_MODE : グリッサンド。ノートオンを、ポルタメントでつなぐ
+    var.insert(String::from("SlurModeBend"), SValue::from_i(1)); // @ SLUR_MODE : ベンド。異音程をベンドで表現。ギターのハンマリングに近い。
+    var.insert(String::from("SlurModeGate"), SValue::from_i(2)); // @ SLUR_MODE : ＆のついた音符のゲートを、valueにする
+    var.insert(String::from("SlurModeAlpe"), SValue::from_i(3)); // @ SLUR_MODE : ＆でつないだ音符の終わりまでゲートを伸ばす
+    // Voice
     var.insert(String::from("GrandPiano"), SValue::from_i(1)); // @ 音色:GrandPiano
     var.insert(String::from("BrightPiano"), SValue::from_i(2)); // @ 音色:BrightPiano
     var.insert(String::from("ElectricGrandPiano"), SValue::from_i(3)); // @ 音色:ElectricGrandPiano
@@ -251,6 +247,6 @@ pub fn init_variables() -> HashMap<String, SValue> {
     var.insert(String::from("Castanets"), SValue::from_i(85)); // @ 音色:Castanets
     var.insert(String::from("MuteSurdo"), SValue::from_i(86)); // @ 音色:MuteSurdo
     var.insert(String::from("OpenSurdo"), SValue::from_i(87)); // @ 音色:OpenSurdo
-                                                               //</VARIABLES>
+    //</VARIABLES>
     var
 }

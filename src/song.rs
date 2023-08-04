@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use crate::runner::value_range;
 use crate::svalue::SValue;
-use crate::mml_def;
+use crate::mml_def::{self, TIE_MODE_PORT};
 use crate::sakura_message::{MessageLang, MessageData, MessageKind};
 
 /// Event Type
@@ -13,6 +13,7 @@ pub enum EventType {
     NoteOff,
     ControllChange,
     PitchBend,
+    PitchBendRange,
     Voice,
     Meta,
     SysEx,
@@ -49,9 +50,27 @@ impl Event {
     pub fn cc(time: isize, channel: isize, no: isize, value: isize) -> Self {
         Self { etype: EventType::ControllChange, time, channel, v1: no, v2: value, v3:0, data: None }
     }
+    /// pitch_bend : 0..16383 (-8192 .. 0 .. 8191)
     pub fn pitch_bend(time: isize, channel: isize, value: isize) -> Self {
         Self { etype: EventType::PitchBend, time, channel, v1: value, v2: 0, v3: 0, data: None }
     }
+    pub fn pitch_bend_range(time: isize, channel: isize, value: isize) -> Self {
+        Self { etype: EventType::PitchBendRange, time, channel, v1: value, v2: 0, v3: 0, data: None }
+    }
+}
+
+/// NoteInfo
+#[derive(Debug)]
+pub struct NoteInfo {
+    pub no: isize,
+    pub flag: isize,
+    pub natural: isize,
+    pub len_s: String,
+    pub qlen: isize,
+    pub vel: isize,
+    pub t: isize,
+    pub o: isize,
+    pub slur: isize,
 }
 
 /// Track
@@ -69,6 +88,9 @@ pub struct Track {
     pub q_rand: isize,
     pub t_rand: isize,
     pub track_key: isize,
+    pub tie_mode: isize, // Slur(#7)
+    pub tie_value: isize,
+    pub bend_range: isize,
     pub v_on_time_start: isize,
     pub v_on_time: Option<Vec<isize>>,
     pub v_on_note_index: isize,
@@ -79,6 +101,7 @@ pub struct Track {
     pub t_on_note: Option<Vec<isize>>,
     pub cc_on_time_freq: isize,
     pub events: Vec<Event>,
+    pub tie_notes: Vec<Event>,
 }
 
 impl Track {
@@ -92,6 +115,8 @@ impl Track {
             qlen: 90,
             timing: 0,
             track_key: 0,
+            tie_mode: TIE_MODE_PORT,
+            tie_value: 0,
             v_sub: vec![0],
             v_rand: 0,
             q_rand: 0,
@@ -107,6 +132,8 @@ impl Track {
             t_on_note: None,
             channel,
             events: vec![],
+            tie_notes: vec![],
+            bend_range: -1,
         }
     }
 
@@ -179,7 +206,8 @@ impl Track {
                     events.push(e2);
                 },
                 EventType::NoteOff => {},
-                EventType::PitchBend => {},
+                EventType::PitchBend => {}, // TODO: #8
+                EventType::PitchBendRange => {}, // TODO: #8
             }
         }
         // add cc

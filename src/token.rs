@@ -55,6 +55,7 @@ pub enum TokenType {
     TimingOnNote,
     MeasureShift,
     TrackSync,
+    TieMode,
 }
 
 #[allow(dead_code)]

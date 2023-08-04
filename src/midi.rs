@@ -3,6 +3,12 @@
 /// midi 
 use super::song::{Song, Track, EventType};
 
+/// MIDI Event
+const MIDI_RPN_MSB: u8 = 0x65;
+const MIDI_RPN_LSB: u8 = 0x64;
+const MIDI_DATA_ENTRY_MSB: u8 = 0x06;
+const _MIDI_DATA_ENTRY_LSB: u8 = 0x26;
+
 fn array_push_str(res: &mut Vec<u8>, s: &str) {
     for b in s.as_bytes() {
         res.push(*b);
@@ -115,14 +121,35 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 res.push(0xE0 + e.channel as u8);
                 res.push(lsb);
                 res.push(msb);
+            },
+            EventType::PitchBendRange => { // RPN
+                // Pitch Bend Sensitivity (3 events)
+                let range = e.v1;
+                let range = if range >= 0 && range <= 24 { range as u8 } else { 0 };
+                // RPN MSB
+                array_push_delta(&mut res, e.time - timepos);
+                timepos = e.time;
+                res.push(0xB0 + e.channel as u8);
+                res.push(MIDI_RPN_MSB);
+                res.push(0);
+                // RPN LSB
+                res.push(0);
+                res.push(0xB0 + e.channel as u8);
+                res.push(MIDI_RPN_LSB);
+                res.push(0);
+                // Data Entry MSB
+                res.push(0);
+                res.push(0xB0 + e.channel as u8);
+                res.push(MIDI_DATA_ENTRY_MSB);
+                res.push(range);
             }
         }
     }
     // end of track
-    res.push(00);
+    res.push(0x00);
     res.push(0xFF);
     res.push(0x2F);
-    res.push(00);
+    res.push(0x00);
     res
 }
 

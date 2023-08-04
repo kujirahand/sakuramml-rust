@@ -66,7 +66,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)), // @ 一度だけ音階を+1する
             '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)), // @ 一度だけ音階を-1する
             '?' => result.push(Token::new_value(TokenType::PlayFrom, 0)), // @ ここから演奏する (=PLAY_FROM)
-            '&' => {} // @ タイ(todo: 現在未実装)
+            '&' => {}, // @ タイ・スラー(Slurコマンドで動作が変更できる)
             // </CHAR_COMMANDS>
             _ => {
                 if song.logs.len() == LEX_MAX_ERROR {
@@ -193,12 +193,12 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new_value(TokenType::TrackSync, 0);
     }
     if cmd == "SLUR" || cmd == "Slur" {
-        // @ 未実装
+        // @ タイ・スラー記号(&)の動作を変更する(0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ)
+        let args: SValue = read_arg_value_int_array(cur, song);
         return Token::new(
-            TokenType::Empty,
+            TokenType::TieMode,
             0,
-            read_arg_int_array(cur, song).to_array(),
-        );
+            vec![args]);
     }
     if cmd == "System.Include" || cmd == "Include" || cmd == "INCLUDE" {
         // @ 未実装
