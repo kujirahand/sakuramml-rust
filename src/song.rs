@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use crate::runner::value_range;
 use crate::svalue::SValue;
-use crate::mml_def::{self, TIE_MODE_PORT};
+use crate::mml_def::{self, TieMode};
 use crate::sakura_message::{MessageLang, MessageData, MessageKind};
 
 /// Event Type
@@ -88,7 +88,7 @@ pub struct Track {
     pub q_rand: isize,
     pub t_rand: isize,
     pub track_key: isize,
-    pub tie_mode: isize, // Slur(#7)
+    pub tie_mode: TieMode, // Slur(#7)
     pub tie_value: isize,
     pub bend_range: isize,
     pub v_on_time_start: isize,
@@ -115,7 +115,7 @@ impl Track {
             qlen: 90,
             timing: 0,
             track_key: 0,
-            tie_mode: TIE_MODE_PORT,
+            tie_mode: TieMode::Port,
             tie_value: 0,
             v_sub: vec![0],
             v_rand: 0,

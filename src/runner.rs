@@ -1,6 +1,6 @@
 //! runner from tokens
 
-use crate::mml_def::{TIE_MODE_PORT, TIE_MODE_BEND, TIE_MODE_GATE, TIE_MODE_ALPE};
+use crate::mml_def::TieMode;
 
 use super::cursor::TokenCursor;
 use super::lexer::lex;
@@ -301,7 +301,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::TieMode => {
                 let args = &t.data[0].to_array();
                 if args.len() >= 1 {
-                    trk!(song).tie_mode = var_extract(&args[0], song).to_i();
+                    trk!(song).tie_mode = TieMode::from_i(var_extract(&args[0], song).to_i());
                 }
                 if args.len() >= 2 {
                     trk!(song).tie_value = var_extract(&args[1], song).to_i();
@@ -649,6 +649,139 @@ fn exec_note(song: &mut Song, t: &Token) {
     trk!(song).events.push(event);
 }
 
+/// TieMode::Port
+fn tie_mode_port(song: &mut Song) {
+    let mut last_note = trk!(song).tie_notes.remove(0);
+    let mut tie_value = trk!(song).tie_value;
+    loop {
+        if trk!(song).tie_notes.len() == 0 {
+            trk!(song).events.push(last_note);
+            break;
+        }
+        let next_event = trk!(song).tie_notes.remove(0);
+        // same note no
+        if last_note.v1 == next_event.v1 {
+            // add note length
+            let time_pos = next_event.time + next_event.v2;
+            last_note.v2 = time_pos - last_note.time;
+            continue;
+        }
+        // check bend range in track
+        let mut bend_range = trk!(song).bend_range;
+        if bend_range <= 0 {
+            // set bend range
+            trk!(song).bend_range = 12;
+            let timepos = if last_note.time <= 0 { 0 } else { last_note.time - 1 };
+            let bend_range_event = Event::pitch_bend_range(timepos, trk!(song).channel, 12);
+            trk!(song).events.push(bend_range_event);
+            bend_range = 12;
+        }
+        // calc pitch range
+        // bend value range: -8192 to 8191
+        let note_diff: isize = next_event.v1 - last_note.v1;
+        tie_value = if tie_value == 0 { (song.timebase * 4) / 8 } else { tie_value };
+        let bend_from = (note_diff as f32 * (8192f32 / bend_range as f32)) as isize;
+        let bend_to = 0;
+        let mut last_v = 0;
+        for i in 0..tie_value {
+            let timepos = next_event.time - tie_value + i;
+            let v = ((bend_from - bend_to) as f32 * (i as f32 / tie_value as f32)) as isize;
+            if last_v == v { continue; }
+            last_v = v;
+            let bend_event = Event::pitch_bend(timepos, trk!(song).channel, v + 8192);
+            trk!(song).events.push(bend_event);
+        }
+        last_note.v2 = next_event.time - last_note.time;
+        trk!(song).events.push(last_note);
+        let bend_event_end = Event::pitch_bend(next_event.time, trk!(song).channel, bend_to + 8192);
+        trk!(song).events.push(bend_event_end);
+        last_note = next_event;
+    }
+}
+
+fn tie_mode_bend(song: &mut Song) {
+    // first note
+    let mut last_note = trk!(song).tie_notes.remove(0);
+    let mut begin_note = last_note.clone();
+    // set bend range
+    let mut bend_range = trk!(song).bend_range;
+    if bend_range <= 0 {
+        trk!(song).bend_range = 12;
+        let timepos = if last_note.time <= 0 { 0 } else { last_note.time - 1 };
+        let bend_range_event = Event::pitch_bend_range(timepos, trk!(song).channel, 12);
+        trk!(song).events.push(bend_range_event);
+        bend_range = 12;
+    }
+    // set bend 0
+    let bend0 = Event::pitch_bend(last_note.time, trk!(song).channel, 8192);
+    trk!(song).events.push(bend0);
+    let mut lastpos = last_note.time + last_note.v2;
+    while trk!(song).tie_notes.len() > 0 {
+        let next_event = trk!(song).tie_notes.remove(0);
+        lastpos = next_event.time + next_event.v2;
+        // same note no
+        if last_note.v1 == next_event.v1 {
+            // add note length
+            let time_pos = next_event.time + next_event.v2;
+            last_note.v2 = time_pos - last_note.time;
+            continue;
+        }
+        // calc pitch range
+        // bend value range: -8192 to 8191
+        let note_diff: isize = next_event.v1 - last_note.v1;
+        let bend_event = Event::pitch_bend(
+            next_event.time,
+            trk!(song).channel,
+            (note_diff as f32 * 8192f32 / bend_range as f32) as isize + 8192,
+        );
+        trk!(song).events.push(bend_event);
+    }
+    // write begin note
+    begin_note.v2 = lastpos - begin_note.time;
+    trk!(song).events.push(begin_note);
+    // reset bend
+    let bend_end = Event::pitch_bend(lastpos, trk!(song).channel, 8192);
+    trk!(song).events.push(bend_end);
+}
+
+fn tie_mode_gate(song: &mut Song) {
+    let mut last_note = trk!(song).tie_notes.remove(0);
+    let tie_value = trk!(song).tie_value;
+    loop {
+        if trk!(song).tie_notes.len() == 0 {
+            trk!(song).events.push(last_note);
+            break;
+        }
+        let next_event = trk!(song).tie_notes.remove(0);
+        // same note no
+        if last_note.v1 == next_event.v1 {
+            // add note length
+            let time_pos = next_event.time + next_event.v2;
+            last_note.v2 = time_pos - last_note.time;
+            continue;
+        }
+        // different note no
+        if tie_value == 0 {
+            last_note.v2 = next_event.time - last_note.time;
+        } else {
+            last_note.v2 = tie_value;
+        }
+        trk!(song).events.push(last_note);
+        last_note = next_event;
+    }
+}
+
+/// alpeggio mode
+fn tie_mode_alpe(song: &mut Song) {
+    let last_note = &trk!(song).tie_notes[trk!(song).tie_notes.len() - 1];
+    let last_pos = last_note.time + last_note.v2;
+    let tie_notes = trk!(song).tie_notes.clone();
+    for mut event in tie_notes.into_iter() {
+        event.v2 = last_pos - event.time;
+        trk!(song).events.push(event);
+    }
+}
+
 fn check_tie_notes(song: &mut Song) {
     // Tie/Slur mode (https://sakuramml.com/doc/command/11.htm)
     //
@@ -661,95 +794,12 @@ fn check_tie_notes(song: &mut Song) {
     if trk!(song).tie_notes.len() == 0 {
         return;
     }
-    // get tie mode
-    let tie_mode = trk!(song).tie_mode;
-    // alpeggio mode
-    if tie_mode == TIE_MODE_ALPE {
-        // calc last note pos
-        let last_event = &trk!(song).tie_notes[trk!(song).tie_notes.len() - 1];
-        let last_pos = last_event.time + last_event.v2;
-        let tie_notes = trk!(song).tie_notes.clone();
-        for mut event in tie_notes.into_iter() {
-            event.v2 = last_pos - event.time;
-            trk!(song).events.push(event);
-        }
-        return;
-    }
-    // other tie mode
-    let mut last_event = trk!(song).tie_notes.remove(0);
-    let mut tie_value = trk!(song).tie_value;
-    loop {
-        if trk!(song).tie_notes.len() == 0 {
-            trk!(song).events.push(last_event);
-            break;
-        }
-        let next_event = trk!(song).tie_notes.remove(0);
-        // same note no
-        if last_event.v1 == next_event.v1 {
-            // add note length
-            let time_pos = next_event.time + next_event.v2;
-            last_event.v2 = time_pos - last_event.time;
-            continue;
-        }
-        // different note no
-        if tie_mode == TIE_MODE_GATE {
-            if tie_value == 0 {
-                last_event.v2 = next_event.time - last_event.time;
-            } else {
-                last_event.v2 = tie_value;
-            }
-            trk!(song).events.push(last_event);
-            last_event = next_event;
-            continue;
-        }
-        // if tie_mode == TIE_BEND || tie_mode == TIE_PORT
-        // check bend range in track
-        let mut bend_range = trk!(song).bend_range;
-        if bend_range <= 0 {
-            // set bend range
-            trk!(song).bend_range = 12;
-            let timepos = if last_event.time <= 0 { 0 } else { last_event.time - 1 };
-            let bend_range_event = Event::pitch_bend_range(timepos, trk!(song).channel, 12);
-            trk!(song).events.push(bend_range_event);
-            bend_range = 12;
-        }
-        // calc pitch range
-        // bend value range: -8192 to 8191
-        let note_diff: isize = next_event.v1 - last_event.v1;
-        let timepos = next_event.time + next_event.v2;
-        if tie_mode == TIE_MODE_BEND {
-            last_event.v2 = timepos - last_event.time;
-            let bend_event = Event::pitch_bend(
-                next_event.time,
-                trk!(song).channel,
-                (note_diff as f32 * 8192f32 / bend_range as f32) as isize + 8192,
-            );
-            trk!(song).events.push(bend_event);
-            continue;
-        }
-        // PORT
-        if tie_mode == TIE_MODE_PORT {
-            tie_value = if tie_value == 0 { (song.timebase * 4) / 8 } else { tie_value };
-            let bend_from = (note_diff as f32 * (8192f32 / bend_range as f32)) as isize;
-            let bend_to = 0;
-            let mut last_v = 0;
-            for i in 0..tie_value {
-                let timepos = next_event.time - tie_value + i;
-                let v = ((bend_from - bend_to) as f32 * (i as f32 / tie_value as f32)) as isize;
-                // println!("PB={}: {}/{}", timepos, v, bend_from);
-                if last_v == v { continue; }
-                last_v = v;
-                let bend_event = Event::pitch_bend(timepos, trk!(song).channel, v + 8192);
-                trk!(song).events.push(bend_event);
-            }
-            last_event.v2 = next_event.time - last_event.time;
-            trk!(song).events.push(last_event);
-            let bend_event_end = Event::pitch_bend(next_event.time, trk!(song).channel, bend_to + 8192);
-            trk!(song).events.push(bend_event_end);
-            last_event = next_event;
-            continue;
-        }
-    }
+    match trk!(song).tie_mode {
+        TieMode::Port => tie_mode_port(song),
+        TieMode::Bend => tie_mode_bend(song),
+        TieMode::Gate => tie_mode_gate(song),
+        TieMode::Alpe => tie_mode_alpe(song),
+    };
 }
 
 fn exec_note_n(song: &mut Song, t: &Token) {

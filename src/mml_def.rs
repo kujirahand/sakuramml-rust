@@ -4,11 +4,29 @@ use crate::sakura_version;
 use crate::svalue::SValue;
 use std::collections::HashMap;
 
-// Tie & Slur Mode
-pub const TIE_MODE_PORT: isize = 0; // グリッサンド : ノートオンを、ポルタメントでつなぐ
-pub const TIE_MODE_BEND: isize = 1; // 異音程をベンドで表現、ギターのハンマリングに近い : ノートオンを、ベンドでつなぐ
-pub const TIE_MODE_GATE: isize = 2; // ノートオンのゲートを100%にする ( ＆のついた音符のゲートを、valueにする ... )
-pub const TIE_MODE_ALPE: isize = 3; // ＆でつないだ音符の終わりまでゲートを伸ばす。どんどん重なる。
+/// Tie & Slur Mode
+/// 0: グリッサンド : ノートオンを、ポルタメントでつなぐ
+/// 1: 異音程をベンドで表現、ギターのハンマリングに近い : ノートオンを、ベンドでつなぐ
+/// 2: ノートオンのゲートを100%にする ( ＆のついた音符のゲートを、valueにする ... )
+/// 3: ＆でつないだ音符の終わりまでゲートを伸ばす。どんどん重なる。
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum TieMode {
+    Port = 0,
+    Bend = 1,
+    Gate = 2,
+    Alpe = 3,
+}
+impl TieMode {
+    pub fn from_i(i: isize) -> Self {
+        match i {
+            0 => Self::Port,
+            1 => Self::Bend,
+            2 => Self::Gate,
+            3 => Self::Alpe,
+            _ => Self::Port,
+        }
+    }
+}
 
 pub fn init_rhythm_macro() -> Vec<String> {
     // Rhythm macro ... 1 char macro
@@ -39,10 +57,10 @@ pub fn init_variables() -> HashMap<String, SValue> {
     var.insert(String::from("Unison3th"), SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1")); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})
     var.insert(String::from("Unison"), SValue::from_str("Sub{ Key=#?2 #?1 Key=0 } #?1")); // @ N度のユニゾンを演奏 (例 Unison{cde},7)
     // tie/slur mode
-    var.insert(String::from("SlurModePort"), SValue::from_i(0)); // @ SLUR_MODE : グリッサンド。ノートオンを、ポルタメントでつなぐ
-    var.insert(String::from("SlurModeBend"), SValue::from_i(1)); // @ SLUR_MODE : ベンド。異音程をベンドで表現。ギターのハンマリングに近い。
-    var.insert(String::from("SlurModeGate"), SValue::from_i(2)); // @ SLUR_MODE : ＆のついた音符のゲートを、valueにする
-    var.insert(String::from("SlurModeAlpe"), SValue::from_i(3)); // @ SLUR_MODE : ＆でつないだ音符の終わりまでゲートを伸ばす
+    var.insert(String::from("SLUR_PORT"), SValue::from_i(0)); // @ スラー定数。グリッサンド。ノートオンを、ポルタメントでつなぐ (例 Slur(SlurPort, !8) のように指定)
+    var.insert(String::from("SLUR_BEND"), SValue::from_i(1)); // @ スラー定数。ベンド。異音程をベンドで表現。ギターのハンマリングに近い。 (例 Slur(SlurPort, !8) のように指定)
+    var.insert(String::from("SLUR_GATE"), SValue::from_i(2)); // @ スラー定数。＆のついた音符のゲートを、valueにする
+    var.insert(String::from("SLUR_ALPE"), SValue::from_i(3)); // @ スラー定数。＆でつないだ音符の終わりまでゲートを伸ばす
     // Voice
     var.insert(String::from("GrandPiano"), SValue::from_i(1)); // @ 音色:GrandPiano
     var.insert(String::from("BrightPiano"), SValue::from_i(2)); // @ 音色:BrightPiano
