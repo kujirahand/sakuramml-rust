@@ -170,8 +170,11 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).t_on_note = None;
             },
             TokenType::ControllChange => {
-                let no = t.data[0].to_i();
-                let val = t.data[1].to_i();
+                let no = t.value;
+                let val_tokens = t.children.clone().unwrap_or(vec![]);
+                exec(song, &val_tokens);
+                let val_v = song.stack.pop().unwrap_or(SValue::None);
+                let val = val_v.to_i();
                 song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, no, val));
             },
             TokenType::PitchBend => {

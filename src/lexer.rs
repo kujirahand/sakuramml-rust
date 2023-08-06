@@ -1481,71 +1481,84 @@ fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
             return Token::new_empty("not supported : onCycle");
         }
     }
-    let v = read_arg_value(cur, song);
-    return Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(no), v]);
+    let tokens = read_calc(cur, song);
+    return Token::new_tokens(TokenType::ControllChange, no, tokens);
 }
 
 fn read_command_rpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
     let val = read_arg_value(cur, song);
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
-        Token::new(
+        Token::new_tokens(
             TokenType::ControllChange,
-            0,
-            vec![SValue::from_i(101), SValue::from_i(msb)],
+            101,
+            vec![Token::new(TokenType::Value, 0, vec![SValue::from_i(msb)])]
         ),
-        Token::new(
+        Token::new_tokens(
             TokenType::ControllChange,
-            0,
-            vec![SValue::from_i(100), SValue::from_i(lsb)],
+            100,
+            vec![Token::new(TokenType::Value, 0, vec![SValue::from_i(lsb)])]
         ),
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), val]),
+        Token::new_tokens(
+            TokenType::ControllChange,
+            6,
+            vec![Token::new(TokenType::Value, 0, vec![val])]
+        ),
     ]);
     tokens
 }
 
 fn read_command_rpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let a = read_arg_int_array(cur, song).to_array();
+    let a = read_args_vec(cur, song);
     if a.len() < 3 {
         song.add_log(format!("[ERROR]({}): RPN not enough arguments", cur.line));
         return Token::new_empty("RPN error");
     }
+    let msb = a[0].clone();
+    let lsb = a[1].clone();
+    let val = a[2].clone();
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
-        Token::new(
+        Token::new_tokens(
             TokenType::ControllChange,
-            0,
-            vec![SValue::from_i(101), a[0].clone()],
+            101,
+            vec![Token::new(TokenType::Value, 0, vec![msb])]
         ),
-        Token::new(
+        Token::new_tokens(
             TokenType::ControllChange,
-            0,
-            vec![SValue::from_i(100), a[1].clone()],
+            100,
+            vec![Token::new(TokenType::Value, 0, vec![lsb])]
         ),
-        Token::new(
+        Token::new_tokens(
             TokenType::ControllChange,
-            0,
-            vec![SValue::from_i(6), a[2].clone()],
+            6,
+            vec![Token::new(TokenType::Value, 0, vec![val])]
         ),
     ]);
     tokens
 }
 
 fn read_command_nrpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
+    let msb = SValue::from_i(msb);
+    let lsb = SValue::from_i(lsb);
     let val = read_arg_value(cur, song);
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
-        Token::new(
+        Token::new_tokens(
+            TokenType::ControllChange,
+            99,
+            vec![Token::new(TokenType::Value, 0, vec![msb])]
+        ),
+        Token::new_tokens(
+            TokenType::ControllChange,
+            98,
+            vec![Token::new(TokenType::Value, 0, vec![lsb])]
+        ),
+        Token::new_tokens(
             TokenType::ControllChange,
             0,
-            vec![SValue::from_i(99), SValue::from_i(msb)],
+            vec![Token::new(TokenType::Value, 0, vec![val])]
         ),
-        Token::new(
-            TokenType::ControllChange,
-            0,
-            vec![SValue::from_i(98), SValue::from_i(lsb)],
-        ),
-        Token::new(TokenType::ControllChange, 0, vec![SValue::from_i(6), val]),
     ]);
     tokens
 }
@@ -1556,22 +1569,25 @@ fn read_command_nrpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
         song.add_log(format!("[ERROR]({}): NRPN not enough arguments", cur.line));
         return Token::new_empty("NRPN error");
     }
+    let msb = a[0].clone();
+    let lsb = a[1].clone();
+    let val = a[2].clone();
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
-        Token::new(
+        Token::new_tokens(
             TokenType::ControllChange,
-            0,
-            vec![SValue::from_i(99), a[0].clone()],
+            99,
+            vec![Token::new(TokenType::Value, 0, vec![msb])]
         ),
-        Token::new(
+        Token::new_tokens(
             TokenType::ControllChange,
-            0,
-            vec![SValue::from_i(98), a[1].clone()],
+            98,
+            vec![Token::new(TokenType::Value, 0, vec![lsb])]
         ),
-        Token::new(
+        Token::new_tokens(
             TokenType::ControllChange,
             0,
-            vec![SValue::from_i(6), a[2].clone()],
+            vec![Token::new(TokenType::Value, 0, vec![val])]
         ),
     ]);
     tokens
@@ -1768,7 +1784,9 @@ fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
     cur.next();
     let val = read_arg_value(cur, song);
-    Token::new(TokenType::ControllChange, 0, vec![no, val])
+    Token::new_tokens(TokenType::ControllChange, no.to_i(), vec![
+        Token::new(TokenType::Value, 0, vec![val]),
+    ])
 }
 
 fn read_loop(cur: &mut TokenCursor, song: &mut Song) -> Token {

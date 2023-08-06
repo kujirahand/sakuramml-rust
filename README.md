@@ -176,6 +176,22 @@ It replaces `#?1` `#?2` `#?3` ...
 #Unison{cde},7
 ```
 
+## Script
+
+It can use IF/FOR/WHILE script.
+
+```
+// IF 
+INT A = 3
+INT B = 5
+IF (A == B) { PRINT({A == B}) } ELSE { PRINT({A != B}) }
+
+// FOR
+FOR (INT N=1; N < 5; N++) {
+  PRINT(N)
+}
+```
+
 ## memo
 
 - Command List(ja) --- [command.md](src/command.md)
