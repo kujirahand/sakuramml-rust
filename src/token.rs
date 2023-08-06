@@ -45,6 +45,7 @@ pub enum TokenType {
     TrackKey,
     DefInt,
     DefStr,
+    LetVar,
     PlayFrom,
     VelocityRandom,
     QLenRandom,

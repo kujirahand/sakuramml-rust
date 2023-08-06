@@ -102,10 +102,6 @@ fn lex_error(cur: &mut TokenCursor, song: &mut Song, msg: &str) {
 /// read Upper case commands
 fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.prev(); // back 1char
-    match check_variables(cur, song) {
-        Some(res) => return res,
-        None => {}
-    }
     let mut cmd = cur.get_word();
     // Systemの場合は"."に続く
     if cmd == "System" || cmd == "SYSTEM" {
@@ -444,6 +440,13 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         ]);
     }
     // </UPPER_COMMANDS>
+    
+    // check variable
+    match check_variables(cur, song) {
+        Some(res) => return res,
+        None => {}
+    }
+
     // Error message
     if song.logs.len() < LEX_MAX_ERROR {
         let near = cur.peek_str_n(8).replace('\n', "↵");
@@ -500,6 +503,8 @@ fn lex_calc(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
         cur.skip_space();
         let ch = zen2han(cur.get_char());
         match ch {
+            ';' | '\t' => {}, // comment
+            '\n' => { cur.line += 1; },
             '0'..='9' => {
                 cur.prev();
                 let num = cur.get_int(0);
@@ -537,6 +542,12 @@ fn lex_calc(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                         tokens.push(tok);
                     }
                 }
+            },
+            '{' => {
+                cur.prev();
+                let str_s = cur.get_token_nest('{', '}');
+                let tok = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_s(str_s)]);
+                tokens.push(tok);
             },
             '*' | '/' | '%' => {
                 tokens.push(Token::new_value_tag(TokenType::Calc, LEX_MUL_DIV, ch as isize));
@@ -767,6 +778,37 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
         }
     }
 
+    // increment variable?
+    if cur.eq("++") {
+        cur.next_n(2);
+        return Some(Token::new(TokenType::ValueInc, 1, vec![SValue::from_s(cmd)]));
+    }
+    if cur.eq("--") {
+        cur.next_n(2);
+        return Some(Token::new(TokenType::ValueInc, -1, vec![SValue::from_s(cmd)]));
+    }
+    // let?
+    cur.skip_space();
+    if cur.eq("=") {
+        cur.next();
+        cur.skip_space();
+        // let str
+        if cur.eq_char('{') {
+            let body = cur.get_token_nest('{', '}');
+            song.variables.insert(cmd, SValue::from_str_and_tag(&body, cur.line));
+            return Some(Token::new_empty("DefStr"));
+        }
+        // let calc
+        let body = cur.get_token_ch('\n');
+        let body_tokens = lex_calc(song, &body, cur.line);
+        let tok = Token::new_data_tokens(
+            TokenType::LetVar, 0, 
+            vec![SValue::from_str(&cmd)],
+            vec![Token::new_tokens(TokenType::Tokens, 0, body_tokens)]);
+        song.variables.insert(cmd, SValue::None);
+        return Some(tok);
+    }
+
     // variables?
     match song.variables.get(&cmd) {
         Some(sval) => {
@@ -788,7 +830,7 @@ fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SVal
                 Some(_) => {
                     if cur.eq_char('(') || cur.eq_char('=') || cur.eq_char('{') {
                         // has parameters
-                        let mut args = read_arg_value_sv_array(cur, song).to_array();
+                        let mut args = read_args_vec(cur, song);
                         for (i, v) in args.iter_mut().enumerate() {
                             let pat = format!("#?{}", i + 1);
                             src = src.replace(&pat, &v.to_s());
@@ -908,7 +950,7 @@ fn read_arg_int_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
     }
 }
 
-fn read_arg_value_sv_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
+fn read_args_vec(cur: &mut TokenCursor, song: &mut Song) -> Vec<SValue> {
     let mut a: Vec<SValue> = vec![];
     loop {
         cur.skip_space();
@@ -920,7 +962,7 @@ fn read_arg_value_sv_array(cur: &mut TokenCursor, song: &mut Song) -> SValue {
         }
         cur.next(); // skip ,
     }
-    SValue::Array(a)
+    a
 }
 
 fn read_arg_str(cur: &mut TokenCursor, song: &mut Song) -> SValue {
@@ -1122,8 +1164,15 @@ fn read_playfrom(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_print(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
-    let val = read_arg_value(cur, song);
-    Token::new(TokenType::Print, lineno, vec![val])
+    cur.skip_space();
+    if cur.eq_char('(') {
+        cur.next(); // skip '('
+    }
+    let values = read_args_vec(cur, song);
+    if cur.eq_char(')') {
+        cur.next(); // skip ')'
+    }
+    Token::new(TokenType::Print, lineno, values)
 }
 
 fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {

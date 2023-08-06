@@ -52,8 +52,13 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 }
             },
             TokenType::Print => {
-                let msg = var_extract(&t.data[0], song).to_s();
-                let msg = format!("[PRINT]({}) {}", t.value, msg);
+                let mut disp: Vec<String> = vec![];
+                for v in &t.data {
+                    let msg = var_extract(v, song).to_s();
+                    disp.push(msg);
+                }
+                let disp_s = disp.join(", ");
+                let msg = format!("[PRINT]({}) {}", t.value, disp_s);
                 if song.debug {
                     println!("{}", msg);
                 }
@@ -252,7 +257,13 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
                 exec(song, &val_tokens);
                 let val = song.stack.pop().unwrap_or(SValue::from_i(0));
-                // println!("@@@DEF_INT:{:?}={:?}",var_key, val);
+                song.variables.insert(var_key, val);
+            },
+            TokenType::LetVar => {
+                let var_key = t.data[0].to_s().clone();
+                let val_tokens = t.children.clone().unwrap_or(vec![]);
+                exec(song, &val_tokens);
+                let val = song.stack.pop().unwrap_or(SValue::from_i(0));
                 song.variables.insert(var_key, val);
             },
             TokenType::DefStr => {
