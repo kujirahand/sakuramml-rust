@@ -7,6 +7,7 @@ pub enum MessageKind {
     UnknownCommand,
     Near,
     TooManyErrorsInLexer,
+    ScriptSyntaxError,
 }
 
 /// Language
@@ -67,6 +68,12 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
             match lang {
                 MessageLang::EN => "Too many errors in Lexer",
                 MessageLang::JA => "字句解析でエラーが多いので省略します",
+            }
+        },
+        MessageKind::ScriptSyntaxError => {
+            match lang {
+                MessageLang::EN => "Script Syntax Error",
+                MessageLang::JA => "スクリプトの構文エラー",
             }
         }
     }

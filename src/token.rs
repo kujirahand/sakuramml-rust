@@ -2,7 +2,7 @@ use super::svalue::SValue;
 
 /// TokenType
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TokenType {
     Error,
     Empty,
@@ -56,13 +56,20 @@ pub enum TokenType {
     MeasureShift,
     TrackSync,
     TieMode,
+    If,
+    For,
+    While,
+    Calc,
+    Value,
+    ValueInc,
+    SetConfig,
 }
 
-#[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Token {
     pub ttype: TokenType,
     pub value: isize,
+    pub tag: isize,
     pub data: Vec<SValue>,
     pub children: Option<Vec<Token>>,
 }
@@ -72,6 +79,7 @@ impl Token {
         Self {
             ttype,
             value,
+            tag: 0,
             data,
             children: None,
         }
@@ -80,6 +88,16 @@ impl Token {
         Self {
             ttype,
             value,
+            tag: 0,
+            data: vec![],
+            children: None,
+        }
+    }
+    pub fn new_value_tag(ttype: TokenType, value: isize, tag: isize) -> Self {
+        Self {
+            ttype,
+            value,
+            tag,
             data: vec![],
             children: None,
         }
@@ -88,7 +106,17 @@ impl Token {
         Self {
             ttype,
             value,
+            tag: 0,
             data: vec![],
+            children: Some(tokens),
+        }
+    }
+    pub fn new_data_tokens(ttype: TokenType, value: isize, data: Vec<SValue>, tokens: Vec<Token>) -> Self {
+        Self {
+            ttype,
+            value,
+            tag: 0,
+            data,
             children: Some(tokens),
         }
     }

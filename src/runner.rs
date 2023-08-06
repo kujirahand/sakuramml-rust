@@ -249,8 +249,11 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::DefInt => {
                 let var_key = t.data[0].to_s().clone();
-                let var_val = var_extract(&t.data[1], song);
-                song.variables.insert(var_key, var_val);
+                let val_tokens = t.children.clone().unwrap_or(vec![]);
+                exec(song, &val_tokens);
+                let val = song.stack.pop().unwrap_or(SValue::from_i(0));
+                // println!("@@@DEF_INT:{:?}={:?}",var_key, val);
+                song.variables.insert(var_key, val);
             },
             TokenType::DefStr => {
                 let var_key = t.data[0].to_s().clone();
@@ -306,9 +309,211 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 if args.len() >= 2 {
                     trk!(song).tie_value = var_extract(&args[1], song).to_i();
                 }
-            }
+            },
+            TokenType::If => {
+                exec_if(song, t);
+            },
+            TokenType::For => {
+                exec_for(song, t);
+            },
+            TokenType::While => {
+                exec_while(song, t);
+            },
+            TokenType::Calc => {
+                let flag = std::char::from_u32(t.tag as u32).unwrap_or('😔');
+                // only 1 value
+                if flag == '!' { // NOT flag
+                    let v = song.stack.pop().unwrap_or(SValue::None);
+                    song.stack.push(SValue::from_b(!v.to_b()));
+                    pos += 1;
+                    continue;
+                }
+                // 2 values
+                let b = song.stack.pop().unwrap_or(SValue::None);
+                let a = song.stack.pop().unwrap_or(SValue::None);
+                let mut c = SValue::None;
+                match flag {
+                    '=' => c = SValue::from_b(a.eq(b)),
+                    '≠' => c = SValue::from_b(a.ne(b)),
+                    '>' => c = SValue::from_b(a.gt(b)),
+                    '≧' => c = SValue::from_b(a.gteq(b)),
+                    '<' => c = SValue::from_b(a.lt(b)),
+                    '≦' => c = SValue::from_b(a.lteq(b)),
+                    '+' => c = a.add(b),
+                    '-' => c = SValue::from_i(a.to_i() - b.to_i()),
+                    '*' => c = SValue::from_i(a.to_i() * b.to_i()),
+                    '/' => c = SValue::from_i(a.to_i() / b.to_i()),
+                    '%' => c = SValue::from_i(a.to_i() % b.to_i()),
+                    _ => {
+                        song.logs.push(String::from("[Calc] unknown flag"));
+                    }
+                }
+                song.stack.push(c);
+            },
+            TokenType::Value => {
+                // extract value
+                // println!("@@@Value=>{:?}", t);
+                // check is variable?
+                if t.tag == 0 {
+                    let v = var_extract(&t.data[0], song);
+                    // println!("push={}", v.to_s());
+                    song.stack.push(v);
+                } else {
+                    // function
+                    exec_function(song, t);
+                }
+            },
+            TokenType::ValueInc => {
+                let varname = t.data[0].to_s();
+                let val_inc = t.value;
+                song.variables.get_mut(&varname).map(|v| {
+                    *v = SValue::from_i(v.to_i() + val_inc);
+                });
+            },
+            TokenType::SetConfig => {
+                let key = t.data[0].to_s();
+                let val = &t.data[1];
+                if key == "RandomSeed" {
+                    song.rand_seed = val.to_i() as u32;
+                }
+            },
         }
         pos += 1;
+    }
+    true
+}
+
+fn exec_function(song: &mut Song, t: &Token) -> bool {
+    let stack_size1 = song.stack.len();
+    let args_tokens = t.children.clone().unwrap_or(vec![]);
+    exec(song, &args_tokens);
+    let stack_size2 = song.stack.len();
+    let args: Vec<SValue> = song.stack.splice(stack_size1..stack_size2, vec![]).collect();
+    println!("@@@function_args={:?}", args);
+    let arg_count = args.len();
+    let func_name = t.data[0].to_s();
+    //
+    // todo: https://sakuramml.com/wiki/index.php?%E7%B5%84%E3%81%BF%E8%BE%BC%E3%81%BF%E9%96%A2%E6%95%B0
+    //
+    if func_name == "Random" || func_name == "RANDOM" || func_name == "RandomInt" || func_name == "RND" || func_name == "Rnd" {
+        if arg_count >= 2 {
+            let min = args[0].to_i();
+            let max = args[1].to_i();
+            let rnd = song.rand() as isize % (max - min + 1) + min;
+            song.stack.push(SValue::from_i(rnd));
+        } else if arg_count == 1 {
+            let m = args[0].to_i();
+            let v = (song.rand() as isize) % m;
+            song.stack.push(SValue::from_i(v));
+        } else if arg_count == 0 {
+            let v = song.rand() as isize;
+            song.stack.push(SValue::from_i(v));
+        }
+    }
+    else if func_name == "RandomSelect" {
+        let r = song.rand() as usize % arg_count;
+        song.stack.push(args[r as usize].clone());
+    } else {
+        song.stack.push(SValue::from_s(t.data[0].to_s().clone()));
+    }
+    true
+}
+
+fn exec_if(song: &mut Song, t: &Token) -> bool {
+    let children = match &t.children {
+        Some(tokens) => tokens,
+        None => return false,
+    };
+    if children.len() < 3 {
+        return false;
+    }
+    let cond_token = &children[0];
+    let true_token = &children[1];
+    let false_token = &children[2];
+    // eval cond
+    let cond = cond_token.children.clone().unwrap();
+    exec(song, &cond);
+    let cond_val = song.stack.pop().unwrap_or(SValue::from_i(0));
+    // exec true or false
+    if cond_val.to_i() != 0 {
+        let tokens = true_token.children.clone().unwrap();
+        exec(song, &tokens);
+    } else {
+        let tokens = false_token.children.clone().unwrap();
+        exec(song, &tokens);
+    }
+    true
+}
+
+fn exec_while(song: &mut Song, t: &Token) -> bool {
+    let children = match &t.children {
+        Some(tokens) => tokens,
+        None => return false,
+    };
+    if children.len() < 2 {
+        return false;
+    }
+    let cond_token = &children[0];
+    let body_token = &children[1];
+    let mut counter = 0;
+    // loop
+    loop {
+        // eval cond
+        let cond = cond_token.children.clone().unwrap();
+        exec(song, &cond);
+        let cond_val = song.stack.pop().unwrap_or(SValue::from_i(0));
+        if cond_val.to_b() == false {
+            break;
+        }
+        // exec body
+        let body = body_token.children.clone().unwrap();
+        exec(song, &body);
+        // check counter
+        counter += 1;
+        if counter > 10000 {
+            song.logs.push("[WARN] WHILE loop too many times".to_string());
+            break;
+        }
+    }
+    true
+}
+
+fn exec_for(song: &mut Song, t: &Token) -> bool {
+    let children = match &t.children {
+        Some(tokens) => tokens,
+        None => return false,
+    };
+    if children.len() < 4 {
+        return false;
+    }
+    let init_token = &children[0];
+    let cond_token = &children[1];
+    let inc_token = &children[2];
+    let body_token = &children[3];
+    // eval init
+    let init = init_token.children.clone().unwrap();
+    exec(song, &init);
+    let mut counter = 0;
+    // loop
+    loop {
+        // eval cond
+        let cond = cond_token.children.clone().unwrap();
+        exec(song, &cond);
+        let cond_val = song.stack.pop().unwrap_or(SValue::from_i(0));
+        if cond_val.to_b() == false {
+            break;
+        }
+        // exec body
+        let body = body_token.children.clone().unwrap();
+        exec(song, &body);
+        // eval inc
+        let inc = inc_token.children.clone().unwrap();
+        exec(song, &inc);
+        counter += 1;
+        if counter > 10000 {
+            song.logs.push("[WARN] FOR loop too many times".to_string());
+            break;
+        }
     }
     true
 }

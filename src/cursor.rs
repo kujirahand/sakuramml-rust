@@ -32,6 +32,11 @@ impl TokenCursor {
         if self.is_eos() { return }
         self.index += 1;
     }
+    pub fn next_n(&mut self, n: usize) {
+        for _ in 0..n {
+            self.next();
+        }
+    }
     pub fn prev(&mut self) {
         if self.index > 0 {
             self.index -= 1;

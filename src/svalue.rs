@@ -35,6 +35,17 @@ impl SValue {
     pub fn from_str_and_tag(s: &str, tag: isize) -> Self {
         Self::Str(String::from(s), tag)
     }
+    pub fn from_b(b: bool) -> Self {
+        if b {
+            Self::Int(1)
+        } else {
+            Self::Int(0)
+        }
+    }
+    pub fn to_b(&self) -> bool {
+        let v = self.to_i();
+        return v != 0;
+    }
     pub fn to_i(&self) -> isize {
         match self {
             Self::Int(i) => *i,
@@ -88,5 +99,113 @@ impl SValue {
                 vec![self.clone()]
             }
         }
+    }
+    pub fn eq(&self, v: SValue) -> bool {
+        match self {
+            Self::Int(i) => {
+                if let Self::Int(j) = v {
+                    return i == &j;
+                }
+            },
+            Self::Str(s, _) => {
+                if let Self::Str(t, _) = v {
+                    return s == &t;
+                }
+            },
+            Self::None => {
+                if let Self::None = v {
+                    return true;
+                }
+            },
+            _ => {},
+        }
+        false
+    }
+    pub fn ne(&self, v: SValue) -> bool {
+        !self.eq(v)
+    }
+    pub fn gt(&self, v: SValue) -> bool {
+        match self {
+            Self::Int(i) => {
+                return i > &v.to_i();
+            },
+            Self::Str(s, _) => {
+                return s > &v.to_s();
+            },
+            _ => {},
+        }
+        false
+    }
+    pub fn gteq(&self, v: SValue) -> bool {
+        match self {
+            Self::Int(i) => {
+                return i >= &v.to_i();
+            },
+            Self::Str(s, _) => {
+                return s >= &v.to_s();
+            },
+            _ => {},
+        }
+        false
+    }
+    pub fn lt(&self, v: SValue) -> bool {
+        match self {
+            Self::Int(i) => {
+                return i < &v.to_i();
+            },
+            Self::Str(s, _) => {
+                return s < &v.to_s();
+            },
+            _ => {},
+        }
+        false
+    }
+    pub fn lteq(&self, v: SValue) -> bool {
+        match self {
+            Self::Int(i) => {
+                return i <= &v.to_i();
+            },
+            Self::Str(s, _) => {
+                return s <= &v.to_s();
+            },
+            _ => {},
+        }
+        false
+    }
+    pub fn add(&self, v: SValue) -> SValue {
+        // check target
+        match v {
+            Self::Str(s, _) => {
+                let mut s1 = self.to_s().clone();
+                s1.push_str(&s);
+                return Self::Str(s1, 0);
+            },
+            Self::Int(vi) => {
+                let si = self.to_i();
+                return Self::Int(si + vi);
+            },
+            _ => {},
+        }
+        // others
+        let i1 = self.to_i();
+        let i2 = v.to_i();
+        SValue::Int(i1 + i2)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_basic() {
+        // 
+        let si = SValue::from_i(100);
+        assert_eq!(si.to_i(), 100);
+    }
+    #[test]
+    fn test_comp() {
+        let a = SValue::from_i(100);
+        let b = SValue::from_i(200);
+        assert_eq!(a.lt(b), true);
     }
 }
