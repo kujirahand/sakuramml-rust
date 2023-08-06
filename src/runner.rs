@@ -33,6 +33,16 @@ macro_rules! trk {
     };
 }
 
+pub fn exec_args(song: &mut Song, tokens: &Vec<Token>) -> Vec<SValue> {
+    let mut args: Vec<SValue> = vec![];
+    for t in tokens {
+        exec(song, &vec![t.clone()]);
+        let v = song.stack.pop().unwrap_or(SValue::None);
+        args.push(v);
+    }
+    args
+}
+
 /// run tokens
 pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
     let mut pos = 0;
@@ -52,12 +62,13 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 }
             },
             TokenType::Print => {
+                let args_tokens = t.children.clone().unwrap_or(vec![]);
+                let args = exec_args(song, &args_tokens);
                 let mut disp: Vec<String> = vec![];
-                for v in &t.data {
-                    let msg = var_extract(v, song).to_s();
-                    disp.push(msg);
+                for v in args.into_iter() {
+                    disp.push(v.to_s());
                 }
-                let disp_s = disp.join(", ");
+                let disp_s = disp.join(" ");
                 let msg = format!("[PRINT]({}) {}", t.value, disp_s);
                 if song.debug {
                     println!("{}", msg);

@@ -8,6 +8,7 @@ pub enum MessageKind {
     Near,
     TooManyErrorsInLexer,
     ScriptSyntaxError,
+    MissingParenthesis,
 }
 
 /// Language
@@ -74,6 +75,12 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
             match lang {
                 MessageLang::EN => "Script Syntax Error",
                 MessageLang::JA => "スクリプトの構文エラー",
+            }
+        },
+        MessageKind::MissingParenthesis => {
+            match lang {
+                MessageLang::EN => "Missing Parenthesis",
+                MessageLang::JA => "括弧が閉じられていません",
             }
         }
     }
