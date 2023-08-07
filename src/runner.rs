@@ -128,7 +128,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Track => exec_track(song, t),
             TokenType::Channel => {
-                let v = value_range(1, data_get_int(&t.data), 16) - 1; // CH(1 to 16)
+                let v = value_range(1, data_get_int(&t.data, song), 16) - 1; // CH(1 to 16)
                 trk!(song).channel = v as isize;
             },
             TokenType::Voice => exec_voice(song, t),
@@ -190,7 +190,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 ));
             },
             TokenType::Tempo => {
-                let tempo = data_get_int(&t.data);
+                let tempo = data_get_int(&t.data, song);
+                let tempo = if tempo > 300 { 300 } else { tempo };
                 tempo_change(song, tempo);
             },
             TokenType::TempoChange => {
@@ -595,13 +596,17 @@ fn exec_for(song: &mut Song, t: &Token) -> bool {
 }
 
 fn get_system_value(cmd: &str, song: &Song) -> Option<SValue> {
-    if cmd == "TR" || cmd == "TRACK" {
+    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" {
         let tr = song.cur_track as isize;
         return Some(SValue::from_i(tr));
     }
     else if cmd == "CH" || cmd == "CHANNEL" {
         let ch = trk!(song).channel;
         return Some(SValue::from_i(ch));
+    }
+    else if cmd == "TIME" || cmd == "Time" {
+        let v = trk!(song).timepos;
+        return Some(SValue::from_i(v));
     }
     None
 }
@@ -757,11 +762,11 @@ fn exec_time(song: &mut Song, t: &Token) {
     song.tracks[song.cur_track].timepos = total;
 }
 
-fn data_get_int(data: &Vec<SValue>) -> isize {
+fn data_get_int(data: &Vec<SValue>, song: &mut Song) -> isize {
     if data.len() == 0 {
         return 0;
     }
-    data[0].to_i()
+    var_extract(&data[0], song).to_i()
 }
 
 fn data_get_str(data: &Vec<SValue>, song: &mut Song) -> String {
@@ -1194,7 +1199,7 @@ fn exec_voice(song: &mut Song, t: &Token) {
     };
 }
 fn exec_track(song: &mut Song, t: &Token) {
-    let mut v = data_get_int(&t.data); // TR=0..
+    let mut v = data_get_int(&t.data, song); // TR=0..
     if v < 0 {
         v = 0;
     }

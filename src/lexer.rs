@@ -383,12 +383,17 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         if cur.eq_char('=') { cur.next(); }
         cur.skip_space();
         if cur.eq_char('(') { cur.next(); }
-        let frac = read_arg_value(cur, song);
+        let mut frac = read_arg_value(cur, song);
         cur.skip_space();
         if cur.eq_char(',') { cur.next(); }
-        let deno = read_arg_value(cur, song);
+        let mut deno = read_arg_value(cur, song);
         cur.skip_space();
         if cur.eq_char(')') { cur.next(); }
+        // check error
+        if frac.to_i() == 0 || deno.to_i() == 0 {
+            frac = SValue::from_i(4);
+            deno = SValue::from_i(4);
+        }
         return Token::new(TokenType::TimeSignature, 0, vec![frac, deno]);
     }
     if cmd == "MetaText" || cmd == "TEXT" || cmd == "Text" {

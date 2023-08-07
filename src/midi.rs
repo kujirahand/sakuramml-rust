@@ -421,6 +421,7 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
             let delta_time = array_readl_delta_time(bin, &mut pos);
             time += delta_time;
             let beat_base = (timebase as f32 * 4.0 / info.deno as f32) as usize;
+            let beat_base = if beat_base == 0 { timebase } else { beat_base }; // for divisor of zero
             let tick = time % beat_base;
             let base = time / beat_base;
             let beat = base %  info.frac + 1;
