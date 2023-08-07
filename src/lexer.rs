@@ -1706,15 +1706,8 @@ fn read_command_nrpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_voice(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let value = read_arg_value(cur, song);
-    cur.skip_space();
-    let bank = if cur.eq_char(',') {
-        cur.next();
-        read_arg_value(cur, song)
-    } else {
-        SValue::None
-    };
-    Token::new(TokenType::Voice, 0, vec![value, bank])
+    let args = read_args_vec(cur, song);
+    Token::new(TokenType::Voice, 0, args)
 }
 
 fn read_length(cur: &mut TokenCursor) -> Token {

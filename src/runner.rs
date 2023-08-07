@@ -1184,20 +1184,26 @@ fn exec_rest(song: &mut Song, t: &Token) {
 fn exec_voice(song: &mut Song, t: &Token) {
     // voice no
     let no = var_extract(&t.data[0], song).to_i() - 1;
+    let mut bank_msb = 0;
+    let mut bank_lsb = 0;
     // bank ?
-    match t.data[1] {
-        SValue::None => {
-            song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
-            return;
+    if t.data.len() == 1 {
+        song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
+    } else {
+        if t.data.len() == 2 {
+            bank_lsb = var_extract(&t.data[1], song).to_i();
         }
-        _ => {
-            let bank = var_extract(&t.data[1], song).to_i();
-            song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0, bank)); // msb
-            song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x20, 0)); // lsb
-            song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
+        if t.data.len() == 3 {
+            bank_lsb = var_extract(&t.data[1], song).to_i();
+            bank_msb = var_extract(&t.data[2], song).to_i();
         }
-    };
+        song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x00, bank_msb)); // msb
+        song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x20, bank_lsb)); // lsb
+        song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
+        // println!("voice: no={}, bank_msb={}, bank_lsb={}", no, bank_msb, bank_lsb);
+    }
 }
+
 fn exec_track(song: &mut Song, t: &Token) {
     let mut v = data_get_int(&t.data, song); // TR=0..
     if v < 0 {
