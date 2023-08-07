@@ -116,6 +116,14 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         }
         cmd.push_str(&cur.get_word());
     }
+    // PlayFromも"."が続く場合がある
+    if cmd == "PlayFrom" {
+        if cur.eq_char('.') {
+            cur.next();
+            cmd.push('.');
+            cmd.push_str(&cur.get_word());
+        }
+    }
 
     // <UPPER_COMMANDS>
     // Track & Channel
@@ -177,6 +185,11 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "PRINT" || cmd == "Print" {
         // @ 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA))
         return read_print(cur, song);
+    }
+    if cmd == "PlayFrom.SysEx" || cmd == "PlayFrom.CtrlChg" {
+        // @ 未実装
+        let _v = read_arg_value(cur, song);
+        println!("not supported : {}", cmd);
     }
     if cmd == "PLAY_FROM" || cmd == "PlayFrom" {
         // @ ここから演奏する　(?と同じ意味)
@@ -364,26 +377,18 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         // @ テンポを連続で変更する (書式) TempoChange(開始値,終了値, !長さ)
         return read_tempo_change(cur, song);
     }
-    if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" {
+    if cmd == "TimeSignature" || cmd == "TimeSig" || cmd == "TIMESIG" || cmd == "System.TimeSignature" {
         // @ 拍子の指定
         cur.skip_space();
-        if cur.eq_char('=') {
-            cur.next();
-        }
+        if cur.eq_char('=') { cur.next(); }
         cur.skip_space();
-        if cur.eq_char('(') {
-            cur.next();
-        }
+        if cur.eq_char('(') { cur.next(); }
         let frac = read_arg_value(cur, song);
         cur.skip_space();
-        if cur.eq_char(',') {
-            cur.next();
-        }
+        if cur.eq_char(',') { cur.next(); }
         let deno = read_arg_value(cur, song);
         cur.skip_space();
-        if cur.eq_char(')') {
-            cur.next();
-        }
+        if cur.eq_char(')') { cur.next(); }
         return Token::new(TokenType::TimeSignature, 0, vec![frac, deno]);
     }
     if cmd == "MetaText" || cmd == "TEXT" || cmd == "Text" {
@@ -1116,6 +1121,7 @@ fn read_harmony_flag(cur: &mut TokenCursor, flag_harmony: &mut bool) -> Token {
     *flag_harmony = false;
     let mut len_s = SValue::None;
     let mut qlen = SValue::from_i(-1);
+    let mut vel = SValue::None;
     if cur.is_numeric() || cur.eq_char('^') {
         len_s = SValue::from_s(cur.get_note_length());
     }
@@ -1123,8 +1129,12 @@ fn read_harmony_flag(cur: &mut TokenCursor, flag_harmony: &mut bool) -> Token {
     if cur.eq_char(',') {
         cur.next();
         qlen = SValue::from_i(cur.get_int(-1));
+        if cur.eq_char(',') {
+            cur.next();
+            vel = SValue::from_i(cur.get_int(-1));
+        }
     }
-    Token::new(TokenType::HarmonyEnd, 0, vec![len_s, qlen])
+    Token::new(TokenType::HarmonyEnd, 0, vec![len_s, qlen, vel])
 }
 
 fn scan_chars(s: &str, c: char) -> isize {
@@ -1564,10 +1574,17 @@ fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
         } else if cmd == "onNoteWave" || cmd == "W" {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
+            song.add_log(format!("[WARN]({}) not supported : onNoteWave", cur.line));
+            return Token::new_empty("not supported : onNoteWave", cur.line);
+        } else if cmd == "onNoteWaveEx" || cmd == "WE" {
+            // TODO: not supported
+            let _ = read_arg_int_array(cur, song);
+            song.add_log(format!("[WARN]({}) not supported : onNoteWaveEx", cur.line));
             return Token::new_empty("not supported : onNoteWave", cur.line);
         } else if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
+            song.add_log(format!("[WARN]({}) not supported : onCycle", cur.line));
             return Token::new_empty("not supported : onCycle", cur.line);
         }
     }

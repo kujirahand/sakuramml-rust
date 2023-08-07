@@ -456,7 +456,8 @@ fn exec_function(song: &mut Song, t: &Token) -> bool {
     else if func_name == "RandomSelect" {
         let r = song.rand() as usize % arg_count;
         song.stack.push(args[r as usize].clone());
-    } else {
+    }
+    else {
         song.stack.push(SValue::from_s(t.data[0].to_s().clone()));
     }
     true
@@ -593,23 +594,42 @@ fn exec_for(song: &mut Song, t: &Token) -> bool {
     true
 }
 
+fn get_system_value(cmd: &str, song: &Song) -> Option<SValue> {
+    if cmd == "TR" || cmd == "TRACK" {
+        let tr = song.cur_track as isize;
+        return Some(SValue::from_i(tr));
+    }
+    else if cmd == "CH" || cmd == "CHANNEL" {
+        let ch = trk!(song).channel;
+        return Some(SValue::from_i(ch));
+    }
+    None
+}
+
 fn var_extract(val: &SValue, song: &mut Song) -> SValue {
     match val {
+        // String
         SValue::Str(s, _) => {
             if s.starts_with('=') && s.len() >= 2 {
                 let key = &s[1..];
                 match song.variables.get(key) {
                     Some(v) => v.clone(),
                     None => {
-                        let err_msg = format!("[WARN]({}) Undefined: {}", song.lineno, key);
-                        song.logs.push(err_msg);
-                        SValue::None
+                        match get_system_value(key, song) {
+                            Some(v) => return v,
+                            None => {
+                                let err_msg = format!("[WARN]({}) Undefined: {}", song.lineno, key);
+                                song.logs.push(err_msg);
+                                SValue::None
+                            },
+                        }
                     }
                 }
             } else {
                 SValue::from_str(&s)
             }
-        }
+        },
+        // Other value
         _ => val.clone(),
     }
 }
@@ -702,6 +722,7 @@ fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
         // get harmony length
         let note_len_s = t.data[0].to_s();
         let mut note_qlen = t.data[1].to_i();
+        let note_vel = t.data[2].clone();
         // parameters
         if note_qlen < 0 {
             note_qlen = trk!(song).qlen;
@@ -713,6 +734,9 @@ fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
             e.time = song.flags.harmony_time;
             if note_qlen != 0 {
                 e.v2 = note_len * note_qlen / 100;
+            }
+            if !note_vel.is_none() {
+                e.v3 = note_vel.to_i();
             }
             trk!(song).events.push(e);
         }
