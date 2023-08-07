@@ -9,6 +9,23 @@ use sakuramml::song::Song;
 use sakuramml::midi::{generate, dump_midi};
 use sakuramml::runner::exec;
 
+// for randomize
+use std::time::SystemTime;
+use std::hash::{Hash, Hasher};
+use std::collections::hash_map::DefaultHasher;
+use std::thread;
+fn thread_id_to_u64() -> u64 {
+    let thread_id = thread::current().id();
+    let mut hasher = DefaultHasher::new();
+    thread_id.hash(&mut hasher);
+    hasher.finish()
+}
+fn time_to_u64() -> u64 {
+    let now = SystemTime::now();
+    let duration = now.duration_since(SystemTime::UNIX_EPOCH).expect("Time went backwards");
+    duration.as_millis() as u64  // または as_secs() などを使用
+}
+
 /// show usage
 fn usage() {
     println!("=== sakuramml ver.{} ===\n{}{}{}{}{}{}{}{}",
@@ -109,6 +126,7 @@ fn main() {
 fn compile_to_midi(src: &str, midifile: &str, debug: bool) {
     let mut song = Song::new();
     song.debug = debug;
+    song.rand_seed = (time_to_u64() ^ thread_id_to_u64()) as u32;
     // sutoton
     let src = sakuramml::sutoton::convert(&src);
     // println!("{}", src);

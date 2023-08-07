@@ -108,6 +108,21 @@ impl TokenCursor {
         }
         s
     }
+    pub fn get_token_to_double_quote(&mut self) -> String {
+        let mut s = String::new();
+        while !self.is_eos() {
+            let ch = self.get_char();
+            if ch == '\n' { self.line += 1; }
+            if ch == '\\' {
+                let ch2 = self.get_char();
+                if ch2 != '\0' { s.push(ch2); }
+                continue;
+            }
+            if ch == '"' { break; }
+            s.push(ch);
+        }
+        s
+    }
     pub fn get_token_nest(&mut self, open_ch: char, close_ch: char) -> String {
         let mut s: String = String::new();
         let mut level: usize = 0;
@@ -409,5 +424,20 @@ mod tests {
         assert_eq!(cur.peek_str_n(1), "ド".to_string());
         assert_eq!(cur.peek_str_n(3), "ドレミ".to_string());
         assert_eq!(cur.peek_str_n(5), "ドレミ".to_string());
+    }
+    #[test]
+    fn test_get_token_to_dq() {
+        // simple
+        let mut cur = TokenCursor::from("\"abc\"");
+        cur.next(); // skip '"'
+        assert_eq!(cur.get_token_to_double_quote(), "abc".to_string());
+        // multi line
+        let mut cur = TokenCursor::from("\"abc\ndef\"");
+        cur.next(); // skip '"'
+        assert_eq!(cur.get_token_to_double_quote(), "abc\ndef".to_string());
+        // escape char
+        let mut cur = TokenCursor::from("\"abc\\\"def\"");
+        cur.next(); // skip '"'
+        assert_eq!(cur.get_token_to_double_quote(), "abc\"def".to_string());
     }
 }

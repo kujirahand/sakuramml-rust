@@ -1,10 +1,6 @@
 //! song & track
 
-use std::collections::{HashMap, hash_map::DefaultHasher};
-use std::time::SystemTime; // for Random
-use std::thread; // for Random
-use std::hash::{Hash, Hasher};
-
+use std::collections::HashMap;
 use crate::runner::value_range;
 use crate::svalue::SValue;
 use crate::mml_def::{self, TieMode};
@@ -394,7 +390,7 @@ impl Song {
             logs: vec![],
             v_add: 8,
             stack: vec![],
-            rand_seed: get_rand_seed_from_time(), // Random Seed
+            rand_seed: 1234567, // Random Seed
         }
     }
     pub fn set_language(&mut self, lang_code: &str) {
@@ -456,25 +452,4 @@ impl Song {
         events.sort_by(|a, b| a.time.cmp(&b.time));
         events
     }
-}
-
-
-// for random
-fn thread_id_to_u64() -> u64 {
-    let thread_id = thread::current().id();
-    let mut hasher = DefaultHasher::new();
-    thread_id.hash(&mut hasher);
-    hasher.finish()
-}
-fn time_to_u64() -> u64 {
-    let now = SystemTime::now();
-    match now.duration_since(SystemTime::UNIX_EPOCH) {
-        Ok(n) => n.as_millis() as u64,
-        Err(_) => 123456789u64,
-    }
-}
-fn get_rand_seed_from_time() -> u32 {
-    let t1 = time_to_u64();
-    let t2 = thread_id_to_u64();
-    (t1 ^ t2) as u32
 }

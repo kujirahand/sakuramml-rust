@@ -1243,14 +1243,22 @@ fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
                         }
                     }
                 }
-            }
-            '{'.. => {
+            },
+            '{' => {
                 let src = cur.get_token_nest('{', '}');
                 let tt = lex(song, &src, cur.line);
                 for t in tt.into_iter() {
                     tokens.push(t);
                 }
-            }
+            },
+            '"' => { // (option) for N88-BASIC users
+                cur.next();
+                let src = cur.get_token_to_double_quote();
+                let tt = lex(song, &src, cur.line);
+                for t in tt.into_iter() {
+                    tokens.push(t);
+                }
+            },
             _ => break,
         }
         cur.skip_space();

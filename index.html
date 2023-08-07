@@ -14,7 +14,7 @@
   import init, {get_version, SakuraCompiler} from './pkg/sakuramml.js';
   // Promiseの仕組みでライブラリを読み込む
   init().then(() => {
-    console.log('ok')
+    console.log('load::ok')
     document.getElementById('player').style.display = 'block'
     document.getElementById('sakura_version').innerHTML = 'ver.' + get_version()
   }).catch(err => {
@@ -51,7 +51,9 @@
       }
     }
     try {
+      console.log('Compiler::new')
       const com = SakuraCompiler.new()
+      console.log('Compiler loaded')
       com.set_language('ja')
       com.set_debug_level(1)
       const a = com.compile(txt.value)
