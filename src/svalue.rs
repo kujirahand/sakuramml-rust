@@ -161,6 +161,14 @@ impl SValue {
         }
         false
     }
+    pub fn div(&self, v: SValue) -> SValue {
+        let i1 = self.to_i();
+        let i2 = v.to_i();
+        if i2 == 0 {
+            return SValue::from_i(0);
+        }
+        SValue::from_i(i1 / i2)
+    }
     pub fn lteq(&self, v: SValue) -> bool {
         match self {
             Self::Int(i) => {

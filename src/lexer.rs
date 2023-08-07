@@ -489,7 +489,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
         match ch {
             ';' => break,
             '\t' => { cur.next(); }, // comment
-            '\n' => { cur.line += 1; },
+            '\n' => { cur.line += 1; break; },
             '0'..='9' => {
                 let num = cur.get_int(0);
                 tokens.push(Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_i(num)]));
@@ -618,8 +618,10 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
             },
             ',' => break,
             _ => {
-                let msg = format!("{}", ch);
-                lex_error(cur, song, &msg);
+                // 計算時に使えない文字列があれば抜ける
+                // let msg = format!("{}", ch);
+                // lex_error(cur, song, &msg);
+                break;
             }
         }
     }

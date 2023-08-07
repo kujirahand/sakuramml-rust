@@ -370,7 +370,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     '+' => c = a.add(b),
                     '-' => c = SValue::from_i(a.to_i() - b.to_i()),
                     '*' => c = SValue::from_i(a.to_i() * b.to_i()),
-                    '/' => c = SValue::from_i(a.to_i() / b.to_i()),
+                    '/' => c = a.div(b),
                     '%' => c = SValue::from_i(a.to_i() % b.to_i()),
                     _ => {
                         song.logs.push(String::from("[Calc] unknown flag"));
