@@ -264,11 +264,14 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::Sub => exec_sub(song, t),
             TokenType::KeyFlag => song.key_flag = t.data[0].to_int_array(),
             TokenType::KeyShift => {
-                song.key_shift = var_extract(&t.data[0], song).to_i();
+                let args_tokens = t.children.clone().unwrap_or(vec![]);
+                let args = exec_args(song, &args_tokens);
+                song.key_shift = args[0].to_i();
             },
             TokenType::TrackKey => {
-                let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
-                trk!(song).track_key = var_extract(&args[0], song).to_i();
+                let args_tokens = t.children.clone().unwrap_or(vec![]);
+                let args = exec_args(song, &args_tokens);
+                trk!(song).track_key = args[0].to_i();
             },
             TokenType::DefInt => {
                 let var_key = t.data[0].to_s().clone();

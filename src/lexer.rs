@@ -1394,8 +1394,9 @@ fn read_command_sub(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_command_key(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let v = read_arg_value(cur, song);
-    let tok = Token::new(TokenType::KeyShift, 0, vec![v]);
+    let lineno = cur.line;
+    let arg_token = read_calc_token(cur, song);
+    let tok = Token::new_tokens_lineno(TokenType::KeyShift, 0, vec![arg_token], lineno);
     tok
 }
 fn read_command_track_key(cur: &mut TokenCursor, song: &mut Song) -> Token {
