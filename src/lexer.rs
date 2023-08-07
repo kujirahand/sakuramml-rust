@@ -153,7 +153,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         // @ 連符 (例 DIV{ceg} )
         return read_command_div(cur, song, false);
     }
-    if cmd == "SUB" || cmd == "Sub" {
+    if cmd == "SUB" || cmd == "Sub" || cmd == "S" {
         // @ タイムポインタを戻す (例 SUB{ceg} egb)
         return read_command_sub(cur, song);
     }
@@ -1582,6 +1582,10 @@ fn read_fadein(cur: &mut TokenCursor, song: &mut Song, dir: isize) -> Token {
 fn read_decres(cur: &mut TokenCursor, song: &mut Song, dir: isize) -> Token {
     let mut v1 = SValue::from_i(if dir < 0 { 127 } else {  40 });
     let mut v2 = SValue::from_i(if dir < 0 {  40 } else { 127 });
+    // skip =
+    cur.skip_space();
+    if cur.eq_char('=') { cur.next(); }
+    // length
     let len_s = cur.get_note_length();
     cur.skip_space();
     if cur.eq_char(',') {
