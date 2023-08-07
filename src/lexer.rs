@@ -44,7 +44,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             'A'..='Z' | '_' => result.push(read_upper_command(&mut cur, song)),
             '#' => result.push(read_upper_command(&mut cur, song)),
             // flag
-            '@' => result.push(read_voice(&mut cur, song)), // @ 音色の指定 範囲:1-128
+            '@' => result.push(read_voice(&mut cur, song)), // @ 音色の指定 範囲:1-128 (書式) @(no),(Bank_LSB),(Bank_MSB)
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ 音階を1つ上げる
             '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)), // @ 音階を1つ下げる
             ')' => result.push(Token::new_value(TokenType::VelocityRel, song.v_add)), // @ 音量を8つ上げる
@@ -246,6 +246,11 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
             read_arg_int_array(cur, song).to_array(),
         );
     }
+    // Voice Change
+    if cmd == "VOICE" || cmd == "Voice" {
+        // @ モジュレーション 範囲: 0-127
+        return read_voice(cur, song);
+    }
 
     // controll change
     if cmd == "M" || cmd == "Modulation" {
@@ -349,6 +354,14 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "Fadeout" || cmd == "FADEOUT" {
         // @ 小節数を指定してフェードアウトする (例: Fadeout(1))
         return read_fadein(cur, song, -1);
+    }
+    if cmd == "Decresc" || cmd == "DECRESC" {
+        // @ デクレッシェンドを表現 (書式) Decresc([[[len],v1],v2]) だんだん小さく。エクスプレッションをlen(ｎ分音符指定で)の間に、v1からv2へ変更する。lenを省略すると全音符の長さになる。
+        return read_decres(cur, song, -1);
+    }
+    if cmd == "Cresc" || cmd == "CRESC" {
+        // @ クレッシェンドを表現 (書式) Cresc([[[len],v1],v2]) だんだん大きく。エクスプレッションをlen(ｎ分音符指定で)の間に、v1からv2へ変更する。lenを省略すると全音符の長さになる。
+        return read_decres(cur, song, 1);
     }
 
     // SysEx
@@ -1564,6 +1577,25 @@ fn read_fadein(cur: &mut TokenCursor, song: &mut Song, dir: isize) -> Token {
         SValue::from_int_array(vec![127, 0, song.timebase * 4 * arg.to_i()])
     };
     return Token::new(TokenType::CConTime, 11, vec![ia]);
+}
+
+fn read_decres(cur: &mut TokenCursor, song: &mut Song, dir: isize) -> Token {
+    let mut v1 = SValue::from_i(if dir < 0 { 127 } else {  40 });
+    let mut v2 = SValue::from_i(if dir < 0 {  40 } else { 127 });
+    let len_s = cur.get_note_length();
+    cur.skip_space();
+    if cur.eq_char(',') {
+        cur.next(); cur.skip_space();
+        v1 = read_arg_value(cur, song);
+        cur.skip_space();
+        if cur.eq_char(',') {
+            cur.next(); cur.skip_space();
+            v2 = read_arg_value(cur, song);
+        }
+    }
+    return Token::new(TokenType::Decresc, 0, vec![
+        SValue::from_s(len_s), v1, v2
+    ]);
 }
 
 fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {

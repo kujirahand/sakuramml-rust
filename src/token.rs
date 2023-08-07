@@ -25,6 +25,7 @@ pub enum TokenType {
     CtrlChange,
     CConTime,
     CConTimeFreq,
+    Decresc,
     Tempo,
     TempoChange,
     MetaText,

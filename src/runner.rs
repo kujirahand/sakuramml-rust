@@ -327,6 +327,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::CConTimeFreq => {
                 trk!(song).cc_on_time_freq = var_extract(&t.data[0], song).to_i();
             },
+            TokenType::Decresc => {
+                exec_decres(song, t);
+            },
             TokenType::PBonTime => {
                 trk!(song).write_pb_on_time(t.value, t.data[0].to_int_array(), song.timebase);
             },
@@ -1216,6 +1219,17 @@ fn exec_track(song: &mut Song, t: &Token) {
         let trk = Track::new(song.timebase, v - 1);
         song.tracks.push(trk);
     }
+}
+
+fn exec_decres(song: &mut Song, t: &Token) {
+    let mut len_s = t.data[0].to_s();
+    if len_s == "" { len_s = "1".to_string(); }
+    let v1 = t.data[1].to_i();
+    let v2 = t.data[2].to_i();
+    let len = calc_length(&len_s, song.timebase, trk!(song).length);
+    let ia = vec![v1, v2, len];
+    // write EP
+    trk!(song).write_cc_on_time(11, ia);
 }
 
 pub fn value_range(min_v: isize, value: isize, max_v: isize) -> isize {
