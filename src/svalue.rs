@@ -181,14 +181,20 @@ impl SValue {
         }
         false
     }
+    pub fn is_s(&self) -> bool {
+        match self {
+            Self::Str(_, _) => true,
+            _ => false,
+        }
+    }
     pub fn add(&self, v: SValue) -> SValue {
+        if self.is_s() || v.is_s() {
+            let mut s1 = self.to_s().clone();
+            s1.push_str(&v.to_s());
+            return Self::Str(s1, 0);
+        }
         // check target
         match v {
-            Self::Str(s, _) => {
-                let mut s1 = self.to_s().clone();
-                s1.push_str(&s);
-                return Self::Str(s1, 0);
-            },
             Self::Int(vi) => {
                 let si = self.to_i();
                 return Self::Int(si + vi);

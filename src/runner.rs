@@ -267,7 +267,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.key_shift = var_extract(&t.data[0], song).to_i();
             },
             TokenType::TrackKey => {
-                trk!(song).track_key = var_extract(&t.data[0], song).to_i();
+                let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                trk!(song).track_key = var_extract(&args[0], song).to_i();
             },
             TokenType::DefInt => {
                 let var_key = t.data[0].to_s().clone();
@@ -428,7 +429,7 @@ fn exec_function(song: &mut Song, t: &Token) -> bool {
     exec(song, &args_tokens);
     let stack_size2 = song.stack.len();
     let args: Vec<SValue> = song.stack.splice(stack_size1..stack_size2, vec![]).collect();
-    println!("@@@function_args={:?}", args);
+    // println!("@@@function_args={:?}", args);
     let arg_count = args.len();
     let func_name = t.data[0].to_s();
     //
@@ -597,7 +598,7 @@ fn var_extract(val: &SValue, song: &mut Song) -> SValue {
                 match song.variables.get(key) {
                     Some(v) => v.clone(),
                     None => {
-                        let err_msg = format!("[WARN] Undefined: {}", key);
+                        let err_msg = format!("[WARN]({}) Undefined: {}", song.lineno, key);
                         song.logs.push(err_msg);
                         SValue::None
                     }
@@ -1173,7 +1174,7 @@ fn exec_track(song: &mut Song, t: &Token) {
     song.cur_track = v as usize;
     // new track ?
     while song.tracks.len() <= song.cur_track {
-        println!("{:?}", v);
+        // println!("{:?}", v);
         let trk = Track::new(song.timebase, v - 1);
         song.tracks.push(trk);
     }
