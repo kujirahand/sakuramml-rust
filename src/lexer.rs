@@ -486,7 +486,8 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
         cur.skip_space();
         let ch = zen2han(cur.peek().unwrap_or('\0'));
         match ch {
-            ';' | '\t' => { cur.next(); }, // comment
+            ';' => { break; },
+            '\t' => { cur.next(); }, // comment
             '\n' => { cur.line += 1; },
             '0'..='9' => {
                 let num = cur.get_int(0);
@@ -796,8 +797,7 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
             return Some(Token::new_empty("DefStr"));
         }
         // let calc
-        let body = cur.get_token_ch('\n');
-        let body_tokens = lex_calc(song, &body, cur.line);
+        let body_tokens = read_calc(cur, song);
         let tok = Token::new_data_tokens(
             TokenType::LetVar, 0, 
             vec![SValue::from_str(&cmd)],
@@ -984,7 +984,6 @@ fn read_args_tokens(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
         cur.skip_space();
         let sub_tokens = read_calc(cur, song);
         tokens.push(Token::new_tokens(TokenType::Tokens, 0, sub_tokens));
-        println!("@@@@ sub_tokens={:?}", cur.peek());
         
         cur.skip_space();
         if !cur.eq_char(',') {
@@ -1176,10 +1175,7 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
         cur.next();
     }
     // get line
-    let line_str = cur.get_token_ch('\n');
-    // lex
-    let val_tokens = lex_calc(song, &line_str, cur.line);
-    // println!("{}::{:?}", line_str, val_tokens);
+    let val_tokens = read_calc(cur, song);
     // token
     let tok = Token::new_data_tokens(
         TokenType::DefInt,
@@ -1482,7 +1478,7 @@ fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
         }
     }
     let tokens = read_calc(cur, song);
-    return Token::new_tokens(TokenType::ControllChange, no, tokens);
+    return Token::new_tokens(TokenType::CtrlChange, no, tokens);
 }
 
 fn read_command_rpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
@@ -1490,17 +1486,17 @@ fn read_command_rpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut So
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             101,
             vec![Token::new(TokenType::Value, 0, vec![SValue::from_i(msb)])]
         ),
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             100,
             vec![Token::new(TokenType::Value, 0, vec![SValue::from_i(lsb)])]
         ),
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             6,
             vec![Token::new(TokenType::Value, 0, vec![val])]
         ),
@@ -1520,17 +1516,17 @@ fn read_command_rpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             101,
             vec![Token::new(TokenType::Value, 0, vec![msb])]
         ),
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             100,
             vec![Token::new(TokenType::Value, 0, vec![lsb])]
         ),
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             6,
             vec![Token::new(TokenType::Value, 0, vec![val])]
         ),
@@ -1545,17 +1541,17 @@ fn read_command_nrpn(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut S
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             99,
             vec![Token::new(TokenType::Value, 0, vec![msb])]
         ),
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             98,
             vec![Token::new(TokenType::Value, 0, vec![lsb])]
         ),
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             0,
             vec![Token::new(TokenType::Value, 0, vec![val])]
         ),
@@ -1575,17 +1571,17 @@ fn read_command_nrpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let mut tokens = Token::new(TokenType::Tokens, 0, vec![]);
     tokens.children = Some(vec![
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             99,
             vec![Token::new(TokenType::Value, 0, vec![msb])]
         ),
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             98,
             vec![Token::new(TokenType::Value, 0, vec![lsb])]
         ),
         Token::new_tokens(
-            TokenType::ControllChange,
+            TokenType::CtrlChange,
             0,
             vec![Token::new(TokenType::Value, 0, vec![val])]
         ),
@@ -1784,7 +1780,7 @@ fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
     cur.next();
     let val = read_arg_value(cur, song);
-    Token::new_tokens(TokenType::ControllChange, no.to_i(), vec![
+    Token::new_tokens(TokenType::CtrlChange, no.to_i(), vec![
         Token::new(TokenType::Value, 0, vec![val]),
     ])
 }
@@ -2068,5 +2064,11 @@ mod tests {
             &tokens_to_str(&lex(&mut song, "RHYTHM{(Sub){b}}", 0)),
             "[Sub,0]"
         );
+    }
+    #[test]
+    fn test_lex_cc() {
+        let mut song = Song::new();
+        assert_eq!(&tokens_to_str(&lex(&mut song, "P(10)", 0)), "[CtrlChange,10]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "M(10)", 0)), "[CtrlChange,1]");
     }
 }

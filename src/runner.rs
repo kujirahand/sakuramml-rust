@@ -169,7 +169,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).timing = t.value;
                 trk!(song).t_on_note = None;
             },
-            TokenType::ControllChange => {
+            TokenType::CtrlChange => {
                 let no = t.value;
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
                 exec(song, &val_tokens);
@@ -1198,11 +1198,11 @@ mod tests {
     }
     #[test]
     fn test_exec1() {
-        assert_eq!(exec_easy("PRINT{1}").get_logs_str(), "[PRINT](0) 1");
-        assert_eq!(exec_easy("PRINT{abc}").get_logs_str(), "[PRINT](0) abc");
+        assert_eq!(exec_easy("PRINT({1})").get_logs_str(), "[PRINT](0) 1");
+        assert_eq!(exec_easy("PRINT({abc})").get_logs_str(), "[PRINT](0) abc");
         assert_eq!(
-            exec_easy("STR A={abc} PRINT=A").get_logs_str(),
-            "[PRINT](0) abc"
+            exec_easy("STR A={ddd} PRINT(A)").get_logs_str(),
+            "[PRINT](0) ddd"
         );
     }
     #[test]
@@ -1243,5 +1243,15 @@ mod tests {
         assert_eq!(song.tracks[0].events[0].v1, 0);
         assert_eq!(song.tracks[0].events[1].v1, 2);
         assert_eq!(song.tracks[0].events[2].v1, 4);
+    }
+    #[test]
+    fn test_exec_for() {
+        let song = exec_easy("INT N=0;FOR(I=1;I<=10;I++){N=N+I;} PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 55");
+    }
+    #[test]
+    fn test_exec_while() {
+        let song = exec_easy("INT N=0;INT I=1;WHILE(I<=10){N=N+I;I++;} PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 55");
     }
 }

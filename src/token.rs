@@ -21,7 +21,7 @@ pub enum TokenType {
     Velocity,
     VelocityRel,
     Timing,
-    ControllChange,
+    CtrlChange,
     CConTime,
     CConTimeFreq,
     Tempo,
