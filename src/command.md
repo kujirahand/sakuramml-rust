@@ -118,7 +118,7 @@
 | v | ベロシティ音量の指定 範囲:0-127 / v.Random=n |
 | t | 発音タイミングの指定 (例 t-1) / t.Random=n |
 | y | コントロールチェンジの指定 (例 y1,100) 範囲:0-127 / y1.onTime(low,high,len) |
-| @ | 音色の指定 範囲:1-128 |
+| @ | 音色の指定 範囲:1-128 (書式) @(no),(Bank_LSB),(Bank_MSB) |
 | > | 音階を1つ上げる |
 | < | 音階を1つ下げる |
 | ) | 音量を8つ上げる |
@@ -145,9 +145,9 @@
 | CH / Channel | チャンネル変更 CH=番号 範囲:1-16 |
 | TIME / Time | タイム変更 TIME(節:拍:ステップ) |
 | RHYTHM / Rhythm / R | リズムモード |
-| RYTHM / Rythm | リズムモード(v1の綴りミス対処[^^;]) |
+| RYTHM / Rythm | リズムモード(v1の綴りミス対処[^^;]) RHYTHM または R と同じ |
 | DIV / Div | 連符 (例 DIV{ceg} ) |
-| SUB / Sub | タイムポインタを戻す (例 SUB{ceg} egb) |
+| SUB / Sub / S | タイムポインタを戻す (例 SUB{ceg} egb) |
 | KF / KeyFlag | 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
 | KEY / Key / KeyShift | ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde) |
 | TR_KEY / TrackKey | トラック毎、ノート(cdefgab)のキーをn半音シフトする (例 TrackKey=3 cde) |
@@ -155,6 +155,7 @@
 | STR / Str | 文字列変数を定義 (例 STR A={cde}) |
 | PLAY / Play | 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc}) |
 | PRINT / Print | 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA)) |
+| PlayFrom.SysEx / PlayFrom.CtrlChg | 未実装 |
 | PLAY_FROM / PlayFrom | ここから演奏する　(?と同じ意味) |
 | System.MeasureShift | 小節番号をシフトする (例 System.MeasureShift(1)) |
 | System.KeyFlag | 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
@@ -165,6 +166,7 @@
 | System.vAdd / vAdd | ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8)) |
 | System.qAdd / qAdd | 未定義 |
 | SoundType / SOUND_TYPE | 未実装 |
+| VOICE / Voice | モジュレーション 範囲: 0-127 |
 | M / Modulation | モジュレーション 範囲: 0-127 |
 | PT / PortamentoTime | ポルタメント 範囲: 0-127 |
 | V / MainVolume | メインボリューム 範囲: 0-127 |
@@ -190,12 +192,14 @@
 | EGRelease | 音色の編集(GS/XG) 範囲: 0-127 |
 | Fadein / FADEIN | 小節数を指定してフェードインする (例: Fadein(1)) |
 | Fadeout / FADEOUT | 小節数を指定してフェードアウトする (例: Fadeout(1)) |
+| Decresc / DECRESC | デクレッシェンドを表現 (書式) Decresc([[[len],v1],v2]) だんだん小さく。エクスプレッションをlen(ｎ分音符指定で)の間に、v1からv2へ変更する。lenを省略すると全音符の長さになる。 |
+| Cresc / CRESC | クレッシェンドを表現 (書式) Cresc([[[len],v1],v2]) だんだん大きく。エクスプレッションをlen(ｎ分音符指定で)の間に、v1からv2へ変更する。lenを省略すると全音符の長さになる。 |
 | ResetGM | GMリセットを送信 |
 | ResetGS | GSリセットを送信 |
 | ResetXG | XGリセットを送信 |
 | TEMPO / Tempo / T | テンポの指定 |
 | TempoChange | テンポを連続で変更する (書式) TempoChange(開始値,終了値, !長さ) |
-| TimeSignature / TimeSig / TIMESIG | 拍子の指定 |
+| TimeSignature / TimeSig / TIMESIG / System.TimeSignature | 拍子の指定 |
 | MetaText / TEXT / Text | メタテキスト (例 TEXT{"abcd"}) |
 | COPYRIGHT / Copyright | メタテキスト著作権 (例 COPYRIGHT{"aaa"}) |
 | TRACK_NAME / TrackName | 曲名 (例 TRACK_NAME{"aaa"}) |

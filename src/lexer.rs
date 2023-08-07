@@ -146,7 +146,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return read_command_rhythm(cur, song);
     }
     if cmd == "RYTHM" || cmd == "Rythm" {
-        // @ リズムモード(v1の綴りミス対処[^^;])
+        // @ リズムモード(v1の綴りミス対処[^^;]) RHYTHM または R と同じ
         return read_command_rhythm(cur, song);
     }
     if cmd == "DIV" || cmd == "Div" {
@@ -1629,6 +1629,7 @@ fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
             return Token::new_empty("not supported : onCycle", cur.line);
         }
     }
+    if cur.eq_char('=') { cur.next(); }
     let arg_token1 = read_calc_token(cur, song);
     return Token::new_tokens(TokenType::CtrlChange, no, vec![arg_token1]);
 }
