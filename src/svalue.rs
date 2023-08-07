@@ -4,6 +4,7 @@
 pub enum SValue {
     Int(isize),
     Str(String, isize),
+    Bool(bool),
     Array(Vec<SValue>),
     IntArray(Vec<isize>),
     None,
@@ -36,11 +37,7 @@ impl SValue {
         Self::Str(String::from(s), tag)
     }
     pub fn from_b(b: bool) -> Self {
-        if b {
-            Self::Int(1)
-        } else {
-            Self::Int(0)
-        }
+        Self::Bool(b)
     }
     pub fn to_b(&self) -> bool {
         let v = self.to_i();
@@ -49,7 +46,8 @@ impl SValue {
     pub fn to_i(&self) -> isize {
         match self {
             Self::Int(i) => *i,
-            Self::Str(s, _) => s.parse().unwrap_or(0), 
+            Self::Str(s, _) => s.parse().unwrap_or(0),
+            Self::Bool(b) => if *b { 1 } else { 0 },
             Self::None => 0,
             _ => 0,
         }
@@ -58,6 +56,7 @@ impl SValue {
         match self {
             Self::Int(i) => i.to_string(),
             Self::Str(s, _) => s.clone(),
+            Self::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
             Self::None => String::new(),
             _ => String::new(),
         }
@@ -100,22 +99,24 @@ impl SValue {
             }
         }
     }
-    pub fn eq(&self, v: SValue) -> bool {
+    pub fn is_none(&self) -> bool {
         match self {
-            Self::Int(i) => {
-                if let Self::Int(j) = v {
-                    return i == &j;
-                }
+            Self::None => true,
+            _ => false,
+        }
+    }
+    pub fn eq(&self, v: SValue) -> bool {
+        match v {
+            Self::Int(vi) => {
+                let si = self.to_i();
+                return si == vi;
             },
-            Self::Str(s, _) => {
-                if let Self::Str(t, _) = v {
-                    return s == &t;
-                }
+            Self::Str(vs, _) => {
+                let ss = self.to_s();
+                return ss == vs;
             },
             Self::None => {
-                if let Self::None = v {
-                    return true;
-                }
+                return self.is_none();
             },
             _ => {},
         }

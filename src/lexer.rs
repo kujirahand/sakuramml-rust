@@ -468,13 +468,14 @@ const LEX_VALUE: isize = 1;
 const LEX_NOT: isize = 2;
 const LEX_PAREN_L: isize = 3;
 const LEX_PAREN_R: isize = 4;
-const LEX_COMPARE: isize = 10;
 const LEX_MUL_DIV: isize = 20;
 const LEX_PLUS_MINUS: isize = 30;
+const LEX_COMPARE: isize = 40;
+const LEX_OR_AND: isize = 50;
 
 fn is_operator(c: isize) -> bool {
     match c {
-        LEX_COMPARE | LEX_MUL_DIV | LEX_PLUS_MINUS => true,
+        LEX_COMPARE | LEX_MUL_DIV | LEX_PLUS_MINUS | LEX_OR_AND => true,
         _ => false,
     }
 }
@@ -486,7 +487,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
         cur.skip_space();
         let ch = zen2han(cur.peek().unwrap_or('\0'));
         match ch {
-            ';' => { break; },
+            ';' => break,
             '\t' => { cur.next(); }, // comment
             '\n' => { cur.line += 1; },
             '0'..='9' => {
@@ -548,6 +549,16 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                     tokens.push(Token::new_value_tag(TokenType::Calc, LEX_PLUS_MINUS, ch as isize));
                 }
             },
+            '|' => {
+                if cur.eq("||") {
+                    tokens.push(Token::new_value_tag(TokenType::Calc, LEX_OR_AND, ch as isize));
+                }
+                cur.next();
+            },
+            '&' => {
+                cur.next_n(if cur.eq("&&") { 2 } else { 1 });
+                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_OR_AND, ch as isize));
+            },
             '≠' => {
                 tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '≠' as isize));
                 cur.next();
@@ -605,9 +616,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                 tokens.push(Token::new(TokenType::Calc, LEX_PAREN_R, vec![]));
                 cur.next();
             },
-            ',' => {
-                break;
-            },
+            ',' => break,
             _ => {
                 let msg = format!("{}", ch);
                 lex_error(cur, song, &msg);
@@ -628,7 +637,7 @@ fn infix_to_postfix(cur: &mut TokenCursor, song: &mut Song, tokens: Vec<Token>) 
         }
         if is_operator(token.value) {
             while let Some(top) = stack.last().cloned() {
-                if top.value == LEX_PAREN_L || top.value < token.value {
+                if top.value == LEX_PAREN_L || top.value > token.value {
                     break;
                 }
                 result.push(stack.pop().unwrap());

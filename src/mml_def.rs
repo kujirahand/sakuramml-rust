@@ -52,6 +52,8 @@ pub fn init_variables() -> HashMap<String, SValue> {
     let mut var = HashMap::new();
     //<VARIABLES>
     var.insert(String::from("SAKURA_VERSION"), SValue::from_s(sakura_version::SAKURA_VERSION.to_string())); // @ サクラのバージョン情報を得る
+    var.insert(String::from("FALSE"), SValue::from_b(false)); // @ bool型(false)
+    var.insert(String::from("TRUE"), SValue::from_b(true)); // @ bool型(true)
     var.insert(String::from("OctaveUnison"), SValue::from_str("Sub{> #?1 <} #?1")); // @ オクターブユニゾンを演奏 (例 OctaveUnison{cde})
     var.insert(String::from("Unison5th"), SValue::from_str("Sub{ Key=7 #?1 Key=0 } #?1")); // @ 5度のユニゾンを演奏 (例 Unison5th{cde})
     var.insert(String::from("Unison3th"), SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1")); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})

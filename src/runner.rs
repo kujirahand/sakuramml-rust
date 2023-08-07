@@ -345,9 +345,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 exec_while(song, t);
             },
             TokenType::Calc => {
+                // get flag char
                 let flag = std::char::from_u32(t.tag as u32).unwrap_or('😔');
                 // only 1 value
-                if flag == '!' { // NOT flag
+                if flag == '!' { // flag "!(val)"
                     let v = song.stack.pop().unwrap_or(SValue::None);
                     song.stack.push(SValue::from_b(!v.to_b()));
                     pos += 1;
@@ -358,8 +359,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let a = song.stack.pop().unwrap_or(SValue::None);
                 let mut c = SValue::None;
                 match flag {
+                    '&' => c = SValue::from_b(a.to_b() && b.to_b()), // and
+                    '|' => c = SValue::from_b(a.to_b() || b.to_b()), // or
                     '=' => c = SValue::from_b(a.eq(b)),
-                    '≠' => c = SValue::from_b(a.ne(b)),
+                    '≠' => c = SValue::from_b(a.ne(b)), // !=
                     '>' => c = SValue::from_b(a.gt(b)),
                     '≧' => c = SValue::from_b(a.gteq(b)),
                     '<' => c = SValue::from_b(a.lt(b)),
@@ -1253,5 +1256,17 @@ mod tests {
     fn test_exec_while() {
         let song = exec_easy("INT N=0;INT I=1;WHILE(I<=10){N=N+I;I++;} PRINT(N)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 55");
+    }
+   #[test]
+    fn test_exec_calc() {
+        // 1+2*3
+        let song = exec_easy("INT N=1+2*3;PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 7");
+        // (1+2)*3
+        let song = exec_easy("INT N=(1+2)*3;PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 9");
+        // 1>2 false(0)
+        let song = exec_easy("INT N=1>2;PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) FALSE");
     }
 }
