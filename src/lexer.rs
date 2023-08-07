@@ -11,7 +11,9 @@ const LEX_MAX_ERROR: usize = 30;
 
 /// split source code to tokens
 pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
-    let mut result: Vec<Token> = vec![];
+    let mut result: Vec<Token> = vec![
+        Token::new_lineno(lineno), // init lineno
+    ];
     let mut cur = TokenCursor::from(src);
     cur.line = lineno;
     let mut flag_harmony = false;
@@ -723,11 +725,11 @@ fn read_while(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new_empty("ERROR:WHILE", cur.line);
     }
     let cond_s = cur.get_token_nest('(', ')');
-    let cond_tok = lex_calc(song, &cond_s, cur.line);
+    let cond_tok = lex_calc(song, &cond_s, lineno);
     cur.skip_space();
     // read body
     let body_s = cur.get_token_nest('{', '}');
-    let body_tok = lex(song, &body_s, cur.line);
+    let body_tok = lex(song, &body_s, lineno);
     // while
     let while_tok = Token::new_tokens_lineno(TokenType::While, 0, vec![
         Token::new_tokens(TokenType::Tokens, 0, cond_tok),
@@ -737,6 +739,7 @@ fn read_while(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_for(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let lineno = cur.line;
     cur.skip_space();
     if !cur.eq_char('(') {
         read_error(cur, song, "FOR");
@@ -759,20 +762,21 @@ fn read_for(cur: &mut TokenCursor, song: &mut Song) -> Token {
     } else {
         format!("Int {}", init_s)
     };
-    let init_tok = lex(song, &init_s, cur.line);
-    let cond_tok = lex_calc(song, &cond_s, cur.line);
-    let inc_tok = lex_calc(song, &inc_s, cur.line);
-    let body_tok = lex(song, &body_s, cur.line);
-    let for_tok = Token::new_tokens(TokenType::For, 0, vec![
+    let init_tok = lex(song, &init_s, lineno);
+    let cond_tok = lex_calc(song, &cond_s, lineno);
+    let inc_tok = lex_calc(song, &inc_s, lineno);
+    let body_tok = lex(song, &body_s, lineno);
+    let for_tok = Token::new_tokens_lineno(TokenType::For, 0, vec![
         Token::new_tokens(TokenType::Tokens, 0, init_tok),
         Token::new_tokens(TokenType::Tokens, 0, cond_tok),
         Token::new_tokens(TokenType::Tokens, 0, inc_tok),
         Token::new_tokens(TokenType::Tokens, 0, body_tok),
-    ]);
+    ], lineno);
     for_tok
 }
 
 fn read_if(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let lineno = cur.line;
     // read condition
     cur.skip_space();
     if !cur.eq_char('(') {
@@ -793,22 +797,23 @@ fn read_if(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space_ret();
     // read else block
     if cur.eq("ELSE") || cur.eq("Else") {
+        let else_lineno = cur.line;
         cur.next_n(4); // skip "ELSE"
         cur.skip_space();
         if !cur.eq_char('{') {
             read_error(cur, song, "IF");
-            return Token::new_empty("ERROR:IF", cur.line);
+            return Token::new_empty("ERROR:IF:ELSE", else_lineno);
         }
         let else_s = cur.get_token_nest('{', '}');
-        else_tok = lex(song, &else_s, cur.line);
+        else_tok = lex(song, &else_s, else_lineno);
     }
     // println!("cond: {:?}", cond_tok);
     // token
-    Token::new_tokens(TokenType::If, 0, vec![
+    Token::new_tokens_lineno(TokenType::If, 0, vec![
         Token::new_tokens(TokenType::Tokens, 0, cond_tok),
         Token::new_tokens(TokenType::Tokens, 0, then_tok),
         Token::new_tokens(TokenType::Tokens, 0, else_tok),
-    ])
+    ], lineno)
 }
 
 fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Option<Token> {

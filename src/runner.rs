@@ -55,10 +55,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             println!("- exec({:03})(line:{}) {:?} {}", pos, song.lineno, t.ttype, t.to_debug_str());
         }
         match t.ttype {
-            TokenType::Empty => {
-                // unknown
-                song.lineno = t.lineno;
-            },
+            TokenType::Empty => {},
             TokenType::LineNo => {
                 song.lineno = t.lineno;
             },
@@ -564,9 +561,7 @@ fn exec_for(song: &mut Song, t: &Token) -> bool {
         // exec body
         let body = body_token.children.clone().unwrap();
         exec(song, &body);
-        // eval inc
-        let inc = inc_token.children.clone().unwrap();
-        exec(song, &inc);
+        // check loop counter
         counter += 1;
         if counter > song.flags.max_loop {
             song.logs.push(format!(
@@ -576,6 +571,20 @@ fn exec_for(song: &mut Song, t: &Token) -> bool {
             ));
             break;
         }
+        // inc
+        let inc_tokens = inc_token.children.clone().unwrap();
+        // check break or continue
+        if song.flags.break_flag == 1 { // break
+            song.flags.break_flag = 0;
+            break;
+        }
+        if song.flags.break_flag == 2 { // continue
+            song.flags.break_flag = 0;
+            exec(song, &inc_tokens); // eval inc
+            continue;
+        }
+        // eval inc
+        exec(song, &inc_tokens); // eval inc
     }
     true
 }
@@ -1285,6 +1294,12 @@ mod tests {
     fn test_exec_for() {
         let song = exec_easy("INT N=0;FOR(I=1;I<=10;I++){N=N+I;} PRINT(N)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 55");
+        // break
+        let song = exec_easy("INT N=0;FOR(I=1;I<=10;I++){IF(I==3){BREAK} N=N+I;} PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 3");
+        // continue
+        let song = exec_easy("INT N=0;FOR(I=1;I<=10;I++){IF(I>=3){CONTINUE} N=N+I;} PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 3");
     }
     #[test]
     fn test_exec_while() {

@@ -2,7 +2,7 @@ use super::svalue::SValue;
 
 /// TokenType
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     Error,
     Empty,
@@ -171,6 +171,10 @@ impl Token {
         Self::new(TokenType::SysEx, 0, sa)
     }
     pub fn to_debug_str(&self) -> String {
+        // LineNoは除外
+        if self.ttype == TokenType::LineNo {
+            return String::new();
+        }
         format!("[{:?},{}]", self.ttype, self.value)
     }
 }
