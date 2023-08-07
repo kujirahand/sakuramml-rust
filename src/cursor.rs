@@ -161,6 +161,17 @@ impl TokenCursor {
                     if ch == '\n' { self.line += 1; }
                     self.index += 1;
                 },
+                '/' => {
+                    if self.eq("//") {
+                        self.get_token_ch('\n');
+                        continue;
+                    }
+                    if self.eq("/*") {
+                        self.get_token_s("*/");
+                        continue;
+                    }
+                    break;
+                },
                 _ => { break; }
             }
         }
@@ -171,6 +182,13 @@ impl TokenCursor {
             match ch {
                 '\t' | ' ' => {
                     self.index += 1;
+                },
+                '/' => {
+                    if self.eq("/*") {
+                        self.get_token_s("*/");
+                        continue;
+                    }
+                    break;
                 },
                 _ => { break; }
             }

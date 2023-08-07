@@ -332,6 +332,8 @@ pub struct Flags {
     pub harmony_events: Vec<Event>,
     pub octave_once: isize,
     pub measure_shift: isize,
+    pub break_flag: isize, // 0: none 1: break 2: continue
+    pub max_loop: isize,
 }
 impl Flags {
     pub fn new() -> Self {
@@ -341,6 +343,8 @@ impl Flags {
             harmony_events: vec![],
             octave_once: 0,
             measure_shift: 0,
+            break_flag: 0,
+            max_loop: 10000,
         }
     }
 }
@@ -366,6 +370,7 @@ pub struct Song {
     pub stack: Vec<SValue>,
     pub logs: Vec<String>, // ログ
     pub rand_seed: u32,
+    pub lineno: isize,
 }
 
 impl Song {
@@ -391,6 +396,7 @@ impl Song {
             v_add: 8,
             stack: vec![],
             rand_seed: 1234567, // Random Seed
+            lineno: 0,
         }
     }
     pub fn set_language(&mut self, lang_code: &str) {

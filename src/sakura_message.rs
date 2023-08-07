@@ -9,6 +9,7 @@ pub enum MessageKind {
     TooManyErrorsInLexer,
     ScriptSyntaxError,
     MissingParenthesis,
+    LoopTooManyTimes,
 }
 
 /// Language
@@ -81,6 +82,12 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
             match lang {
                 MessageLang::EN => "Missing Parenthesis",
                 MessageLang::JA => "括弧が閉じられていません",
+            }
+        },
+        MessageKind::LoopTooManyTimes => {
+            match lang {
+                MessageLang::EN => "Loop too many times",
+                MessageLang::JA => "ループが制限を超えました",
             }
         }
     }

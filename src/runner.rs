@@ -7,6 +7,7 @@ use super::lexer::lex;
 use super::song::{Event, NoteInfo, Song, Track};
 use super::svalue::SValue;
 use super::token::{Token, TokenType};
+use super::sakura_message::MessageKind;
 
 #[derive(Debug)]
 pub struct LoopItem {
@@ -48,13 +49,18 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
     let mut pos = 0;
     let mut loop_stack: Vec<LoopItem> = vec![];
     while pos < tokens.len() {
+        if song.flags.break_flag != 0 { break; }
         let t = &tokens[pos];
         if song.debug {
-            println!("{:3}:exec:{:?}", pos, t);
+            println!("- exec({:03})(line:{}) {:?} {}", pos, song.lineno, t.ttype, t.to_debug_str());
         }
         match t.ttype {
             TokenType::Empty => {
                 // unknown
+                song.lineno = t.lineno;
+            },
+            TokenType::LineNo => {
+                song.lineno = t.lineno;
             },
             TokenType::Error => {
                 if song.debug {
@@ -69,7 +75,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     disp.push(v.to_s());
                 }
                 let disp_s = disp.join(" ");
-                let msg = format!("[PRINT]({}) {}", t.value, disp_s);
+                let msg = format!("[PRINT]({}) {}", t.lineno, disp_s);
                 if song.debug {
                     println!("{}", msg);
                 }
@@ -344,6 +350,14 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::While => {
                 exec_while(song, t);
             },
+            TokenType::Break => {
+                song.flags.break_flag = 1;
+                break;
+            },
+            TokenType::Continue => {
+                song.flags.break_flag = 2;
+                break;
+            },
             TokenType::Calc => {
                 // get flag char
                 let flag = std::char::from_u32(t.tag as u32).unwrap_or('😔');
@@ -498,9 +512,25 @@ fn exec_while(song: &mut Song, t: &Token) -> bool {
         exec(song, &body);
         // check counter
         counter += 1;
-        if counter > 10000 {
-            song.logs.push("[WARN] WHILE loop too many times".to_string());
+        if counter > song.flags.max_loop {
+            song.logs.push(format!(
+                "[ERROR]({}) {} WHILE(>{})", t.lineno, 
+                song.get_message(MessageKind::LoopTooManyTimes),
+                song.flags.max_loop
+            ));
             break;
+        }
+        // check break flag
+        match song.flags.break_flag {
+            1 => {
+                song.flags.break_flag = 0;
+                break;
+            },
+            2 => {
+                song.flags.break_flag = 0;
+                continue;
+            },
+            _ => {},
         }
     }
     true
@@ -538,8 +568,12 @@ fn exec_for(song: &mut Song, t: &Token) -> bool {
         let inc = inc_token.children.clone().unwrap();
         exec(song, &inc);
         counter += 1;
-        if counter > 10000 {
-            song.logs.push("[WARN] FOR loop too many times".to_string());
+        if counter > song.flags.max_loop {
+            song.logs.push(format!(
+                "[ERROR]({}) {} FOR(>{})", t.lineno, 
+                song.get_message(MessageKind::LoopTooManyTimes),
+                song.flags.max_loop
+            ));
             break;
         }
     }
@@ -1256,6 +1290,9 @@ mod tests {
     fn test_exec_while() {
         let song = exec_easy("INT N=0;INT I=1;WHILE(I<=10){N=N+I;I++;} PRINT(N)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 55");
+        // break
+        let song = exec_easy("INT N=0;INT I=1;WHILE(I<=10){IF(I=3){BREAK}N=N+I;I++;} PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 3");
     }
    #[test]
     fn test_exec_calc() {
@@ -1268,5 +1305,11 @@ mod tests {
         // 1>2 false(0)
         let song = exec_easy("INT N=1>2;PRINT(N)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) FALSE");
+        // 6/3
+        let song = exec_easy("INT N=6/3;PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 2");
+        // 4/0
+        let song = exec_easy("INT N=4/0;PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 0");
     }
 }

@@ -6,6 +6,7 @@ use super::svalue::SValue;
 pub enum TokenType {
     Error,
     Empty,
+    LineNo,
     Print,
     Note,
     NoteN,
@@ -60,6 +61,8 @@ pub enum TokenType {
     If,
     For,
     While,
+    Break,
+    Continue,
     Calc,
     Value,
     ValueInc,
@@ -73,9 +76,20 @@ pub struct Token {
     pub tag: isize,
     pub data: Vec<SValue>,
     pub children: Option<Vec<Token>>,
+    pub lineno: isize,
 }
 
 impl Token {
+    pub fn new_lineno(lineno: isize) -> Self {
+        Self {
+            ttype: TokenType::LineNo,
+            value: 0,
+            tag: 0,
+            data: vec![],
+            children: None,
+            lineno,
+        }
+    }
     pub fn new(ttype: TokenType, value: isize, data: Vec<SValue>) -> Self {
         Self {
             ttype,
@@ -83,6 +97,7 @@ impl Token {
             tag: 0,
             data,
             children: None,
+            lineno: 0,
         }
     }
     pub fn new_value(ttype: TokenType, value: isize) -> Self {
@@ -92,6 +107,7 @@ impl Token {
             tag: 0,
             data: vec![],
             children: None,
+            lineno: 0,
         }
     }
     pub fn new_value_tag(ttype: TokenType, value: isize, tag: isize) -> Self {
@@ -101,6 +117,7 @@ impl Token {
             tag,
             data: vec![],
             children: None,
+            lineno: 0,
         }
     }
     pub fn new_tokens(ttype: TokenType, value: isize, tokens: Vec<Token>) -> Self {
@@ -110,6 +127,17 @@ impl Token {
             tag: 0,
             data: vec![],
             children: Some(tokens),
+            lineno: 0,
+        }
+    }
+    pub fn new_tokens_lineno(ttype: TokenType, value: isize, tokens: Vec<Token>, lineno: isize) -> Self {
+        Self {
+            ttype,
+            value,
+            tag: 0,
+            data: vec![],
+            children: Some(tokens),
+            lineno,
         }
     }
     pub fn new_data_tokens(ttype: TokenType, value: isize, data: Vec<SValue>, tokens: Vec<Token>) -> Self {
@@ -119,10 +147,18 @@ impl Token {
             tag: 0,
             data,
             children: Some(tokens),
+            lineno: 0,
         }
     }
-    pub fn new_empty(cmd: &str) -> Self {
-        Self::new(TokenType::Empty, 0, vec![SValue::from_s(cmd.to_string())])
+    pub fn new_empty(cmd: &str, lineno: isize) -> Self {
+        Self {
+            ttype: TokenType::Empty,
+            value: 0,
+            tag: 0,
+            data: vec![SValue::from_s(cmd.to_string())],
+            children: None,
+            lineno,
+        }
     }
     pub fn new_sysex(a: Vec<isize>) -> Self {
         let mut sa: Vec<SValue> = vec![];

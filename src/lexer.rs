@@ -20,11 +20,12 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
         match ch {
             // <CHAR_COMMANDS>
             // space
-            ' ' | '\t' | '\r' | '|' | ';' => {} // @ 空白文字
+            ' ' | '\t' | '\r' | '|' | ';' => {}, // @ 空白文字
             // ret
             '\n' => {
                 cur.line += 1;
-            }
+                result.push(Token::new_lineno(cur.line));
+            },
             // lower command
             'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階)
             'n' => result.push(read_note_n(&mut cur, song)), // @ 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング)
@@ -210,7 +211,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         } else {
             "".to_string()
         };
-        return Token::new_empty(&v);
+        return Token::new_empty(&v, cur.line);
     }
     if cmd == "System.vAdd" || cmd == "vAdd" {
         // @ ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8))
@@ -219,7 +220,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cmd == "System.qAdd" || cmd == "qAdd" {
         // @ 未定義
         read_arg_value(cur, song);
-        return Token::new_empty("qAdd");
+        return Token::new_empty("qAdd", cur.line);
     }
     if cmd == "SoundType" || cmd == "SOUND_TYPE" {
         // @ 未実装
@@ -430,6 +431,14 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         // @ WHILE文 (書式) WHILE(条件){ … }
         return read_while(cur, song);
     }
+    if cmd == "EXIT" || cmd == "Exit" || cmd == "BREAK" || cmd == "Break" {
+        // @ BREAK文 FOR/WHILEを抜ける
+        return Token::new(TokenType::Break, 0, vec![]);
+    }
+    if cmd == "CONTINUE" || cmd == "Continue" {
+        // @ CONTINUE文 FOR/WHILEを続ける
+        return Token::new(TokenType::Continue, 0, vec![]);
+    }
     if cmd == "RandomSeed" || cmd == "RANDOM_SEED" {
         // @ 乱数の種を設定する (例 RandomSeed=1234)
         let v = read_arg_value(cur, song);
@@ -447,7 +456,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         None => {}
     }
     read_error(cur, song, &cmd);
-    return Token::new_empty(&cmd);
+    return Token::new_empty(&cmd, cur.line);
 }
 
 fn read_error(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
@@ -460,7 +469,7 @@ fn read_error(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
         song.get_message(MessageKind::Near),
         near,
     ));
-    return Token::new_empty("ERROR");
+    return Token::new_empty("ERROR", cur.line);
 }
 
 // --- lex calc script ---
@@ -526,12 +535,27 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                     }
                 }
             },
+            '"' => {
+                cur.next(); // skip "
+                let str_s = cur.get_token_to_double_quote();
+                let tok = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_s(str_s)]);
+                tokens.push(tok);
+            },
             '{' => {
                 let str_s = cur.get_token_nest('{', '}');
                 let tok = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_s(str_s)]);
                 tokens.push(tok);
             },
-            '*' | '/' | '%' => {
+            '/' => {
+                if cur.eq("//") { break; }
+                if cur.eq("/*") {
+                    cur.get_token_s("*/");
+                    continue;
+                }
+                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_MUL_DIV, ch as isize));
+                cur.next();
+            },
+            '*' | '%' => {
                 tokens.push(Token::new_value_tag(TokenType::Calc, LEX_MUL_DIV, ch as isize));
                 cur.next();
             },
@@ -687,15 +711,16 @@ fn lex_calc(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
 }
 
 fn read_while(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let lineno = cur.line;
     cur.skip_space();
     if !cur.eq_char('(') {
         read_error(cur, song, "WHILE");
-        return Token::new_empty("ERROR:WHILE");
+        return Token::new_empty("ERROR:WHILE", cur.line);
     }
     // read condition
     if !cur.eq_char('(') {
         read_error(cur, song, "WHILE");
-        return Token::new_empty("ERROR:WHILE");
+        return Token::new_empty("ERROR:WHILE", cur.line);
     }
     let cond_s = cur.get_token_nest('(', ')');
     let cond_tok = lex_calc(song, &cond_s, cur.line);
@@ -704,10 +729,10 @@ fn read_while(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let body_s = cur.get_token_nest('{', '}');
     let body_tok = lex(song, &body_s, cur.line);
     // while
-    let while_tok = Token::new_tokens(TokenType::While, 0, vec![
+    let while_tok = Token::new_tokens_lineno(TokenType::While, 0, vec![
         Token::new_tokens(TokenType::Tokens, 0, cond_tok),
         Token::new_tokens(TokenType::Tokens, 0, body_tok),
-    ]);
+    ], lineno);
     while_tok
 }
 
@@ -715,7 +740,7 @@ fn read_for(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     if !cur.eq_char('(') {
         read_error(cur, song, "FOR");
-        return Token::new_empty("ERROR:FOR");
+        return Token::new_empty("ERROR:FOR", cur.line);
     }
     // read init
     cur.next(); // skip '('
@@ -725,11 +750,11 @@ fn read_for(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     if !cur.eq_char('{') {
         read_error(cur, song, "FOR");
-        return Token::new_empty("ERROR:FOR");
+        return Token::new_empty("ERROR:FOR", cur.line);
     }
     let body_s = cur.get_token_nest('{', '}');
     // もし、String型のinit_sが"Int "から始まっていなければ"Int "を足す
-    let init_s = if init_s != "" && (init_s.starts_with("Int ") || init_s.starts_with("INT "))  {
+    let init_s = if init_s == "" || (init_s.starts_with("Int ") || init_s.starts_with("INT "))  {
         init_s
     } else {
         format!("Int {}", init_s)
@@ -752,27 +777,27 @@ fn read_if(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     if !cur.eq_char('(') {
         read_error(cur, song, "IF");
-        return Token::new_empty("ERROR:IF");
+        return Token::new_empty("ERROR:IF", cur.line);
     }
     let cond = cur.get_token_nest('(', ')');
     let cond_tok = lex_calc(song, &cond, cur.line);
     cur.skip_space();
     if !cur.eq_char('{') {
         read_error(cur, song, "IF");
-        return Token::new_empty("ERROR:IF");
+        return Token::new_empty("ERROR:IF", cur.line);
     }
     // read then block
     let then_s = cur.get_token_nest('{', '}');
     let then_tok = lex(song, &then_s, cur.line);
     let mut else_tok = vec![];
-    cur.skip_space();
+    cur.skip_space_ret();
     // read else block
     if cur.eq("ELSE") || cur.eq("Else") {
         cur.next_n(4); // skip "ELSE"
         cur.skip_space();
         if !cur.eq_char('{') {
             read_error(cur, song, "IF");
-            return Token::new_empty("ERROR:IF");
+            return Token::new_empty("ERROR:IF", cur.line);
         }
         let else_s = cur.get_token_nest('{', '}');
         else_tok = lex(song, &else_s, cur.line);
@@ -805,7 +830,7 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
         if cur.eq_char('{') {
             let body = cur.get_token_nest('{', '}');
             song.variables.insert(cmd, SValue::from_str_and_tag(&body, cur.line));
-            return Some(Token::new_empty("DefStr"));
+            return Some(Token::new_empty("DefStr", cur.line));
         }
         // let calc
         let body_tokens = read_calc(cur, song);
@@ -851,7 +876,7 @@ fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SVal
             return Token::new_tokens(TokenType::Tokens, line_no, tokens);
         }
         _ => {
-            return Token::new_empty(&format!("Could not execute: {}", name));
+            return Token::new_empty(&format!("Could not execute: {}", name), cur.line);
         }
     }
 }
@@ -1073,13 +1098,13 @@ fn read_timebase(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if song.timebase <= 48 {
         song.timebase = 48;
     }
-    Token::new_empty(&format!("TIMEBASE={}", v.to_i()))
+    Token::new_empty(&format!("TIMEBASE={}", v.to_i()), cur.line)
 }
 
 fn read_v_add(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let v = read_arg_value(cur, song);
     song.v_add = v.to_i();
-    Token::new_empty("vAdd")
+    Token::new_empty("vAdd", cur.line)
 }
 
 fn read_key_flag(cur: &mut TokenCursor, _song: &mut Song) -> Token {
@@ -1179,7 +1204,7 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
             "[ERROR]({}): INT command should use Upper case like \"Test\".",
             cur.line
         ));
-        return Token::new_empty("Failed to def INT");
+        return Token::new_empty("Failed to def INT", cur.line);
     }
     cur.skip_space();
     if cur.eq_char('=') {
@@ -1212,11 +1237,14 @@ fn read_print(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
     cur.skip_space();
     let tokens = read_args_tokens(cur, song);
-    Token::new_tokens(TokenType::Print, lineno, tokens)
+    Token::new_tokens_lineno(TokenType::Print, 0, tokens, lineno)
 }
 
 fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let mut tokens: Vec<Token> = vec![];
+    let lineno = cur.line;
+    let mut tokens: Vec<Token> = vec![
+        Token::new_lineno(lineno), // set default lineno
+    ];
     let mut track_no = 1;
     cur.skip_space();
     if cur.eq_char('=') {
@@ -1274,7 +1302,7 @@ fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
     if cur.eq_char(')') {
         cur.next();
     }
-    let tokens_tok = Token::new_tokens(TokenType::Tokens, 0, tokens);
+    let tokens_tok = Token::new_tokens_lineno(TokenType::Tokens, 0, tokens, lineno);
     tokens_tok
 }
 
@@ -1286,7 +1314,7 @@ fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
             "[ERROR]({}): STR command should use Upper case like \"Test\"",
             cur.line
         ));
-        return Token::new_empty("Failed to def STR");
+        return Token::new_empty("Failed to def STR", cur.line);
     }
     cur.skip_space();
     if cur.eq_char('=') {
@@ -1299,14 +1327,14 @@ fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
             "[ERROR]({}): STR command should set string (like STR NAME={{ ... }})",
             cur.line
         ));
-        return Token::new_empty("Failed to def STR");
+        return Token::new_empty("Failed to def STR", cur.line);
     }
     let line_no = cur.line;
     let data_str = if ch == '{' { cur.get_token_nest('{', '}') } else { cur.next(); cur.get_token_ch(ch) };
     // todo: ここで演算子があればエラーにする
     // println!("{}", data_str);
     let var_value = SValue::from_str_and_tag(&data_str, line_no);
-    let tok = Token::new_empty("STR");
+    let tok = Token::new_empty("STR", cur.line);
     song.variables.insert(var_name, var_value);
     tok
 }
@@ -1489,11 +1517,11 @@ fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
         } else if cmd == "onNoteWave" || cmd == "W" {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
-            return Token::new_empty("not supported : onNoteWave");
+            return Token::new_empty("not supported : onNoteWave", cur.line);
         } else if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
-            return Token::new_empty("not supported : onCycle");
+            return Token::new_empty("not supported : onCycle", cur.line);
         }
     }
     let tokens = read_calc(cur, song);
@@ -1527,7 +1555,7 @@ fn read_command_rpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let a = read_args_vec(cur, song);
     if a.len() < 3 {
         song.add_log(format!("[ERROR]({}): RPN not enough arguments", cur.line));
-        return Token::new_empty("RPN error");
+        return Token::new_empty("RPN error", cur.line);
     }
     let msb = a[0].clone();
     let lsb = a[1].clone();
@@ -1582,7 +1610,7 @@ fn read_command_nrpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let a = read_arg_int_array(cur, song).to_array();
     if a.len() < 3 {
         song.add_log(format!("[ERROR]({}): NRPN not enough arguments", cur.line));
-        return Token::new_empty("NRPN error");
+        return Token::new_empty("NRPN error", cur.line);
     }
     let msb = a[0].clone();
     let lsb = a[1].clone();
@@ -1649,7 +1677,7 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
         }
         if cmd == "onTime" || cmd == "T" {
             let _av = read_arg_int_array(cur, song);
-            return Token::new_empty(&format!("[ERROR]({}) q.onTime not supported", cur.line));
+            return Token::new_empty(&format!("[ERROR]({}) q.onTime not supported", cur.line), cur.line);
         }
         if cmd == "onNote" || cmd == "N" {
             let av = read_arg_int_array(cur, song);
@@ -1658,7 +1686,7 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
         if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
-            return Token::new_empty("not supported : onCycle");
+            return Token::new_empty("not supported : onCycle", cur.line);
         }
     }
     let value = read_arg_value(cur, song);
@@ -1695,7 +1723,7 @@ fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
         if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
-            return Token::new_empty("not supported : onCycle");
+            return Token::new_empty("not supported : onCycle", cur.line);
         }
     }
     // v(no)
@@ -1728,7 +1756,7 @@ fn read_timing(cur: &mut TokenCursor, song: &mut Song) -> Token {
         if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
-            return Token::new_empty("not supported : onCycle");
+            return Token::new_empty("not supported : onCycle", cur.line);
         }
     }
     // t(no)
@@ -1778,11 +1806,11 @@ fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
         }
         if cmd == "onNoteWave" || cmd == "W" {
             let _ia = read_arg_int_array(cur, song);
-            return Token::new_empty("NOT SUPPORTED");
+            return Token::new_empty("NOT SUPPORTED", cur.line);
         }
         if cmd == "onCycle" || cmd == "C" {
             let _ia = read_arg_int_array(cur, song);
-            return Token::new_empty("NOT SUPPORTED");
+            return Token::new_empty("NOT SUPPORTED", cur.line);
         }
     }
 
