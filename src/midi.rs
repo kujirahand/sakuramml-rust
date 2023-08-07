@@ -194,13 +194,19 @@ impl MidiReaderInfo {
 
 pub fn array_read_str(a: &Vec<u8>, pos: usize, len: usize) -> String {
     let mut s = String::new();
-    for i in 0..len {
-        let idx = pos + i;
-        if idx < a.len() {
-            s.push(a[idx] as char);
+    let sub_a = a[pos..pos+len].to_vec();
+    match String::from_utf8(sub_a) {
+        Ok(s) => s,
+        Err(_) => {
+            for i in 0..len {
+                let idx = pos + i;
+                if idx < a.len() {
+                    s.push(a[idx] as char);
+                }
+            }
+            s
         }
     }
-    s
 }
 
 pub fn array_read_u16(a: &Vec<u8>, pos: usize) ->u16 {
