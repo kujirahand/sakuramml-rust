@@ -599,18 +599,20 @@ fn exec_for(song: &mut Song, t: &Token) -> bool {
 }
 
 fn get_system_value(cmd: &str, song: &Song) -> Option<SValue> {
-    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" {
+    // <SYSTEM_REF>
+    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" { // @ 現在のトラック番号を得る
         let tr = song.cur_track as isize;
         return Some(SValue::from_i(tr));
     }
-    else if cmd == "CH" || cmd == "CHANNEL" {
+    if cmd == "CH" || cmd == "CHANNEL" { // @ 現在のチャンネル番号を得る
         let ch = trk!(song).channel;
         return Some(SValue::from_i(ch));
     }
-    else if cmd == "TIME" || cmd == "Time" {
+    if cmd == "TIME" || cmd == "Time" { // @ 現在のタイムポインタ値を得る
         let v = trk!(song).timepos;
         return Some(SValue::from_i(v));
     }
+    // </SYSTEM_REF>
     None
 }
 

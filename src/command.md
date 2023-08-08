@@ -11,8 +11,8 @@
 | 十六音符 | 十六音符を基本音符にする(="l16") |
 | 付点四分音符 | 付点四分音符を基本音符にする(="l4.") |
 | 音源初期化 | 音源初期化//音源の初期化(GMリセット)を実行する。（例）音源初期化(="System.MeasureShift(1ResetGM;Time(1:1:0TrackSync;") |
-| 音長 | undefined(="l" // 基本音符を指定) |
-| 音量予約 | undefined(="v.onTime=" // 音量を予約指定する) |
+| 音長 | 基本音符を指定(="l") |
+| 音量予約 | 音量を予約指定する(="v.onTime=") |
 | 「 | 和音はじめ(="'") |
 | 」 | 和音おわり(="'") |
 | 【 | 繰り返しはじめ(="[") |
@@ -213,6 +213,16 @@
 | EXIT / Exit / BREAK / Break | BREAK文 FOR/WHILEを抜ける |
 | CONTINUE / Continue | CONTINUE文 FOR/WHILEを続ける |
 | RandomSeed / RANDOM_SEED | 乱数の種を設定する (例 RandomSeed=1234) |
+
+
+## 計算式で参照できる値
+
+| コマンド | 説明    |
+|---------|--------|
+| TR /  TRACK /  Track { |現在のトラック番号を得る|
+| CH /  CHANNEL { |現在のチャンネル番号を得る|
+| TIME /  Time { |現在のタイムポインタ値を得る|
+
 
 
 ## マクロや音色など変数定義
