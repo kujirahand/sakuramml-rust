@@ -56,12 +56,12 @@ impl SutotonList {
 fn init_items() -> SutotonList {
     let mut items = SutotonList::new();
     // <SUTOTON>
-    items.set_item("全音符", "l1"); // 全音符を基本音符にする
-    items.set_item("二分音符", "l2"); // 二分音符を基本音符にする
-    items.set_item("四分音符", "l4"); // 四分音符を基本音符にする
-    items.set_item("八分音符", "l8"); // 八分音符を基本音符にする
-    items.set_item("十六音符", "l16"); // 十六音符を基本音符にする
-    items.set_item("付点四分音符", "l4."); // 付点四分音符を基本音符にする
+    items.set_item("全音符", "l1"); // @ 全音符を基本音符にする
+    items.set_item("二分音符", "l2"); // @ 二分音符を基本音符にする
+    items.set_item("四分音符", "l4"); // @ 四分音符を基本音符にする
+    items.set_item("八分音符", "l8"); // @ 八分音符を基本音符にする
+    items.set_item("十六音符", "l16"); // @ 十六音符を基本音符にする
+    items.set_item("付点四分音符", "l4."); // @ 付点四分音符を基本音符にする
     items.set_item("音源初期化", "System.MeasureShift(1);ResetGM;Time(1:1:0);TrackSync;"); // @ 音源初期化//音源の初期化(GMリセット)を実行する。（例）音源初期化
     items.set_item("音長", "l"); // 基本音符を指定
     items.set_item("音量予約", "v.onTime="); // 音量を予約指定する
