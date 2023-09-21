@@ -474,6 +474,10 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
             v
         ]);
     }
+    if cmd == "FUNCTION" || cmd == "Function" {
+        // @ 関数を定義する (未実装)
+        return read_def_function(cur, song);
+    }
     // </UPPER_COMMANDS>
     
     // check variable
@@ -483,6 +487,47 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
     read_error(cur, song, &cmd);
     return Token::new_empty(&cmd, cur.line);
+}
+
+fn read_def_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    cur.skip_space();
+    // get function name
+    let func_name = cur.get_word();
+    cur.skip_space();
+    // get args
+    if !cur.eq_char('(') {
+        return read_error(cur, song, "FUNCTION");
+    }
+    let args_str = cur.get_token_nest('(', ')');
+     let mut args: Vec<&str> = args_str.split(",").collect();
+    for i in 0..args.len() {
+        args[i] = args[i].trim();
+    }
+    let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+    // get body
+    cur.skip_space_ret();
+    if !cur.eq_char('{') {
+        return read_error(cur, song, "FUNCTION");
+    }
+    let lineno = cur.line;
+    let body_s = cur.get_token_nest('{', '}');
+    let body_tok = lex(song, &body_s, lineno);
+    let mut func_tok = Token::new_data_tokens(TokenType::DefFunction, 0, vec![
+            SValue::from_s(func_name.clone()),
+            SValue::from_str_array(args),
+        ], vec![
+            Token::new_tokens(TokenType::Tokens, 0, body_tok),
+        ]);
+    func_tok.lineno = lineno;
+    // show warning
+    song.add_log(format!(
+        "[WARN]({}) {} \"{}\"",
+        cur.line,
+        // song.get_message(MessageKind::NotSupportedFunction),
+        "FUNCTION not supported".to_string(),
+        func_name,
+    ));
+    func_tok
 }
 
 fn read_error(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {

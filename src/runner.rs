@@ -362,6 +362,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.flags.break_flag = 2;
                 break;
             },
+            TokenType::DefFunction => {
+                // nop
+            },
             TokenType::Calc => {
                 // get flag char
                 let flag = std::char::from_u32(t.tag as u32).unwrap_or('😔');

@@ -7,6 +7,7 @@ pub enum SValue {
     Bool(bool),
     Array(Vec<SValue>),
     IntArray(Vec<isize>),
+    StrArray(Vec<String>),
     None,
 }
 
@@ -23,6 +24,9 @@ impl SValue {
     }
     pub fn from_int_array(a: Vec<isize>) -> Self {
         SValue::IntArray(a)
+    }
+    pub fn from_str_array(a: Vec<String>) -> Self {
+        SValue::StrArray(a)
     }
     pub fn from_i(v: isize) -> Self {
         Self::Int(v)
