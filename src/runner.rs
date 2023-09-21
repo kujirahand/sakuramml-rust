@@ -76,7 +76,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 if song.debug {
                     println!("{}", msg);
                 }
-                song.logs.push(msg);
+                song.add_log(msg);
             },
             // Loop controll
             TokenType::LoopBegin => {
@@ -227,8 +227,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     8 => 8,
                     16 => 16,
                     _ => {
-                        song.logs
-                            .push(String::from("[TimeSignature] value must be 2/4/8/16,n"));
+                        song.add_log(String::from("[TimeSignature] value must be 2/4/8/16,n"));
                         4
                     }
                 };
@@ -392,7 +391,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     '/' => c = a.div(b),
                     '%' => c = SValue::from_i(a.to_i() % b.to_i()),
                     _ => {
-                        song.logs.push(String::from("[Calc] unknown flag"));
+                        song.add_log(String::from("[Calc] unknown flag"));
                     }
                 }
                 song.stack.push(c);
@@ -519,7 +518,7 @@ fn exec_while(song: &mut Song, t: &Token) -> bool {
         // check counter
         counter += 1;
         if counter > song.flags.max_loop {
-            song.logs.push(format!(
+            song.add_log(format!(
                 "[ERROR]({}) {} WHILE(>{})", t.lineno, 
                 song.get_message(MessageKind::LoopTooManyTimes),
                 song.flags.max_loop
@@ -573,7 +572,7 @@ fn exec_for(song: &mut Song, t: &Token) -> bool {
         // check loop counter
         counter += 1;
         if counter > song.flags.max_loop {
-            song.logs.push(format!(
+            song.add_log(format!(
                 "[ERROR]({}) {} FOR(>{})", t.lineno, 
                 song.get_message(MessageKind::LoopTooManyTimes),
                 song.flags.max_loop
@@ -629,7 +628,7 @@ fn var_extract(val: &SValue, song: &mut Song) -> SValue {
                             Some(v) => return v,
                             None => {
                                 let err_msg = format!("[WARN]({}) Undefined: {}", song.lineno, key);
-                                song.logs.push(err_msg);
+                                song.add_log(err_msg);
                                 SValue::None
                             },
                         }

@@ -135,7 +135,7 @@ fn compile_to_midi(src: &str, midifile: &str, debug: bool) {
     exec(&mut song, &tokens);
     // println!("song= {:?}", song);
     save_to_file(&mut song, &midifile);
-    println!("{}\nok.", song.logs.join("\n").trim());
+    println!("{}\nok.", song.get_logs_str().trim());
 }
 
 /// save song to file

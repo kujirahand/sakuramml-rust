@@ -6,6 +6,10 @@ use crate::svalue::SValue;
 use crate::mml_def::{self, TieMode};
 use crate::sakura_message::{MessageLang, MessageData, MessageKind};
 
+// const
+pub const SAKURA_MAX_LOGS: usize = 100; // lines
+pub const SAKURA_MAX_LOGS_CHARS: usize = 1024 * 4; // chars
+
 /// Event Type
 #[derive(Debug, Clone, PartialEq)]
 pub enum EventType {
@@ -368,9 +372,9 @@ pub struct Song {
     pub play_from: isize,
     pub v_add: isize,
     pub stack: Vec<SValue>,
-    pub logs: Vec<String>, // ログ
     pub rand_seed: u32,
     pub lineno: isize,
+    logs: Vec<String>, // ログ
 }
 
 impl Song {
@@ -407,10 +411,19 @@ impl Song {
         self.message_data.get(kind)
     }
     pub fn get_logs_str(&self) -> String {
-        self.logs.join("\n")
+        let msg = self.logs.join("\n");
+        let chars = msg.chars();
+        if chars.count() <= SAKURA_MAX_LOGS_CHARS { return msg; }
+        let mut submsg: String = msg.chars().take(SAKURA_MAX_LOGS_CHARS).collect();
+        submsg.push_str("...");
+        submsg
     }
     pub fn add_log(&mut self, msg: String) {
+        if SAKURA_MAX_LOGS <= self.logs.len() { return; } // check max logs
         self.logs.push(msg);
+    }
+    pub fn get_logs_len(&self) -> usize {
+        self.logs.len()
     }
     pub fn add_event(&mut self, e: Event) {
         self.tracks[self.cur_track].events.push(e);

@@ -83,13 +83,13 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
 }
 
 fn lex_error(cur: &mut TokenCursor, song: &mut Song, msg: &str) {
-    if song.logs.len() == LEX_MAX_ERROR {
-        song.logs.push(format!(
+    if song.get_logs_len() == LEX_MAX_ERROR {
+        song.add_log(format!(
             "[ERROR]({}) {}",
             cur.line,
             song.get_message(MessageKind::TooManyErrorsInLexer)
         ));
-    } else if song.logs.len() < LEX_MAX_ERROR {
+    } else if song.get_logs_len() < LEX_MAX_ERROR {
         let near = cur.peek_str_n(8).replace('\n', "↵");
         let log = format!(
             "[ERROR]({}) {}: \"{}\" {} \"{}\"",
@@ -99,7 +99,7 @@ fn lex_error(cur: &mut TokenCursor, song: &mut Song, msg: &str) {
             song.get_message(MessageKind::Near),
             near
         );
-        song.logs.push(log);
+        song.add_log(log);
     }
 }
 
@@ -487,7 +487,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_error(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
     let near = cur.peek_str_n(8).replace('\n', "↵");
-    song.logs.push(format!(
+    song.add_log(format!(
         "[ERROR]({}) {} \"{}\" {} \"{}\"",
         cur.line,
         song.get_message(MessageKind::ScriptSyntaxError),
@@ -1273,7 +1273,7 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     let var_name = cur.get_word();
     if var_name == "" {
-        song.logs.push(format!(
+        song.add_log(format!(
             "[ERROR]({}): INT command should use Upper case like \"Test\".",
             cur.line
         ));
@@ -1383,7 +1383,7 @@ fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     let var_name = cur.get_word();
     if var_name == "" {
-        song.logs.push(format!(
+        song.add_log(format!(
             "[ERROR]({}): STR command should use Upper case like \"Test\"",
             cur.line
         ));
@@ -1396,7 +1396,7 @@ fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     let ch = cur.peek().unwrap_or(' ');
     if ch != '"' && ch != '{' {
-        song.logs.push(format!(
+        song.add_log(format!(
             "[ERROR]({}): STR command should set string (like STR NAME={{ ... }})",
             cur.line
         ));
