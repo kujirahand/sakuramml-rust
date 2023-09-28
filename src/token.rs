@@ -69,6 +69,7 @@ pub enum TokenType {
     ValueInc,
     SetConfig,
     DefFunction,
+    CallFunction,
 }
 
 #[derive(Debug, Clone)]
@@ -208,6 +209,8 @@ pub fn zen2han(c: char) -> char {
         _ => c,
     }
 }
+
+pub type Tokens = Vec<Token>;
 
 #[cfg(test)]
 mod tests {

@@ -5,11 +5,15 @@
 pub enum MessageKind {
     UnknownChar,
     UnknownCommand,
+    UnknownError,
     Near,
     TooManyErrorsInLexer,
     ScriptSyntaxError,
+    ScriptSyntaxWarning,
     MissingParenthesis,
     LoopTooManyTimes,
+    ErrorRedfineFnuction,
+    RuntimeError,
 }
 
 /// Language
@@ -60,6 +64,12 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
                 MessageLang::JA => "未定義のコマンド",
             }
         },
+        MessageKind::UnknownError => {
+            match lang {
+                MessageLang::EN => "Unknown Error",
+                MessageLang::JA => "未定義のエラー",
+            }
+        },
         MessageKind::Near => {
             match lang {
                 MessageLang::EN => "near",
@@ -74,8 +84,14 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
         },
         MessageKind::ScriptSyntaxError => {
             match lang {
-                MessageLang::EN => "Script Syntax Error",
-                MessageLang::JA => "スクリプトの構文エラー",
+                MessageLang::EN => "Syntax Error",
+                MessageLang::JA => "構文エラー",
+            }
+        },
+        MessageKind::ScriptSyntaxWarning => {
+            match lang {
+                MessageLang::EN => "Script Syntax Warning",
+                MessageLang::JA => "スクリプトの警告",
             }
         },
         MessageKind::MissingParenthesis => {
@@ -89,6 +105,18 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
                 MessageLang::EN => "Loop too many times",
                 MessageLang::JA => "ループが制限を超えました",
             }
-        }
+        },
+        MessageKind::ErrorRedfineFnuction => {
+            match lang {
+                MessageLang::EN => "Error: Redefine Function",
+                MessageLang::JA => "エラー: 関数の再定義",
+            }
+        },
+        MessageKind::RuntimeError => {
+            match lang {
+                MessageLang::EN => "Runtime Error",
+                MessageLang::JA => "実行時エラー",
+            }
+        },
     }
 }

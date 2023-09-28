@@ -409,7 +409,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     song.stack.push(v);
                 } else {
                     // function
-                    exec_function(song, t);
+                    exec_sys_function(song, t);
                 }
             },
             TokenType::ValueInc => {
@@ -426,13 +426,53 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     song.rand_seed = val.to_i() as u32;
                 }
             },
+            TokenType::CallFunction => {
+                exec_call_user_function(song, t);
+            },
         }
         pos += 1;
     }
     true
 }
 
-fn exec_function(song: &mut Song, t: &Token) -> bool {
+fn runtime_error(song: &mut Song, msg: &str) {
+    song.add_log(format!(
+        "[ERROR]({}) {}: {}",
+        song.lineno,
+        song.get_message(MessageKind::RuntimeError),
+        msg
+    ));
+}
+
+fn exec_call_user_function(song: &mut Song, t: &Token) -> bool {
+    // check func_id
+    let func_id = t.tag as usize;
+    if song.functions.len() <= func_id {
+        runtime_error(song, &format!("broken func_id={} in exec_call_user_function", func_id));
+        return false;
+    }
+    // eval args
+    let args_tokens = t.children.clone().unwrap();
+    let mut args: Vec<SValue> = vec![];
+    for tok in args_tokens.iter() {
+        exec(song, &vec![tok.clone()]);
+        let v = song.stack.pop().unwrap_or(SValue::None);
+        args.push(v);
+    }
+    // set local variables
+    for (i, v) in args.iter().enumerate() {
+        if i >= song.functions[func_id].arg_names.len() {
+            break;
+        }
+        let varname = song.functions[func_id].arg_names[i].clone();
+        song.variables.insert(varname, v.clone());
+    }
+    // eval function
+    let tokens = song.functions[func_id].tokens.clone();
+    exec(song, &tokens)
+}
+
+fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
     let stack_size1 = song.stack.len();
     let args_tokens = t.children.clone().unwrap_or(vec![]);
     exec(song, &args_tokens);

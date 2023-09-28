@@ -3,7 +3,7 @@
 use crate::cursor::TokenCursor;
 use crate::runner::calc_length;
 use crate::sakura_message::MessageKind;
-use crate::song::Song;
+use crate::song::{Song, SFunction};
 use crate::svalue::SValue;
 use crate::token::{zen2han, Token, TokenType};
 
@@ -494,16 +494,42 @@ fn read_def_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // get function name
     let func_name = cur.get_word();
     cur.skip_space();
+    // check double definition
+    if song.variables.contains_key(&func_name) {
+        let reason = song.get_message(MessageKind::ErrorRedfineFnuction);
+        read_warning(cur, song, &func_name, reason);
+    }
     // get args
     if !cur.eq_char('(') {
         return read_error(cur, song, "FUNCTION");
     }
+    // check args
     let args_str = cur.get_token_nest('(', ')');
-     let mut args: Vec<&str> = args_str.split(",").collect();
+     let args: Vec<&str> = args_str.split(",").collect();
+     let mut arg_types: Vec<char> = vec![];
+     let mut arg_names: Vec<String> = vec![];
     for i in 0..args.len() {
-        args[i] = args[i].trim();
+        let name = args[i].trim().to_string();
+        if name.len() == 0 { continue; }
+        // include space?
+        if name.contains(" ") {
+            // split string by " "
+            let splited: Vec<&str> = name.split(" ").collect();
+            let name_s = splited[0].trim();
+            let type_s = splited[1].trim();
+            // get type
+            let mut type_sf = 'I';
+            if type_s == "Str" || type_s == "STR" || type_s == "S" { type_sf = 'S'; }
+            if type_s == "Int" || type_s == "INT" || type_s == "I" { type_sf = 'I'; }
+            if type_s == "Array" || type_s == "ARRAY" || type_s == "A" { type_sf = 'A'; }
+            arg_types.push(type_sf);
+            arg_names.push(name_s.to_string());
+        } else {
+            // only name
+            arg_types.push('i');
+            arg_names.push(name);
+        }
     }
-    let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
     // get body
     cur.skip_space_ret();
     if !cur.eq_char('{') {
@@ -512,22 +538,16 @@ fn read_def_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
     let body_s = cur.get_token_nest('{', '}');
     let body_tok = lex(song, &body_s, lineno);
-    let mut func_tok = Token::new_data_tokens(TokenType::DefFunction, 0, vec![
-            SValue::from_s(func_name.clone()),
-            SValue::from_str_array(args),
-        ], vec![
-            Token::new_tokens(TokenType::Tokens, 0, body_tok),
-        ]);
-    func_tok.lineno = lineno;
-    // show warning
-    song.add_log(format!(
-        "[WARN]({}) {} \"{}\"",
-        cur.line,
-        // song.get_message(MessageKind::NotSupportedFunction),
-        "FUNCTION not supported".to_string(),
-        func_name,
-    ));
-    func_tok
+    // register variables
+    let func_id = song.functions.len();
+    let func_val = SValue::Func(func_id);
+    song.variables.insert(func_name.clone(), func_val);
+    // register function to song.functions
+    let mut func_obj = SFunction::new(&func_name, body_tok, func_id, lineno);
+    func_obj.arg_names = arg_names;
+    func_obj.arg_types = arg_types;
+    song.functions.push(func_obj);
+    Token::new_empty(&format!("DefineFunction::{}", func_name), lineno)
 }
 
 fn read_error(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
@@ -542,6 +562,21 @@ fn read_error(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
     ));
     return Token::new_empty("ERROR", cur.line);
 }
+
+fn read_warning(cur: &mut TokenCursor, song: &mut Song, cmd: &str, reason: &str) -> Token {
+    let near = cur.peek_str_n(8).replace('\n', "↵");
+    song.add_log(format!(
+        "[WARN]({}) {} \"{}\" {} : {} \"{}\"",
+        cur.line,
+        song.get_message(MessageKind::ScriptSyntaxWarning),
+        cmd,
+        reason,
+        song.get_message(MessageKind::Near),
+        near,
+    ));
+    return Token::new_empty("ERROR", cur.line);
+}
+
 
 // --- lex calc script ---
 const LEX_VALUE: isize = 1;
@@ -988,10 +1023,17 @@ fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SVal
             let tokens = lex(song, &src, line_no);
             return Token::new_tokens(TokenType::Tokens, line_no, tokens);
         }
-        _ => {
-            return Token::new_empty(&format!("Could not execute: {}", name), cur.line);
-        }
+        SValue::Func(func_id) => { return read_call_function(cur, song, func_id); },
+        _ => { return Token::new_empty(&format!("Could not execute: {}", name), cur.line); }
     }
+}
+
+fn read_call_function(cur: &mut TokenCursor, song: &mut Song, func_id: usize) -> Token {
+    cur.skip_space();
+    let args: Vec<Token> = read_args_tokens(cur, song);
+    let mut call_func_tok = Token::new(TokenType::CallFunction, func_id as isize, vec![]);
+    call_func_tok.children = Some(args);
+    call_func_tok
 }
 
 // Emptyを削除し、Tokensを展開して返す。ただし、Div/Subは実行時にならないと展開結果が分からないため、それは展開しない
@@ -1120,7 +1162,6 @@ fn read_args_vec(cur: &mut TokenCursor, song: &mut Song) -> Vec<SValue> {
     a
 }
 
-#[allow(dead_code)]
 fn read_args_tokens(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
     cur.skip_space();
     let skip_paren = if cur.eq_char('(') {

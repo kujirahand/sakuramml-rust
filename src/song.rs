@@ -5,6 +5,7 @@ use crate::runner::value_range;
 use crate::svalue::SValue;
 use crate::mml_def::{self, TieMode};
 use crate::sakura_message::{MessageLang, MessageData, MessageKind};
+use crate::token::Tokens;
 
 // const
 pub const SAKURA_MAX_LOGS: usize = 100; // lines
@@ -353,6 +354,29 @@ impl Flags {
     }
 }
 
+#[derive(Debug)]
+pub struct SFunction {
+    pub name: String,
+    pub tokens: Tokens,
+    pub lineno: isize,
+    pub func_id: usize,
+    pub arg_names: Vec<String>,
+    pub arg_types: Vec<char>, // S: string, I: int, A: array
+}
+
+impl SFunction {
+    pub fn new(name: &str, tokens: Tokens, func_id: usize, lineno: isize) -> Self {
+        Self {
+            name: name.to_string(),
+            tokens,
+            lineno,
+            func_id,
+            arg_names: vec![],
+            arg_types: vec![],
+        }
+    }
+}
+
 /// Song
 #[derive(Debug)]
 pub struct Song {
@@ -367,6 +391,7 @@ pub struct Song {
     pub flags: Flags,
     pub rhthm_macro: Vec<String>,
     pub variables: HashMap<String, SValue>,
+    pub functions: Vec<SFunction>,
     pub key_flag: Vec<isize>,
     pub key_shift: isize,
     pub play_from: isize,
@@ -393,6 +418,7 @@ impl Song {
             flags: Flags::new(),
             rhthm_macro: mml_def::init_rhythm_macro(),
             variables: mml_def::init_variables(),
+            functions: vec![],
             key_flag: vec![0,0,0,0,0,0,0,0,0,0,0,0],
             key_shift: 0,
             play_from: -1,
