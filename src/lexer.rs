@@ -122,6 +122,9 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             /*
             "//" => // @ 一行コメント
             "/*" .. "*/" => // @ 範囲コメント
+            "##" => // @ 一行コメント
+            "# " => // @ 一行コメント
+            "#-" => // @ 一行コメント
              */
             '/' => {
                 if cur.eq_char('/') {
@@ -194,6 +197,10 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
 
     // <UPPER_COMMANDS>
+    /*
+    if cmd == "End" || cmd == "END" { } 
+    // @ それ移行をコンパイルしない
+    */
     // Track & Channel
     if cmd == "TR" || cmd == "TRACK" || cmd == "Track" {
         // @ トラック変更　TR=番号 範囲:0-

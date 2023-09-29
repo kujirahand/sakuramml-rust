@@ -125,6 +125,9 @@
 | ( | 音量を8つ下げる |
 | // | 一行コメント |
 | /* .. */ | 範囲コメント |
+| ## | 一行コメント |
+| # | 一行コメント |
+| #- | 一行コメント |
 | [ | ループ開始 (例 [4 cdeg]) |
 | : | ループ最終回に脱出 (例　[4 cde:g]e) |
 | ] | ループ終了 |
@@ -141,6 +144,7 @@
 
 | コマンド | 説明    |
 |---------|--------|
+| End / END | それ移行をコンパイルしない |
 | TR / TRACK / Track | トラック変更　TR=番号 範囲:0- |
 | CH / Channel | チャンネル変更 CH=番号 範囲:1-16 |
 | TIME / Time | タイム変更 TIME(節:拍:ステップ) |
@@ -212,7 +216,9 @@
 | WHILE / While | WHILE文 (書式) WHILE(条件){ … } |
 | EXIT / Exit / BREAK / Break | BREAK文 FOR/WHILEを抜ける |
 | CONTINUE / Continue | CONTINUE文 FOR/WHILEを続ける |
+| RETURN / Return | RETURN(戻り値) 関数を抜ける |
 | RandomSeed / RANDOM_SEED | 乱数の種を設定する (例 RandomSeed=1234) |
+| FUNCTION / Function | 関数を定義する (未実装) |
 
 
 ## 計算式で参照できる値
