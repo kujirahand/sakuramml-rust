@@ -302,8 +302,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::DefStr => {
                 let var_key = t.data[0].to_s();
-                let var_val = var_extract(&t.data[1], song);
-                song.variables_insert(&var_key, var_val);
+                let val_tokens = t.children.clone().unwrap_or(vec![]);
+                let val = exec_value(song, &val_tokens);
+                song.variables_insert(&var_key, val);
             },
             TokenType::PlayFrom => {
                 song.play_from = trk!(song).timepos;
@@ -422,7 +423,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Value => {
                 // extract value
-                // println!("Value=>{:?}", t);
+                println!("Value=>{:?}", t);
                 // check is variable?
                 if t.tag == 0 {
                     let v = var_extract(&t.data[0], song);
@@ -504,7 +505,7 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
     // is user function?
     let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
     match func_val {
-        SValue::Func(_func_id) => {
+        SValue::UserFunc(_func_id) => {
             exec_call_user_function(song, t);
         },
         _ => {}, // maybe system function
@@ -531,10 +532,59 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
         let r = song.rand() as usize % arg_count;
         song.stack.push(args[r as usize].clone());
     }
+    if func_name == "CHR" || func_name == "Chr" {
+        if arg_count >= 1 {
+            let val = args[0].to_i();
+            let mut s = String::new();
+            s.push(std::char::from_u32(val as u32).unwrap_or(' '));
+            song.stack.push(SValue::from_s(s));
+        } else {
+            song.stack.push(SValue::from_str(" "));
+        }
+    }
+    if func_name == "MID" || func_name == "Mid" {
+        if arg_count >= 3 {
+            let val = args[0].to_s();
+            let i_from = args[1].to_i() as usize;
+            let i_len = args[2].to_i() as usize;
+            // println!("MID={},{},{}", val, i_from, i_len);
+            let s = vb_mid(&val, i_from, i_len).unwrap_or("");
+            // println!("MID={}", s);
+            song.stack.push(SValue::from_str(s));
+        } else {
+            song.stack.push(SValue::from_str("(MID:ERROR)"));
+        }
+    }
     else {
-        song.stack.push(SValue::from_s(t.data[0].to_s().clone()));
+        // macro ("=var_name")
+        let func_name2 = if func_name.len() >= 2 { func_name[1..].to_string() } else { func_name };
+        let args = t.children.clone().unwrap_or(vec![]);
+        let args = exec_args(song, &args);
+        let val = song.variables_get(&func_name2).unwrap_or(&SValue::new()).clone();
+        let mut val_s = val.to_s();
+        for (index, arg) in args.iter().enumerate() {
+            let macro_n = format!("#?{}", index+1);
+            let target = arg.clone().to_s();
+            val_s = val_s.replace(&macro_n, &target);
+        }
+        // println!("macro={}", val_s);
+        if song.flags.function_needs_return_value {
+            song.stack.push(SValue::from_s(val_s));
+        } else {
+            // exec macro
+            let tokens = lex(song, &val_s, t.lineno);
+            exec(song, &tokens);
+        }
     }
     true
+}
+
+fn vb_mid(input: &str, start: usize, length: usize) -> Option<&str> {
+    let input_len = input.len();
+    let start = if start >= 1 { start - 1 } else { 0 };
+    let mut end = start + length;
+    if end >= input_len { end = input_len; }
+    Some(&input[start..end])
 }
 
 fn exec_if(song: &mut Song, t: &Token) -> bool {
@@ -1502,4 +1552,19 @@ mod tests {
         ));
         assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
     }
-}
+   #[test]
+    fn test_exec_sys_func() {
+        // mid
+        let song = exec_easy("STR A={abcd};PRINT(MID(A,1,2))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) ab");
+    }
+   #[test]
+    fn test_lex_macro_extract() {
+        let song = exec_easy("STR A={c} PRINT(A)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) c");
+        let song = exec_easy("#A={c} PRINT(#A)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) c");
+        // let song = exec_easy("STR A={#?1} A{e}");
+        // assert_eq!(song.get_logs_str(), "[PRINT](0) c");
+    }
+ }

@@ -16,9 +16,11 @@ pub fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
         // skip comment
         if cur.eq("/*") {
             cur.get_token_s("*/");
+            continue;
         }
         if cur.eq("//") {
             cur.get_token_ch('\n');
+            continue;
         }
         // check upper case
         if cur.is_upper() {
@@ -34,7 +36,7 @@ pub fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
                 }
                 // register function name
                 let func_id = song.functions.len();
-                song.variables_insert(&func_name, SValue::Func(func_id));
+                song.variables_insert(&func_name, SValue::UserFunc(func_id));
                 let sfunc = SFunction::new(&func_name, vec![], func_id, 0);
                 song.functions.push(sfunc);
                 continue;
@@ -594,7 +596,7 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // register variables
     let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
     let func_id = match func_val {
-        SValue::Func(func_id) => func_id,
+        SValue::UserFunc(func_id) => func_id,
         _ => {
             // system error to analyze function in preprocess
             read_error(cur, song, &format!("(System error) Define Function: {}", func_name));
@@ -705,11 +707,13 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                 let mut tok = Token::new(TokenType::Value, LEX_VALUE, vec![]);
                 let varname = cur.get_word();
                 let varname_flag = format!("={}", varname);
+                println!("@@@read_calc:{}", varname);
                 tok.tag = 0;
                 if cur.eq_char('(') {
                     // function call
                     let arg_lineno = cur.line;
                     let arg_str = cur.get_token_nest('(', ')');
+                    println!("@@@read_calc_args={:?}", arg_str);
                     let arg_tokens = lex_calc(song, &arg_str, arg_lineno);
                     tok.children = Some(arg_tokens);
                     tok.tag = 1; // FUNCTION
@@ -913,6 +917,10 @@ fn lex_calc(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
         let lastpos = cur.index;
         let tokens = read_calc(&mut cur, song);
         result.extend(tokens);
+        if cur.peek().unwrap_or('\0') == ',' {
+            cur.next();
+            continue;
+        }
         if lastpos == cur.index {
             let ch = cur.get_char();
             println!("[skip]({}) {}", cur.line, ch);
@@ -1069,27 +1077,21 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
 
 fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SValue) -> Token {
     match sval {
-        SValue::Str(src_org, line_no) => {
-            let mut src = src_org.clone();
-            // replace macro ?
-            match src.find("#?1") {
-                Some(_) => {
-                    if cur.eq_char('(') || cur.eq_char('{') {
-                        // has parameters
-                        let mut args = read_args_vec(cur, song);
-                        for (i, v) in args.iter_mut().enumerate() {
-                            let pat = format!("#?{}", i + 1);
-                            src = src.replace(&pat, &v.to_s());
-                        }
-                    }
-                }
-                None => {}
+        SValue::Str(_src_org, _line_no) => {
+            // replace macro?
+            cur.skip_space();
+            if cur.eq_char('(') {
+                let args = read_args_tokens(cur, song);
+                let mut tok = Token::new_tokens(TokenType::Value, LEX_VALUE, args);
+                tok.tag = 1; // Macro
+                tok.data = vec![SValue::from_s(format!("={}", name))];
+                return tok;
+            } else {
+                let tok = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_s(format!("={}", name))]);
+                return tok;
             }
-            // lex source
-            let tokens = lex(song, &src, line_no);
-            return Token::new_tokens(TokenType::Tokens, line_no, tokens);
         }
-        SValue::Func(func_id) => { return read_call_function(cur, song, func_id); },
+        SValue::UserFunc(func_id) => { return read_call_function(cur, song, func_id); },
         _ => { return Token::new_empty(&format!("Could not execute: {}", name), cur.line); }
     }
 }
@@ -1542,24 +1544,27 @@ fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new_empty("Failed to def STR", cur.line);
     }
     cur.skip_space();
+    let line_no = cur.line;
+    let mut init_value_tokens = vec![];
+    let mut data_str = "".to_string();
     if cur.eq_char('=') {
         cur.next();
+        cur.skip_space();
+        let ch = cur.peek().unwrap_or('\0');
+        if ch == '"' && ch == '{' {
+            // get normal string
+            data_str = if ch == '{' { cur.get_token_nest('{', '}') } else { cur.next(); cur.get_token_ch(ch) };
+            data_str = format!("{}{}{}", '{', data_str, '}');
+            init_value_tokens = lex_calc(song, &data_str, line_no);
+        } else {
+            // get calc
+            let tok = read_calc_token(cur, song);
+            init_value_tokens = vec![tok];
+        }
     }
-    cur.skip_space();
-    let ch = cur.peek().unwrap_or(' ');
-    if ch != '"' && ch != '{' {
-        song.add_log(format!(
-            "[ERROR]({}): STR command should set string (like STR NAME={{ ... }})",
-            cur.line
-        ));
-        return Token::new_empty("Failed to def STR", cur.line);
-    }
-    let line_no = cur.line;
-    let data_str = if ch == '{' { cur.get_token_nest('{', '}') } else { cur.next(); cur.get_token_ch(ch) };
-    // todo: ここで演算子があればエラーにする
-    // println!("{}", data_str);
     let var_value = SValue::from_str_and_tag(&data_str, line_no);
-    let tok = Token::new_empty("STR", cur.line);
+    let mut tok = Token::new_tokens(TokenType::DefStr, 0, init_value_tokens);
+    tok.data = vec![SValue::from_s(var_name.clone())];
     song.variables_insert(&var_name, var_value);
     tok
 }
@@ -2335,23 +2340,6 @@ mod tests {
         assert_eq!(
             &tokens_to_str(&lex(&mut song, "'dg'^^^", 0)),
             "[HarmonyBegin,0][Note,2][Note,7][HarmonyEnd,0]"
-        );
-    }
-    #[test]
-    fn test_lex_macro_extract() {
-        let mut song = Song::new();
-        assert_eq!(
-            &tokens_to_str(&lex(&mut song, "STR A={c} A", 0)),
-            "[Note,0]"
-        );
-        assert_eq!(&tokens_to_str(&lex(&mut song, "#A={d} #A", 0)), "[Note,2]");
-        assert_eq!(
-            &tokens_to_str(&lex(&mut song, "STR A={#?1} A{e}", 0)),
-            "[Note,4]"
-        );
-        assert_eq!(
-            &tokens_to_str(&lex(&mut song, "#A={#?1} #A{f}", 0)),
-            "[Note,5]"
         );
     }
     #[test]

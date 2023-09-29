@@ -8,7 +8,7 @@ pub enum SValue {
     Array(Vec<SValue>),
     IntArray(Vec<isize>),
     StrArray(Vec<String>),
-    Func(usize), // link to song.functions[no]
+    UserFunc(usize), // link to song.functions[no]
     None,
 }
 
