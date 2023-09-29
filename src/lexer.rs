@@ -38,6 +38,11 @@ pub fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
                     let reason = song.get_message(MessageKind::ErrorRedfineFnuction);
                     read_warning(cur, song, &func_name, reason);
                 }
+                // check reserved words
+                if song.reserved_words.contains_key(&func_name) {
+                    let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), func_name);
+                    read_error(cur, song, &msg);
+                }
                 // register function name
                 let func_id = song.functions.len();
                 song.variables_insert(&func_name, SValue::UserFunc(func_id));
@@ -570,7 +575,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         Some(res) => return res,
         None => {}
     }
-    read_error(cur, song, &cmd);
+    read_error_cmd(cur, song, &cmd);
     return Token::new_empty(&cmd, cur.line);
 }
 
@@ -581,7 +586,7 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     // get args
     if !cur.eq_char('(') {
-        return read_error(cur, song, "FUNCTION");
+        return read_error_cmd(cur, song, "FUNCTION");
     }
     // check args
     song.variables_stack_push();
@@ -616,7 +621,7 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // get body
     cur.skip_space_ret();
     if !cur.eq_char('{') {
-        return read_error(cur, song, "FUNCTION");
+        return read_error_cmd(cur, song, "FUNCTION");
     }
     let lineno = cur.line;
     let body_s = cur.get_token_nest('{', '}');
@@ -628,7 +633,7 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
         SValue::UserFunc(func_id) => func_id,
         _ => {
             // system error to analyze function in preprocess
-            read_error(cur, song, &format!("(System error) Define Function: {}", func_name));
+            read_error_cmd(cur, song, &format!("(System error) Define Function: {}", func_name));
             0
         }
     };
@@ -640,7 +645,7 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     Token::new_empty(&format!("DefineFunction::{}", func_name), lineno)
 }
 
-fn read_error(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
+fn read_error_cmd(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
     let near = cur.peek_str_n(8).replace('\n', "↵");
     song.add_log(format!(
         "[ERROR]({}) {} \"{}\" {} \"{}\"",
@@ -652,6 +657,19 @@ fn read_error(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
     ));
     return Token::new_empty("ERROR", cur.line);
 }
+
+fn read_error(cur: &mut TokenCursor, song: &mut Song, msg: &str) -> Token {
+    let near = cur.peek_str_n(8).replace('\n', "↵");
+    song.add_log(format!(
+        "[ERROR]({}) {} {} \"{}\"",
+        cur.line,
+        msg,
+        song.get_message(MessageKind::Near),
+        near,
+    ));
+    return Token::new_empty("ERROR", cur.line);
+}
+
 
 fn read_warning(cur: &mut TokenCursor, song: &mut Song, cmd: &str, reason: &str) -> Token {
     let near = cur.peek_str_n(8).replace('\n', "↵");
@@ -962,12 +980,12 @@ fn read_while(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
     cur.skip_space();
     if !cur.eq_char('(') {
-        read_error(cur, song, "WHILE");
+        read_error_cmd(cur, song, "WHILE");
         return Token::new_empty("ERROR:WHILE", cur.line);
     }
     // read condition
     if !cur.eq_char('(') {
-        read_error(cur, song, "WHILE");
+        read_error_cmd(cur, song, "WHILE");
         return Token::new_empty("ERROR:WHILE", cur.line);
     }
     let cond_s = cur.get_token_nest('(', ')');
@@ -988,7 +1006,7 @@ fn read_for(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
     cur.skip_space();
     if !cur.eq_char('(') {
-        read_error(cur, song, "FOR");
+        read_error_cmd(cur, song, "FOR");
         return Token::new_empty("ERROR:FOR", cur.line);
     }
     // read init
@@ -998,7 +1016,7 @@ fn read_for(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let inc_s = cur.get_token_ch(')');
     cur.skip_space();
     if !cur.eq_char('{') {
-        read_error(cur, song, "FOR");
+        read_error_cmd(cur, song, "FOR");
         return Token::new_empty("ERROR:FOR", cur.line);
     }
     let body_s = cur.get_token_nest('{', '}');
@@ -1026,14 +1044,14 @@ fn read_if(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // read condition
     cur.skip_space();
     if !cur.eq_char('(') {
-        read_error(cur, song, "IF");
+        read_error_cmd(cur, song, "IF");
         return Token::new_empty("ERROR:IF", cur.line);
     }
     let cond = cur.get_token_nest('(', ')');
     let cond_tok = lex_calc(song, &cond, cur.line);
     cur.skip_space();
     if !cur.eq_char('{') {
-        read_error(cur, song, "IF");
+        read_error_cmd(cur, song, "IF");
         return Token::new_empty("ERROR:IF", cur.line);
     }
     // read then block
@@ -1047,7 +1065,7 @@ fn read_if(cur: &mut TokenCursor, song: &mut Song) -> Token {
         cur.next_n(4); // skip "ELSE"
         cur.skip_space();
         if !cur.eq_char('{') {
-            read_error(cur, song, "IF");
+            read_error_cmd(cur, song, "IF");
             return Token::new_empty("ERROR:IF:ELSE", else_lineno);
         }
         let else_s = cur.get_token_nest('{', '}');
@@ -1077,6 +1095,11 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
     if cur.eq("=") {
         cur.next();
         cur.skip_space();
+        // check reserved words
+        if song.reserved_words.contains_key(&cmd) {
+            let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), cmd);
+            return Some(read_error(cur, song, &msg));
+        }
         // let str
         if cur.eq_char('{') {
             let body = cur.get_token_nest('{', '}');
@@ -1462,6 +1485,12 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
         ));
         return Token::new_empty("Failed to def INT", cur.line);
     }
+    // check reserved words
+    if song.reserved_words.contains_key(&var_name) {
+        let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), var_name);
+        read_error(cur, song, &msg);
+        return Token::new_empty("Failed to def INT", cur.line);
+    }
     cur.skip_space();
     if cur.eq_char('=') {
         cur.next();
@@ -1570,6 +1599,12 @@ fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
             "[ERROR]({}): STR command should use Upper case like \"Test\"",
             cur.line
         ));
+        return Token::new_empty("Failed to def STR", cur.line);
+    }
+    // check reserved words
+    if song.reserved_words.contains_key(&var_name) {
+        let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), var_name);
+        read_error(cur, song, &msg);
         return Token::new_empty("Failed to def STR", cur.line);
     }
     cur.skip_space();

@@ -14,6 +14,7 @@ pub enum MessageKind {
     LoopTooManyTimes,
     ErrorRedfineFnuction,
     RuntimeError,
+    ErrorDefineVariableIsReserved,
 }
 
 /// Language
@@ -108,8 +109,8 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
         },
         MessageKind::ErrorRedfineFnuction => {
             match lang {
-                MessageLang::EN => "Error: Redefine Function",
-                MessageLang::JA => "エラー: 関数の再定義",
+                MessageLang::EN => "Redefine Function",
+                MessageLang::JA => "関数の再定義",
             }
         },
         MessageKind::RuntimeError => {
@@ -118,5 +119,11 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
                 MessageLang::JA => "実行時エラー",
             }
         },
+        MessageKind::ErrorDefineVariableIsReserved => {
+            match lang {
+                MessageLang::EN => "Define Variable is Reserved",
+                MessageLang::JA => "変数の定義が予約語です",
+            }
+        }
     }
 }
