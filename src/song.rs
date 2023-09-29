@@ -353,7 +353,7 @@ impl Track {
     }
     pub fn write_cc_on_note_wave(&mut self, start_pos: isize) {
         let end_pos = self.timepos;
-        let wave_len = end_pos - start_pos;
+        // let _wave_len = end_pos - start_pos;
         self.timepos = start_pos;
         for cow in self.cc_on_note_wave.clone().iter() {
             println!("write_cc_on_note_wave:no={}", cow.no);
