@@ -68,8 +68,9 @@ pub enum TokenType {
     Value,
     ValueInc,
     SetConfig,
-    DefFunction,
-    CallFunction,
+    DefUserFunction,
+    CallUserFunction,
+    Return,
 }
 
 #[derive(Debug, Clone)]

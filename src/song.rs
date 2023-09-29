@@ -337,8 +337,9 @@ pub struct Flags {
     pub harmony_events: Vec<Event>,
     pub octave_once: isize,
     pub measure_shift: isize,
-    pub break_flag: isize, // 0: none 1: break 2: continue
+    pub break_flag: isize, // 0: none 1: break 2: continue 3: return
     pub max_loop: isize,
+    pub function_needs_return_value: bool,
 }
 impl Flags {
     pub fn new() -> Self {
@@ -350,6 +351,7 @@ impl Flags {
             measure_shift: 0,
             break_flag: 0,
             max_loop: 10000,
+            function_needs_return_value: false,
         }
     }
 }
@@ -390,7 +392,7 @@ pub struct Song {
     pub timesig_deno: isize, // 分母
     pub flags: Flags,
     pub rhthm_macro: Vec<String>,
-    pub variables: HashMap<String, SValue>,
+    pub variables_stack: Vec<HashMap<String, SValue>>,
     pub functions: Vec<SFunction>,
     pub key_flag: Vec<isize>,
     pub key_shift: isize,
@@ -406,6 +408,8 @@ impl Song {
     pub fn new() -> Self {
         let timebase = 96;
         let trk = Track::new(timebase, 0);
+        let global_vars = mml_def::init_variables();
+        let vars_stack = vec![global_vars];
         Self {
             debug: false,
             message_data: MessageData::new(MessageLang::EN),
@@ -417,7 +421,7 @@ impl Song {
             timesig_deno: 4,
             flags: Flags::new(),
             rhthm_macro: mml_def::init_rhythm_macro(),
-            variables: mml_def::init_variables(),
+            variables_stack: vars_stack,
             functions: vec![],
             key_flag: vec![0,0,0,0,0,0,0,0,0,0,0,0],
             key_shift: 0,
@@ -496,5 +500,48 @@ impl Song {
         }
         events.sort_by(|a, b| a.time.cmp(&b.time));
         events
+    }
+    pub fn variables_contains_key(&self, key: &str) -> bool {
+        for vars in self.variables_stack.iter().rev() {
+            if vars.contains_key(key) { return true; }
+        }
+        false
+    }
+    pub fn variables_insert(&mut self, key: &str, val: SValue) {
+        let mut last = self.variables_stack.pop().unwrap();
+        last.insert(key.to_string(), val);
+        self.variables_stack.push(last);
+    }
+    pub fn variables_get(&self, key: &str) -> Option<&SValue> {
+        for vars in self.variables_stack.iter().rev() {
+            match vars.get(key) {
+                None => continue,
+                Some(val) => return Some(val),
+            }
+        }
+        None
+    }
+    pub fn variables_modify<F: Fn(SValue)->SValue>(&mut self, key: &str, closure: F) {
+        let mut modified = false;
+        for vars in self.variables_stack.iter_mut().rev() {
+            match vars.get_mut(key) {
+                None => continue,
+                Some(val) => {
+                    modified = true;
+                    *val = closure(val.clone());
+                }
+            }
+        }
+        if !modified {
+            let new_val = closure(SValue::new());
+            self.variables_insert(key, new_val);
+        }
+    }
+    pub fn variables_stack_push(&mut self) {
+        let vars = HashMap::new();
+        self.variables_stack.push(vars);
+    }
+    pub fn variables_stack_pop(&mut self) -> HashMap<String, SValue> {
+        self.variables_stack.pop().unwrap_or(HashMap::new())
     }
 }

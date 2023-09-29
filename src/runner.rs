@@ -34,14 +34,28 @@ macro_rules! trk {
     };
 }
 
+/// run tokens and get arguments(=Vec<Token>)
 pub fn exec_args(song: &mut Song, tokens: &Vec<Token>) -> Vec<SValue> {
     let mut args: Vec<SValue> = vec![];
+    let tmp_needs_return_values = song.flags.function_needs_return_value;
+    song.flags.function_needs_return_value = true;
     for t in tokens {
         exec(song, &vec![t.clone()]);
         let v = song.stack.pop().unwrap_or(SValue::None);
         args.push(v);
     }
+    song.flags.function_needs_return_value = tmp_needs_return_values;
     args
+}
+
+/// run tokens and get value
+pub fn exec_value(song: &mut Song, tokens: &Vec<Token>) -> SValue {
+    let tmp_needs_return_values = song.flags.function_needs_return_value;
+    song.flags.function_needs_return_value = true;
+    exec(song, tokens);
+    let return_value = song.stack.pop().unwrap_or(SValue::from_i(0));
+    song.flags.function_needs_return_value = tmp_needs_return_values;
+    return_value
 }
 
 /// run tokens
@@ -66,6 +80,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Print => {
                 let args_tokens = t.children.clone().unwrap_or(vec![]);
+                // println!("print_args=:{:?}", args_tokens);
                 let args = exec_args(song, &args_tokens);
                 let mut disp: Vec<String> = vec![];
                 for v in args.into_iter() {
@@ -274,23 +289,21 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).track_key = args[0].to_i();
             },
             TokenType::DefInt => {
-                let var_key = t.data[0].to_s().clone();
+                let var_key = t.data[0].to_s();
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
-                exec(song, &val_tokens);
-                let val = song.stack.pop().unwrap_or(SValue::from_i(0));
-                song.variables.insert(var_key, val);
+                let val = exec_value(song, &val_tokens);
+                song.variables_insert(&var_key, val);
             },
             TokenType::LetVar => {
-                let var_key = t.data[0].to_s().clone();
+                let var_key = t.data[0].to_s();
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
-                exec(song, &val_tokens);
-                let val = song.stack.pop().unwrap_or(SValue::from_i(0));
-                song.variables.insert(var_key, val);
+                let val = exec_value(song, &val_tokens);
+                song.variables_insert(&var_key, val);
             },
             TokenType::DefStr => {
-                let var_key = t.data[0].to_s().clone();
+                let var_key = t.data[0].to_s();
                 let var_val = var_extract(&t.data[1], song);
-                song.variables.insert(var_key, var_val);
+                song.variables_insert(&var_key, var_val);
             },
             TokenType::PlayFrom => {
                 song.play_from = trk!(song).timepos;
@@ -362,7 +375,15 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.flags.break_flag = 2;
                 break;
             },
-            TokenType::DefFunction => {
+            TokenType::Return => {
+                let val_tokens = t.children.clone().unwrap();
+                let val = exec_value(song, &val_tokens);
+                song.variables_insert("Result", val);
+                // set return
+                song.flags.break_flag = 3;
+                break;
+            },
+            TokenType::DefUserFunction => {
                 // nop
             },
             TokenType::Calc => {
@@ -401,11 +422,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Value => {
                 // extract value
-                // println!("@@@Value=>{:?}", t);
+                // println!("Value=>{:?}", t);
                 // check is variable?
                 if t.tag == 0 {
                     let v = var_extract(&t.data[0], song);
-                    // println!("push={}", v.to_s());
                     song.stack.push(v);
                 } else {
                     // function
@@ -415,9 +435,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::ValueInc => {
                 let varname = t.data[0].to_s();
                 let val_inc = t.value;
-                song.variables.get_mut(&varname).map(|v| {
-                    *v = SValue::from_i(v.to_i() + val_inc);
-                });
+                let val = song.variables_get(&varname).unwrap_or(&SValue::Int(0));
+                song.variables_insert(&varname, SValue::from_i(val.to_i() + val_inc));
             },
             TokenType::SetConfig => {
                 let key = t.data[0].to_s();
@@ -426,7 +445,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     song.rand_seed = val.to_i() as u32;
                 }
             },
-            TokenType::CallFunction => {
+            TokenType::CallUserFunction => {
                 exec_call_user_function(song, t);
             },
         }
@@ -451,36 +470,45 @@ fn exec_call_user_function(song: &mut Song, t: &Token) -> bool {
         runtime_error(song, &format!("broken func_id={} in exec_call_user_function", func_id));
         return false;
     }
+    // println!("call_user_function={}", song.functions[func_id].name);
+    song.variables_stack_push();
     // eval args
     let args_tokens = t.children.clone().unwrap();
-    let mut args: Vec<SValue> = vec![];
-    for tok in args_tokens.iter() {
-        exec(song, &vec![tok.clone()]);
-        let v = song.stack.pop().unwrap_or(SValue::None);
-        args.push(v);
-    }
+    let args: Vec<SValue> = exec_args(song, &args_tokens);
     // set local variables
+    let arg_names = song.functions[func_id].arg_names.clone();
     for (i, v) in args.iter().enumerate() {
-        if i >= song.functions[func_id].arg_names.len() {
-            break;
-        }
-        let varname = song.functions[func_id].arg_names[i].clone();
-        song.variables.insert(varname, v.clone());
+        if i >= arg_names.len() { break; }
+        let varname: &str = &arg_names[i];
+        song.variables_insert(varname, v.clone());
     }
     // eval function
     let tokens = song.functions[func_id].tokens.clone();
-    exec(song, &tokens)
+    let tmp_break_flag = song.flags.break_flag;
+    // println!("func_body={:?}", tokens);
+    let eval_result = exec(song, &tokens);
+    song.flags.break_flag = tmp_break_flag;
+    let vars = song.variables_stack_pop();
+    if song.flags.function_needs_return_value {
+        let return_val = vars.get("Result");
+        song.stack.push(return_val.unwrap_or(&SValue::None).clone());
+    }
+    eval_result
 }
 
 fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
-    let stack_size1 = song.stack.len();
     let args_tokens = t.children.clone().unwrap_or(vec![]);
-    exec(song, &args_tokens);
-    let stack_size2 = song.stack.len();
-    let args: Vec<SValue> = song.stack.splice(stack_size1..stack_size2, vec![]).collect();
-    // println!("@@@function_args={:?}", args);
+    let args:Vec<SValue> = exec_args(song, &args_tokens);
     let arg_count = args.len();
     let func_name = t.data[0].to_s();
+    // is user function?
+    let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
+    match func_val {
+        SValue::Func(_func_id) => {
+            exec_call_user_function(song, t);
+        },
+        _ => {}, // maybe system function
+    }
     //
     // todo: https://sakuramml.com/wiki/index.php?%E7%B5%84%E3%81%BF%E8%BE%BC%E3%81%BF%E9%96%A2%E6%95%B0
     //
@@ -578,6 +606,9 @@ fn exec_while(song: &mut Song, t: &Token) -> bool {
                 song.flags.break_flag = 0;
                 continue;
             },
+            3 => {
+                break;
+            }
             _ => {},
         }
     }
@@ -664,7 +695,7 @@ fn var_extract(val: &SValue, song: &mut Song) -> SValue {
         SValue::Str(s, _) => {
             if s.starts_with('=') && s.len() >= 2 {
                 let key = &s[1..];
-                match song.variables.get(key) {
+                match song.variables_get(key) {
                     Some(v) => v.clone(),
                     None => {
                         match get_system_value(key, song) {
@@ -1423,5 +1454,52 @@ mod tests {
         // 4/0
         let song = exec_easy("INT N=4/0;PRINT(N)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 0");
+    }
+   #[test]
+    fn test_exec_function() {
+        // simple call
+        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n{}",
+            "FUNCTION FOO(A,B){",
+            "  INT C=A+B;",
+            "  PRINT(C);",
+            "}",
+            "FOO(3,5)"
+        ));
+        assert_eq!(song.get_logs_str(), "[PRINT](2) 8");
+        // with return
+        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n",
+            "FUNCTION FOO(A,B){",
+            "  RETURN(A+B);",
+            "}",
+            "PRINT(FOO(3,8));"
+        ));
+        assert_eq!(song.get_logs_str(), "[PRINT](3) 11");
+        // use global variable
+        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n{}\n{}\n",
+            "INT C=100",
+            "FUNCTION FOO(TMP){",
+            "  INT C=TMP;",
+            "  PRINT(C);",
+            "}",
+            "FOO(1); PRINT(C);"
+        ));
+        assert_eq!(song.get_logs_str(), "[PRINT](3) 1\n[PRINT](5) 100");
+        // use global variable
+        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n",
+            "INT C=123",
+            "FUNCTION FOO(TMP){ INT C=TMP; Result=TMP; }",
+            "FUNCTION BAA(TMP){ INT C=TMP; RETURN(C);  }",
+            "PRINT(FOO(100)); PRINT(BAA(200)); PRINT(C);",
+        ));
+        assert_eq!(song.get_logs_str(), "[PRINT](3) 100\n[PRINT](3) 200\n[PRINT](3) 123");
+        // use global variable and return into for-loop
+        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n{}\n",
+            "PRINT(FOO());",
+            "FUNCTION FOO(){",
+            "  INT C=0; FOR(INT I=0; I<=3; I++){ IF(I==2){ RETURN(C); } ELSE { C=I; } }",
+            "  RETURN(100);",
+            "}",
+        ));
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
     }
 }

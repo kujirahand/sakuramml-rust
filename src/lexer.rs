@@ -9,6 +9,47 @@ use crate::token::{zen2han, Token, TokenType};
 
 const LEX_MAX_ERROR: usize = 30;
 
+/// prerpcess 
+pub fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
+    let tmp_lineno = cur.line;
+    while !cur.is_eos() {
+        // skip comment
+        if cur.eq("/*") {
+            cur.get_token_s("*/");
+        }
+        if cur.eq("//") {
+            cur.get_token_ch('\n');
+        }
+        // check upper case
+        if cur.is_upper() {
+            let word = cur.get_word();
+            // Check defining user function
+            if word == "FUNCTION" || word == "Function" {
+                cur.skip_space();
+                let func_name = cur.get_word();
+                // check double definition
+                if song.variables_contains_key(&func_name) {
+                    let reason = song.get_message(MessageKind::ErrorRedfineFnuction);
+                    read_warning(cur, song, &func_name, reason);
+                }
+                // register function name
+                let func_id = song.functions.len();
+                song.variables_insert(&func_name, SValue::Func(func_id));
+                let sfunc = SFunction::new(&func_name, vec![], func_id, 0);
+                song.functions.push(sfunc);
+                continue;
+            }
+        }
+        let ch = cur.get_char();
+        if ch == '\n' {
+            cur.line += 1;
+        }
+    }
+    cur.index = 0;
+    cur.line = tmp_lineno;
+    true
+}
+
 /// split source code to tokens
 pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
     let mut result: Vec<Token> = vec![
@@ -16,6 +57,9 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
     ];
     let mut cur = TokenCursor::from(src);
     cur.line = lineno;
+    // preprocess
+    let _pre = lex_preprocess(song, &mut cur);
+    // read
     let mut flag_harmony = false;
     while !cur.is_eos() {
         let ch = zen2han(cur.get_char());
@@ -465,6 +509,16 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         // @ CONTINUE文 FOR/WHILEを続ける
         return Token::new(TokenType::Continue, 0, vec![]);
     }
+    if cmd == "RETURN" || cmd == "Return" {
+        // @ RETURN(戻り値) 関数を抜ける
+        cur.skip_space();
+        let values = if cur.eq_char('(') {
+            read_args_tokens(cur, song)
+        } else {
+            vec![Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_i(0)])]
+        };
+        return Token::new_tokens(TokenType::Return, 0, values);
+    }
     if cmd == "RandomSeed" || cmd == "RANDOM_SEED" {
         // @ 乱数の種を設定する (例 RandomSeed=1234)
         let v = read_arg_value(cur, song);
@@ -476,7 +530,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     }
     if cmd == "FUNCTION" || cmd == "Function" {
         // @ 関数を定義する (未実装)
-        return read_def_function(cur, song);
+        return read_def_user_function(cur, song);
     }
     // </UPPER_COMMANDS>
     
@@ -489,21 +543,17 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
     return Token::new_empty(&cmd, cur.line);
 }
 
-fn read_def_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
+fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();
     // get function name
     let func_name = cur.get_word();
     cur.skip_space();
-    // check double definition
-    if song.variables.contains_key(&func_name) {
-        let reason = song.get_message(MessageKind::ErrorRedfineFnuction);
-        read_warning(cur, song, &func_name, reason);
-    }
     // get args
     if !cur.eq_char('(') {
         return read_error(cur, song, "FUNCTION");
     }
     // check args
+    song.variables_stack_push();
     let args_str = cur.get_token_nest('(', ')');
      let args: Vec<&str> = args_str.split(",").collect();
      let mut arg_types: Vec<char> = vec![];
@@ -522,10 +572,12 @@ fn read_def_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
             if type_s == "Str" || type_s == "STR" || type_s == "S" { type_sf = 'S'; }
             if type_s == "Int" || type_s == "INT" || type_s == "I" { type_sf = 'I'; }
             if type_s == "Array" || type_s == "ARRAY" || type_s == "A" { type_sf = 'A'; }
+            song.variables_insert(name_s, SValue::new());
             arg_types.push(type_sf);
             arg_names.push(name_s.to_string());
         } else {
             // only name
+            song.variables_insert(&name, SValue::Int(0));
             arg_types.push('i');
             arg_names.push(name);
         }
@@ -538,15 +590,22 @@ fn read_def_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
     let body_s = cur.get_token_nest('{', '}');
     let body_tok = lex(song, &body_s, lineno);
+    song.variables_stack_pop(); // destroy local variables
     // register variables
-    let func_id = song.functions.len();
-    let func_val = SValue::Func(func_id);
-    song.variables.insert(func_name.clone(), func_val);
+    let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
+    let func_id = match func_val {
+        SValue::Func(func_id) => func_id,
+        _ => {
+            // system error to analyze function in preprocess
+            read_error(cur, song, &format!("(System error) Define Function: {}", func_name));
+            0
+        }
+    };
     // register function to song.functions
     let mut func_obj = SFunction::new(&func_name, body_tok, func_id, lineno);
     func_obj.arg_names = arg_names;
     func_obj.arg_types = arg_types;
-    song.functions.push(func_obj);
+    song.functions[func_id] = func_obj;
     Token::new_empty(&format!("DefineFunction::{}", func_name), lineno)
 }
 
@@ -654,7 +713,14 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                     let arg_tokens = lex_calc(song, &arg_str, arg_lineno);
                     tok.children = Some(arg_tokens);
                     tok.tag = 1; // FUNCTION
-                    tok.data.push(SValue::from_s(varname));
+                    tok.data.push(SValue::from_s(varname.clone()));
+                    // is user function?
+                    let func_val = song.variables_get(&varname);
+                    if func_val.is_some() {
+                        let func_id: SValue = func_val.unwrap_or(&SValue::from_i(0)).clone();
+                        tok.ttype = TokenType::CallUserFunction;
+                        tok.tag = func_id.to_i();
+                    }
                     tokens.push(tok);
                 } else {
                     // inc & dec
@@ -977,7 +1043,7 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
         // let str
         if cur.eq_char('{') {
             let body = cur.get_token_nest('{', '}');
-            song.variables.insert(cmd, SValue::from_str_and_tag(&body, cur.line));
+            song.variables_insert(&cmd, SValue::from_str_and_tag(&body, cur.line));
             return Some(Token::new_empty("DefStr", cur.line));
         }
         // let calc
@@ -986,12 +1052,12 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
             TokenType::LetVar, 0, 
             vec![SValue::from_str(&cmd)],
             vec![Token::new_tokens(TokenType::Tokens, 0, body_tokens)]);
-        song.variables.insert(cmd, SValue::None);
+        song.variables_insert(&cmd, SValue::None);
         return Some(tok);
     }
 
     // variables?
-    match song.variables.get(&cmd) {
+    match song.variables_get(&cmd) {
         Some(sval) => {
             // get variable
             return Some(read_variables(cur, song, &cmd, sval.clone()));
@@ -1031,7 +1097,7 @@ fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SVal
 fn read_call_function(cur: &mut TokenCursor, song: &mut Song, func_id: usize) -> Token {
     cur.skip_space();
     let args: Vec<Token> = read_args_tokens(cur, song);
-    let mut call_func_tok = Token::new(TokenType::CallFunction, func_id as isize, vec![]);
+    let mut call_func_tok = Token::new(TokenType::CallUserFunction, func_id as isize, vec![]);
     call_func_tok.children = Some(args);
     call_func_tok
 }
@@ -1422,7 +1488,7 @@ fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
         match cur.peek_n(0) {
             'A'..='Z' | '_' | '#' => {
                 let name = cur.get_word();
-                match song.variables.get(&name) {
+                match song.variables_get(&name) {
                     None => {}
                     Some(sv) => {
                         let (src, lineno) = sv.get_str_and_tag();
@@ -1494,7 +1560,7 @@ fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // println!("{}", data_str);
     let var_value = SValue::from_str_and_tag(&data_str, line_no);
     let tok = Token::new_empty("STR", cur.line);
-    song.variables.insert(var_name, var_value);
+    song.variables_insert(&var_name, var_value);
     tok
 }
 

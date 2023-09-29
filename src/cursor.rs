@@ -66,6 +66,16 @@ impl TokenCursor {
         let c = self.src[self.index];
         return ('0' <= c) && (c <= '9');
     }
+    pub fn is_upper(&self) -> bool {
+        if self.is_eos() { return false; }
+        let c = self.src[self.index];
+        return ('A' <= c) && (c <= 'Z');
+    }
+    pub fn is_lower(&self) -> bool {
+        if self.is_eos() { return false; }
+        let c = self.src[self.index];
+        return ('a' <= c) && (c <= 'z');
+    }
     pub fn eq(&self, s: &str) -> bool {
         let s2: Vec<char> = s.chars().collect();
         for i in 0..s2.len() {
