@@ -423,7 +423,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Value => {
                 // extract value
-                println!("Value=>{:?}", t);
+                // println!("Value=>{:?}", t);
                 // check is variable?
                 if t.tag == 0 {
                     let v = var_extract(&t.data[0], song);

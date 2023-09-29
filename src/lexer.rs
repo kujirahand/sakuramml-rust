@@ -22,6 +22,10 @@ pub fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
             cur.get_token_ch('\n');
             continue;
         }
+        if cur.eq("##") || cur.eq("# ") || cur.eq("#-") { // なんか、みんながよく使っているのでコメントと見なす
+            cur.get_token_ch('\n');
+            continue;
+        }
         // check upper case
         if cur.is_upper() {
             let word = cur.get_word();
@@ -40,6 +44,9 @@ pub fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
                 let sfunc = SFunction::new(&func_name, vec![], func_id, 0);
                 song.functions.push(sfunc);
                 continue;
+            }
+            if word == "END" || word == "End" { // それ以降をコンパイルしない
+                break;
             }
         }
         let ch = cur.get_char();
@@ -87,8 +94,24 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             't' => result.push(read_timing(&mut cur, song)), // @ 発音タイミングの指定 (例 t-1) / t.Random=n
             'y' => result.push(read_cc(&mut cur, song)), // @ コントロールチェンジの指定 (例 y1,100) 範囲:0-127 / y1.onTime(low,high,len)
             // uppwer command
-            'A'..='Z' | '_' => result.push(read_upper_command(&mut cur, song)),
-            '#' => result.push(read_upper_command(&mut cur, song)),
+            'A'..='Z' | '_' => {
+                cur.prev();
+                if cur.eq("End") || cur.eq("END") { // それ移行をコンパイルしない
+                    let last_comment = cur.cur2end();
+                    cur.next_n(last_comment.len());
+                    result.push(Token::new_empty(&last_comment, cur.line));
+                    continue;
+                }
+                result.push(read_upper_command(&mut cur, song))
+            },
+            '#' => {
+                cur.prev();
+                if cur.eq("##") || cur.eq("# ") || cur.eq("#-") { // なんかみんなが使っているので一行コメントと見なす
+                    cur.get_token_ch('\n');
+                    continue;
+                }
+                result.push(read_upper_command(&mut cur, song))
+            },
             // flag
             '@' => result.push(read_voice(&mut cur, song)), // @ 音色の指定 範囲:1-128 (書式) @(no),(Bank_LSB),(Bank_MSB)
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ 音階を1つ上げる
@@ -151,7 +174,6 @@ fn lex_error(cur: &mut TokenCursor, song: &mut Song, msg: &str) {
 
 /// read Upper case commands
 fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    cur.prev(); // back 1char
     let mut cmd = cur.get_word();
     // Systemの場合は"."に続く
     if cmd == "System" || cmd == "SYSTEM" {
@@ -703,17 +725,17 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                 tokens.push(Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_i(num)]));
                 if !read_calc_can_continue(cur, paren_level) { break; }
             },
-            'A'..='Z' | '_' | '#' => {
+            'A'..='Z' | '_' | '#' | 'a'..='z' => {
                 let mut tok = Token::new(TokenType::Value, LEX_VALUE, vec![]);
                 let varname = cur.get_word();
                 let varname_flag = format!("={}", varname);
-                println!("@@@read_calc:{}", varname);
+                // println!("read_calc:{}", varname);
                 tok.tag = 0;
                 if cur.eq_char('(') {
                     // function call
                     let arg_lineno = cur.line;
                     let arg_str = cur.get_token_nest('(', ')');
-                    println!("@@@read_calc_args={:?}", arg_str);
+                    // println!("read_calc_args={:?}", arg_str);
                     let arg_tokens = lex_calc(song, &arg_str, arg_lineno);
                     tok.children = Some(arg_tokens);
                     tok.tag = 1; // FUNCTION
