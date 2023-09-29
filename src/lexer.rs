@@ -1775,10 +1775,8 @@ fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
             let a = read_arg_value(cur, song);
             return Token::new(TokenType::CConTimeFreq, 0, vec![a]);
         } else if cmd == "onNoteWave" || cmd == "W" {
-            // TODO: not supported
-            let _ = read_arg_int_array(cur, song);
-            song.add_log(format!("[WARN]({}) not supported : onNoteWave", cur.line));
-            return Token::new_empty("not supported : onNoteWave", cur.line);
+            let ia = read_arg_int_array(cur, song);
+            return Token::new(TokenType::CConNoteWave, no, vec![ia]);
         } else if cmd == "onNoteWaveEx" || cmd == "WE" {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
@@ -2066,8 +2064,8 @@ fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
             return Token::new(TokenType::CConTime, no.to_i(), vec![ia]);
         }
         if cmd == "onNoteWave" || cmd == "W" {
-            let _ia = read_arg_int_array(cur, song);
-            return Token::new_empty("NOT SUPPORTED", cur.line);
+            let ia = read_arg_int_array(cur, song);
+            return Token::new(TokenType::CConNoteWave, no.to_i(), vec![ia]);
         }
         if cmd == "onCycle" || cmd == "C" {
             let _ia = read_arg_int_array(cur, song);

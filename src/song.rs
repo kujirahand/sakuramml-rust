@@ -78,6 +78,12 @@ pub struct NoteInfo {
     pub slur: isize,
 }
 
+
+#[derive(Debug, Clone)]
+pub struct ControllChangeOnNoteWave {
+    pub no: isize,
+    pub data: Vec<isize>,
+}
 /// Track
 #[derive(Debug)]
 pub struct Track {
@@ -107,6 +113,7 @@ pub struct Track {
     pub cc_on_time_freq: isize,
     pub events: Vec<Event>,
     pub tie_notes: Vec<Event>,
+    pub cc_on_note_wave: Vec<ControllChangeOnNoteWave>,
 }
 
 impl Track {
@@ -139,6 +146,7 @@ impl Track {
             events: vec![],
             tie_notes: vec![],
             bend_range: -1,
+            cc_on_note_wave: vec![],
         }
     }
 
@@ -294,6 +302,7 @@ impl Track {
             let low = ia[i*3+0];
             let high = ia[i*3+1];
             let len = ia[i*3+2];
+            // println!("CC.T={},{},{}", low, high, len);
             for j in 0..len {
                 if (j % freq) == 0 {
                     let v = (high - low) as f32 * (j as f32 / len as f32) + low as f32;
@@ -327,6 +336,30 @@ impl Track {
                 }
             }
         }
+    }
+    pub fn remove_cc_on_note_wave(&mut self, no: isize) {
+        if self.cc_on_note_wave.len() == 0 { return; }
+        let mut new_list: Vec<ControllChangeOnNoteWave> = vec![];
+        for cow in self.cc_on_note_wave.iter() {
+            if cow.no == no { continue; }
+            new_list.push(cow.clone());
+        }
+        self.cc_on_note_wave = new_list;
+    }
+    pub fn set_cc_on_note_wave(&mut self, no: isize, ia: Vec<isize>) {
+        self.remove_cc_on_note_wave(no);
+        let cc_new = ControllChangeOnNoteWave { no, data: ia };
+        self.cc_on_note_wave.push(cc_new);
+    }
+    pub fn write_cc_on_note_wave(&mut self, start_pos: isize) {
+        let end_pos = self.timepos;
+        let wave_len = end_pos - start_pos;
+        self.timepos = start_pos;
+        for cow in self.cc_on_note_wave.clone().iter() {
+            println!("write_cc_on_note_wave:no={}", cow.no);
+            self.write_cc_on_time(cow.no, cow.data.clone());
+        }
+        self.timepos = end_pos;
     }
 }
 

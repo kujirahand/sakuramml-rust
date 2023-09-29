@@ -1,7 +1,6 @@
 //! runner from tokens
 
 use crate::mml_def::TieMode;
-
 use super::cursor::TokenCursor;
 use super::lexer::lex;
 use super::song::{Event, NoteInfo, Song};
@@ -192,6 +191,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
                 let val_v = exec_value(song, &val_tokens);
                 let val = val_v.to_i();
+                trk!(song).remove_cc_on_note_wave(no);
                 song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, no, val));
             },
             TokenType::PitchBend => {
@@ -334,7 +334,14 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).q_on_note = Some(t.data[0].to_int_array());
             },
             TokenType::CConTime => {
+                trk!(song).remove_cc_on_note_wave(t.value);
                 trk!(song).write_cc_on_time(t.value, t.data[0].to_int_array());
+            },
+            TokenType::CConNoteWave => {
+                let no = t.value;
+                let ia = t.data[0].to_int_array();
+                // println!("CConNoteWave={}", no);
+                trk!(song).set_cc_on_note_wave(no, ia);
             },
             TokenType::CConTimeFreq => {
                 trk!(song).cc_on_time_freq = var_extract(&t.data[0], song).to_i();
@@ -1063,6 +1070,7 @@ fn exec_note(song: &mut Song, t: &Token) {
     set_note_info_with_default_value(&mut note, song);
     // timepos
     let timepos = trk!(song).timepos;
+    let start_pos = timepos;
     // onTime / onNote
     let v = trk!(song).calc_v_on_time(note.vel);
     let v = trk!(song).calc_v_on_note(v);
@@ -1116,6 +1124,8 @@ fn exec_note(song: &mut Song, t: &Token) {
         check_tie_notes(song);
         return;
     }
+    // onNoteWave event
+    trk!(song).write_cc_on_note_wave(start_pos);
     // write note event
     trk!(song).events.push(event);
 }
@@ -1280,6 +1290,7 @@ fn exec_note_n(song: &mut Song, t: &Token) {
     let data_note_qlen = var_extract(&t.data[2], song).to_i(); // 0
     let data_note_vel = var_extract(&t.data[3], song).to_i(); // -1
     let data_note_t = var_extract(&t.data[4], song).to_i(); // isize::MIN
+    let start_pos = trk!(song).timepos;
 
     // check parameters
     let notelen = calc_length(&data_note_len, song.timebase, trk!(song).length);
@@ -1331,6 +1342,8 @@ fn exec_note_n(song: &mut Song, t: &Token) {
         v,
     );
     // println!("- {}: note(no={},len={},qlen={},v={},t={})", trk!(song).timepos, notelen_real, notelen, qlen, v, t);
+    // onNoteWave event
+    trk!(song).write_cc_on_note_wave(start_pos);
     // write event
     trk!(song).events.push(event);
     trk!(song).timepos += notelen;
