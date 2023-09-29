@@ -56,9 +56,11 @@
       console.log('Compiler loaded')
       com.set_language('ja')
       com.set_debug_level(1)
+      console.log('try to compile')
       const a = com.compile(txt.value)
+      console.log('try to compile=', txt.value)
       const log = com.get_log()
-      console.log(log)
+      console.log('@@log=', log)
       // log
       document.getElementById('msg').innerHTML = tohtml(log)
       const smfData = new Uint8Array(a);

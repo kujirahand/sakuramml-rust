@@ -4,7 +4,7 @@ use crate::mml_def::TieMode;
 
 use super::cursor::TokenCursor;
 use super::lexer::lex;
-use super::song::{Event, NoteInfo, Song, Track};
+use super::song::{Event, NoteInfo, Song};
 use super::svalue::SValue;
 use super::token::{Token, TokenType};
 use super::sakura_message::MessageKind;
@@ -190,8 +190,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::CtrlChange => {
                 let no = t.value;
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
-                exec(song, &val_tokens);
-                let val_v = song.stack.pop().unwrap_or(SValue::None);
+                let val_v = exec_value(song, &val_tokens);
                 let val = val_v.to_i();
                 song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, no, val));
             },
@@ -427,9 +426,16 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 // check is variable?
                 if t.tag == 0 {
                     let v = var_extract(&t.data[0], song);
-                    song.stack.push(v);
+                    if song.flags.function_needs_return_value {
+                        song.stack.push(v);
+                    } else {
+                        // exec value
+                        let vs = v.to_s().clone();
+                        let tokens = lex(song, &vs, t.lineno);
+                        exec(song, &tokens);
+                    }
                 } else {
-                    // function
+                    // user function
                     exec_sys_function(song, t);
                 }
             },
@@ -449,11 +455,15 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::CallUserFunction => {
                 exec_call_user_function(song, t);
             },
+            TokenType::Play => {
+                exec_play(song, t);
+            }
         }
         pos += 1;
     }
     true
 }
+
 
 fn runtime_error(song: &mut Song, msg: &str) {
     song.add_log(format!(
@@ -462,6 +472,30 @@ fn runtime_error(song: &mut Song, msg: &str) {
         song.get_message(MessageKind::RuntimeError),
         msg
     ));
+}
+
+fn exec_play(song: &mut Song, t: &Token) -> bool {
+    let tmp_cur_track = song.cur_track;
+    let lineno = t.lineno;
+    let start_pos = trk!(song).timepos;
+    let mut time_ptr_last = start_pos;
+    // play
+    let arg_tokens = t.children.clone().unwrap_or(vec![]);
+    for (index, arg) in arg_tokens.iter().enumerate() {
+        song.change_cur_track(index + 1);
+        trk!(song).timepos = start_pos;
+        // eval calc
+        let src = exec_value(song, &vec![arg.clone()]).to_s();
+        // println!("play(TR={})({}):{}", index+1, lineno, src);
+        // eval tokens
+        let tokens = lex(song, &src, lineno);
+        exec(song, &tokens);
+        // check lastpos
+        if trk!(song).timepos > time_ptr_last { time_ptr_last = trk!(song).timepos; }
+    }
+    song.track_sync();
+    song.cur_track = tmp_cur_track;
+    true
 }
 
 fn exec_call_user_function(song: &mut Song, t: &Token) -> bool {
@@ -1337,13 +1371,7 @@ fn exec_track(song: &mut Song, t: &Token) {
     if v < 0 {
         v = 0;
     }
-    song.cur_track = v as usize;
-    // new track ?
-    while song.tracks.len() <= song.cur_track {
-        // println!("{:?}", v);
-        let trk = Track::new(song.timebase, v - 1);
-        song.tracks.push(trk);
-    }
+    song.change_cur_track(v as usize);
 }
 
 fn exec_decres(song: &mut Song, t: &Token) {

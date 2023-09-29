@@ -178,7 +178,7 @@ It replaces `#?1` `#?2` `#?3` ...
 
 ## Script
 
-It can use IF/FOR/WHILE script.
+It can use IF/FOR/WHILE/FUNCTION script.
 
 ```
 // IF 

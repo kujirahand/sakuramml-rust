@@ -71,6 +71,7 @@ pub enum TokenType {
     DefUserFunction,
     CallUserFunction,
     Return,
+    Play,
 }
 
 #[derive(Debug, Clone)]

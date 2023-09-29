@@ -1527,68 +1527,9 @@ fn read_print(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
-    let mut tokens: Vec<Token> = vec![
-        Token::new_lineno(lineno), // set default lineno
-    ];
-    let mut track_no = 1;
-    cur.skip_space();
-    if cur.eq_char('=') {
-        cur.next();
-    }
-    cur.skip_space();
-    if cur.eq_char('(') {
-        cur.next();
-    }
-    loop {
-        let tt = lex(song, &format!("TR={}", track_no), cur.line);
-        for t in tt.into_iter() {
-            tokens.push(t);
-        }
-        cur.skip_space();
-        match cur.peek_n(0) {
-            'A'..='Z' | '_' | '#' => {
-                let name = cur.get_word();
-                match song.variables_get(&name) {
-                    None => {}
-                    Some(sv) => {
-                        let (src, lineno) = sv.get_str_and_tag();
-                        let tt = lex(song, &src, lineno);
-                        for t in tt.into_iter() {
-                            tokens.push(t);
-                        }
-                    }
-                }
-            },
-            '{' => {
-                let src = cur.get_token_nest('{', '}');
-                let tt = lex(song, &src, cur.line);
-                for t in tt.into_iter() {
-                    tokens.push(t);
-                }
-            },
-            '"' => { // (option) for N88-BASIC users
-                cur.next();
-                let src = cur.get_token_to_double_quote();
-                let tt = lex(song, &src, cur.line);
-                for t in tt.into_iter() {
-                    tokens.push(t);
-                }
-            },
-            _ => break,
-        }
-        cur.skip_space();
-        if cur.eq_char(',') {
-            cur.next(); // skip ,
-        } else {
-            break;
-        }
-        track_no += 1;
-    }
-    if cur.eq_char(')') {
-        cur.next();
-    }
-    let tokens_tok = Token::new_tokens_lineno(TokenType::Tokens, 0, tokens, lineno);
-    tokens_tok
+    let arg_tokens = read_args_tokens(cur, song);
+    let play_tok = Token::new_tokens_lineno(TokenType::Play, 0, arg_tokens, lineno);
+    play_tok
 }
 
 fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {

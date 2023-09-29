@@ -486,6 +486,16 @@ impl Song {
         self.rand_seed = y;
         y
     }
+    pub fn change_cur_track(&mut self, no: usize) {
+        self.cur_track = no as usize;
+        // new track ?
+        while self.tracks.len() <= self.cur_track {
+            // println!("{:?}", v);
+            let trk = Track::new(self.timebase, no as isize - 1);
+            self.tracks.push(trk);
+        }
+
+    }
     pub fn track_sync(&mut self) {
         let timepos = self.tracks[self.cur_track].timepos;
         for i in 0..self.tracks.len() {
