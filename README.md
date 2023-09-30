@@ -13,6 +13,9 @@ It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAss
 - [GitHub/sakuramml-rust](https://github.com/kujirahand/sakuramml-rust)
 - [crate.io/sakuramml](https://crates.io/crates/sakuramml)
 - [npm/sakuramml](https://www.npmjs.com/package/sakuramml)
+- Related repository
+  - [GitHub/picosakura](https://github.com/kujirahand/picosakura) ... web player
+  - [GitHub/picosakura-rust](https://github.com/kujirahand/picosakura-rust) ... local player
 
 # Web Version (WASM)
 
