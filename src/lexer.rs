@@ -1132,7 +1132,7 @@ fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SVal
         SValue::Str(_src_org, _line_no) => {
             // replace macro?
             cur.skip_space();
-            if cur.eq_char('(') {
+            if cur.eq_char('(') || cur.eq_char('{') {
                 let args = read_args_tokens(cur, song);
                 let mut tok = Token::new_tokens(TokenType::Value, LEX_VALUE, args);
                 tok.tag = 1; // Macro
@@ -1585,6 +1585,7 @@ fn read_command_sub(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_command_key(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
+    if cur.eq_char('=') { cur.next(); }
     let arg_token = read_calc_token(cur, song);
     let tok = Token::new_tokens_lineno(TokenType::KeyShift, 0, vec![arg_token], lineno);
     tok
