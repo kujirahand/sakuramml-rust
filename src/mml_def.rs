@@ -1,8 +1,8 @@
 //! Define MML Commands and Macros
 
+use std::collections::HashMap;
 use crate::sakura_version;
 use crate::svalue::SValue;
-use std::collections::HashMap;
 use crate::token::TokenType;
 
 /// Tie & Slur Mode
@@ -347,13 +347,25 @@ pub fn init_reserved_words() -> HashMap<String, u8> {
 
 macro_rules! sysfunc_add {
     ($obj:expr, $name:expr, $func_id:expr, $arg_type:expr) => {
-        $obj.insert(String::from($name), SystemFunction{token_type: $func_id, arg_type: $arg_type});
+        $obj.insert(String::from($name), SystemFunction{token_type: $func_id, arg_type: $arg_type, tag1: 0, tag2: 0});
+    };
+}
+macro_rules! sysfunc_cc_add {
+    ($obj:expr, $name:expr, $func_id:expr, $arg_type:expr, $tag:expr) => {
+        $obj.insert(String::from($name), SystemFunction{token_type: $func_id, arg_type: $arg_type, tag1: $tag, tag2: 0});
+    };
+}
+macro_rules! sysfunc_rpn_add {
+    ($obj:expr, $name:expr, $func_id:expr, $arg_type:expr, $tag1:expr, $tag2:expr) => {
+        $obj.insert(String::from($name), SystemFunction{token_type: $func_id, arg_type: $arg_type, tag1: $tag1, tag2: $tag2});
     };
 }
 #[derive(Debug, Clone, Copy)]
 pub struct SystemFunction {
     pub token_type: TokenType,
     pub arg_type: char, // 'I' or 'S' or 'A' or '*'(special)
+    pub tag1: isize,
+    pub tag2: isize,
 }
 pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     let mut sf = HashMap::new();
@@ -412,6 +424,75 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "System.q2Add", TokenType::Unimplemented, 'I'); // Unimplemented
     sysfunc_add!(sf, "q2Add", TokenType::Unimplemented, 'I'); // Unimplemented
     sysfunc_add!(sf, "SoundType", TokenType::SoundType, 'S'); // set sound type (ex) SoundType({pico})
+    //@ Controll Change / Voice Change / RPN/NRPN
+    sysfunc_add!(sf, "Voice", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
+    sysfunc_add!(sf, "VOICE", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
+    sysfunc_cc_add!(sf, "M", TokenType::ControllChangeCommand, '*', 1); // CC#1 Modulation (ex) M(10)
+    sysfunc_cc_add!(sf, "Modulation", TokenType::ControllChangeCommand, '*', 1); // CC#1 Modulation range:0-127 (ex) M(10)
+    sysfunc_cc_add!(sf, "PT", TokenType::ControllChangeCommand, '*', 5); // CC#5 Portamento Time range:0-127 (ex) PT(10)
+    sysfunc_cc_add!(sf, "PortamentoTime", TokenType::ControllChangeCommand, '*', 5); // CC#5 Portamento Time range:0-127 (ex) PT(10)
+    sysfunc_cc_add!(sf, "V", TokenType::ControllChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
+    sysfunc_cc_add!(sf, "MainVolume", TokenType::ControllChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
+    sysfunc_cc_add!(sf, "P", TokenType::ControllChangeCommand, '*', 10); // CC#10 Panpot range:0-63-127 (ex) P(63)
+    sysfunc_cc_add!(sf, "Panpot", TokenType::ControllChangeCommand, '*', 10); // CC#10 Panpot range:0-63-127 (ex) Panpot(63)
+    sysfunc_cc_add!(sf, "EP", TokenType::ControllChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
+    sysfunc_cc_add!(sf, "Expression", TokenType::ControllChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
+    sysfunc_cc_add!(sf, "PS", TokenType::ControllChangeCommand, '*', 65); // CC#65 Portament switch range:0-127 (ex) PS(1)
+    sysfunc_cc_add!(sf, "PortamentoSwitch", TokenType::ControllChangeCommand, '*', 65); // CC#65 Portament switch range:0-127 (ex) PS(1)
+    sysfunc_cc_add!(sf, "REV", TokenType::ControllChangeCommand, '*', 91); // CC#91 Reverb range:0-127 (ex) REV(100)
+    sysfunc_cc_add!(sf, "Reverb", TokenType::ControllChangeCommand, '*', 91); // CC#91 Reverb range:0-127 (ex) REV(100)
+    sysfunc_cc_add!(sf, "CHO", TokenType::ControllChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) CHO(100)
+    sysfunc_cc_add!(sf, "Chorus", TokenType::ControllChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) Chorus(100)
+    sysfunc_cc_add!(sf, "VAR", TokenType::ControllChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) VAR(100)
+    sysfunc_cc_add!(sf, "Variation", TokenType::ControllChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) Variation(100)
+    sysfunc_add!(sf, "PB", TokenType::PitchBend, '*'); // Pitchbend range: -8192...0...8191 (ex) PB(10)
+    sysfunc_add!(sf, "RPN", TokenType::RPN, 'A'); // write RPN (ex) RPN(0,1,64)
+    sysfunc_add!(sf, "NRPN", TokenType::NRPN, 'A'); // write NRPN (ex) NRPN(1,1,1)
+    sysfunc_rpn_add!(sf, "BR", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10) 
+    sysfunc_rpn_add!(sf, "PitchBendSensitivity", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10)
+    sysfunc_rpn_add!(sf, "FineTune", TokenType::RPNCommand, '*', 0, 1); // set fine tune range:0-63-127(-100 - 0 - +99.99セント）(ex) FineTune(63)
+    sysfunc_rpn_add!(sf, "CoarseTune", TokenType::RPNCommand, '*', 0, 2); // set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(63)
+    sysfunc_rpn_add!(sf, "VibratoRate", TokenType::NRPNCommand, '*', 1, 8); // set VibratoRate range: 0-127
+    sysfunc_rpn_add!(sf, "VibratoDepth", TokenType::NRPNCommand, '*', 1, 9); // set VibratoRate range: 0-127
+    sysfunc_rpn_add!(sf, "VibratoDelay", TokenType::NRPNCommand, '*', 1, 10); // set VibratoRate range: 0-127
+    sysfunc_rpn_add!(sf, "FilterCutoff", TokenType::NRPNCommand, '*', 1, 0x20); // set FilterCutoff range: 0-127
+    sysfunc_rpn_add!(sf, "FilterResonance", TokenType::NRPNCommand, '*', 1, 0x21); // set FilterResonance range: 0-127
+    sysfunc_rpn_add!(sf, "EGAttack", TokenType::NRPNCommand, '*', 1, 0x63); // set EGAttack range: 0-127
+    sysfunc_rpn_add!(sf, "EGDecay", TokenType::NRPNCommand, '*', 1, 0x64); // set EGDecay range: 0-127
+    sysfunc_rpn_add!(sf, "EGRelease", TokenType::NRPNCommand, '*', 1, 0x66); // set EGRelease range: 0-127
+    //@ fadein
+    sysfunc_cc_add!(sf, "Fadein", TokenType::FadeIO, '*', 1); // fadein 小節数を指定 (ex) Fadein(1)
+    sysfunc_cc_add!(sf, "Fadeout", TokenType::FadeIO, '*', -1); // fadeout 小節数を指定 (ex) Fadeout(1)
+    sysfunc_cc_add!(sf, "Cresc", TokenType::Cresc, '*', 1); // cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1)
+    sysfunc_cc_add!(sf, "Decresc", TokenType::Cresc, '*', -1); // cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1)
+    sysfunc_cc_add!(sf, "CRESC", TokenType::Cresc, '*', 1); // cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1)
+    sysfunc_cc_add!(sf, "DECRESC", TokenType::Cresc, '*', -1); // cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1)
+    //@ SysEx / Meta
+    sysfunc_cc_add!(sf, "ResetGM", TokenType::SysExCommand, '*', 0); // ResetGM
+    sysfunc_cc_add!(sf, "ResetGS", TokenType::SysExCommand, '*', 1); // ResetGS
+    sysfunc_cc_add!(sf, "ResetXG", TokenType::SysExCommand, '*', 2); // ResetXG
+    sysfunc_add!(sf, "Tempo", TokenType::Tempo, 'I'); // set tempo (ex) Tempo(120)
+    sysfunc_add!(sf, "TEMPO", TokenType::Tempo, 'I'); // set tempo (ex) TEMPO(120)
+    sysfunc_add!(sf, "T", TokenType::Tempo, 'I'); // set tempo (ex) T(120)
+    sysfunc_add!(sf, "BPM", TokenType::Tempo, 'I'); // set tempo (ex) BPM(120)
+    sysfunc_add!(sf, "TempoChange", TokenType::TempoChange, 'A'); // tempo change slowly TempoChange(start, end, !len) (ex) TempoChange(80,120,!1)
+    sysfunc_add!(sf, "TimeSignature", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
+    sysfunc_add!(sf, "System.TimeSignature", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
+    sysfunc_add!(sf, "TimeSig", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
+    sysfunc_add!(sf, "TIMESIG", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
+    sysfunc_cc_add!(sf, "MetaText", TokenType::MetaText, 'S', 1); // write meta text (ex) MetaText{"hello"}
+    sysfunc_cc_add!(sf, "Text", TokenType::MetaText, 'S', 1); // write meta text (ex) MetaText{"hello"}
+    sysfunc_cc_add!(sf, "TEXT", TokenType::MetaText, 'S', 1); // write meta text (ex) MetaText{"hello"}
+    sysfunc_cc_add!(sf, "Copyright", TokenType::MetaText, 'S', 2); // write copyright text (ex) Copyright{"hello"}
+    sysfunc_cc_add!(sf, "COPYRIGHT", TokenType::MetaText, 'S', 2); // write copyright text (ex) COPYRIGHT{"hello"}
+    sysfunc_cc_add!(sf, "TrackName", TokenType::MetaText, 'S', 3); // write TrackName text (ex) TrackName{"hello"}
+    sysfunc_cc_add!(sf, "TRACK_NAME", TokenType::MetaText, 'S', 3); // write TrackName text (ex) TrackName{"hello"}
+    sysfunc_cc_add!(sf, "InstrumentName", TokenType::MetaText, 'S', 4); // write InstrumentName text (ex) InstrumentName{"hello"}
+    sysfunc_cc_add!(sf, "Lyric", TokenType::MetaText, 'S', 5); // write Lyric text (ex) Lyric{"hello"}
+    sysfunc_cc_add!(sf, "LYRIC", TokenType::MetaText, 'S', 5); // write Lyric text (ex) LYRIC{"hello"}
+    sysfunc_cc_add!(sf, "MAKER", TokenType::MetaText, 'S', 6); // write MAKER text (ex) MAKER{"hello"}
+    sysfunc_cc_add!(sf, "Maker", TokenType::MetaText, 'S', 6); // write Maker text (ex) Maker{"hello"}
+    sysfunc_cc_add!(sf, "CuePoint", TokenType::MetaText, 'S', 7); // write CuePoint text (ex) CuePoint{"hello"}
     //@ Script command
     sysfunc_add!(sf, "Int", TokenType::DefInt, '*'); // define int variables (ex) Int A = 3
     sysfunc_add!(sf, "INT", TokenType::DefInt, '*'); // define int variables (ex) INT A = 3
@@ -422,9 +503,25 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "System.Include", TokenType::Include, '*'); // Unimplemented
     sysfunc_add!(sf, "Include", TokenType::Include, '*'); // Unimplemented
     sysfunc_add!(sf, "INCLUDE", TokenType::Include, '*'); // Unimplemented
-    //@ Controll Change etc.
-    sysfunc_add!(sf, "Voice", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
-    sysfunc_add!(sf, "VOICE", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
+    sysfunc_add!(sf, "IF", TokenType::If, '*'); // IF(cond){ true }ELSE{ false }
+    sysfunc_add!(sf, "If", TokenType::If, '*'); // IF(cond){ true }ELSE{ false }
+    sysfunc_add!(sf, "FOR", TokenType::For, '*'); // FOR(INT I = 0; I < 10; I++){ ... }
+    sysfunc_add!(sf, "For", TokenType::For, '*'); // FOR(INT I = 0; I < 10; I++){ ... }
+    sysfunc_add!(sf, "WHILE", TokenType::While, '*'); // WHILE(cond) { ... }
+    sysfunc_add!(sf, "While", TokenType::While, '*'); // WHILE(cond) { ... }
+    sysfunc_add!(sf, "BREAK", TokenType::Break, '_'); // exit from loop
+    sysfunc_add!(sf, "Break", TokenType::Break, '_'); // exit from loop
+    sysfunc_add!(sf, "EXIT", TokenType::Break, '_'); // exit from loop
+    sysfunc_add!(sf, "Exit", TokenType::Break, '_'); // exit from loop
+    sysfunc_add!(sf, "CONTINUE", TokenType::Continue, '_'); // exit from loop
+    sysfunc_add!(sf, "Continue", TokenType::Continue, '_'); // exit from loop
+    sysfunc_add!(sf, "RETURN", TokenType::Return, '*'); // return from function
+    sysfunc_add!(sf, "Return", TokenType::Return, '*'); // return from function
+    sysfunc_add!(sf, "RANDOM_SEED", TokenType::SetRandomSeed, '*'); // set random seed
+    sysfunc_add!(sf, "RandomSeed", TokenType::SetRandomSeed, '*'); // set random seed
+    sysfunc_add!(sf, "FUNCTION", TokenType::DefUserFunction, '*'); // define user function
+    sysfunc_add!(sf, "Function", TokenType::DefUserFunction, '*'); // define user function
     
+    //
     sf
 }

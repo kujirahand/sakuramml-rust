@@ -82,12 +82,28 @@ pub enum TokenType {
     SongVelocityAdd,
     SongQAdd,
     SoundType,
+    ControllChangeCommand,
+    RPN,
+    RPNCommand,
+    NRPN,
+    NRPNCommand,
+    FadeIO,
+    Cresc,
+    SysExCommand,
+    SetRandomSeed,
 }
+
+/// Token.value_type
+pub const VALUE_UNKNOWN: isize = 0x00;
+pub const VALUE_CONST_INT: isize = 0x01;
+pub const VALUE_CONST_STR: isize = 0x02;
+pub const VALUE_VARIABLE: isize = 0x10;
 
 #[derive(Debug, Clone)]
 pub struct Token {
     pub ttype: TokenType,
     pub value: isize,
+    pub value_type: isize,
     pub tag: isize,
     pub data: Vec<SValue>,
     pub children: Option<Vec<Token>>,
@@ -99,6 +115,7 @@ impl Token {
         Self {
             ttype: TokenType::LineNo,
             value: 0,
+            value_type: 0,
             tag: 0,
             data: vec![],
             children: None,
@@ -109,6 +126,7 @@ impl Token {
         Self {
             ttype,
             value,
+            value_type: 0,
             tag: 0,
             data,
             children: None,
@@ -119,6 +137,7 @@ impl Token {
         Self {
             ttype,
             value,
+            value_type: 0,
             tag: 0,
             data: vec![],
             children: None,
@@ -129,6 +148,7 @@ impl Token {
         Self {
             ttype,
             value,
+            value_type: 0,
             tag,
             data: vec![],
             children: None,
@@ -139,6 +159,7 @@ impl Token {
         Self {
             ttype,
             value,
+            value_type: 0,
             tag: 0,
             data: vec![],
             children: Some(tokens),
@@ -149,6 +170,7 @@ impl Token {
         Self {
             ttype,
             value,
+            value_type: 0,
             tag: 0,
             data: vec![],
             children: Some(tokens),
@@ -159,6 +181,7 @@ impl Token {
         Self {
             ttype,
             value,
+            value_type: 0,
             tag: 0,
             data,
             children: Some(tokens),
@@ -169,6 +192,7 @@ impl Token {
         Self {
             ttype: TokenType::Empty,
             value: 0,
+            value_type: 0,
             tag: 0,
             data: vec![SValue::from_s(cmd.to_string())],
             children: None,

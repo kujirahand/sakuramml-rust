@@ -5,7 +5,7 @@ use super::cursor::TokenCursor;
 use super::lexer::lex;
 use super::song::{Event, NoteInfo, Song};
 use super::svalue::SValue;
-use super::token::{Token, TokenType};
+use super::token::{self, Token, TokenType};
 use super::sakura_message::MessageKind;
 
 #[derive(Debug)]
@@ -218,6 +218,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).remove_cc_on_note_wave(no);
                 song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, no, val));
             },
+            TokenType::RPN => exec_cc_rpn_nrpn_direct(song, t, 101, 100, 6),
+            TokenType::RPNCommand => exec_cc_rpn_nrpn(song, t, 101, 100, 6),
+            TokenType::NRPN => exec_cc_rpn_nrpn_direct(song, t, 99, 98, 0),
+            TokenType::NRPNCommand => exec_cc_rpn_nrpn(song, t, 99, 98, 0),
             TokenType::PitchBend => {
                 let val = var_extract(&t.data[0], song).to_i();
                 let val = if t.value == 0 { val * 128 } else { val + 8192 };
@@ -228,24 +232,31 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 ));
             },
             TokenType::Tempo => {
-                let tempo = data_get_int(&t.data, song);
-                let tempo = if tempo > 300 { 300 } else { tempo };
+                let tempo = exec_value_int_by_token(song, t);
+                let tempo = value_range(10, tempo, 300);
                 tempo_change(song, tempo);
             },
             TokenType::TempoChange => {
-                let data: Vec<isize> = (&t.data[0]).to_int_array();
+                let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
                 if data.len() == 3 {
-                    tempo_change_a_to_b(song, data[0], data[1], data[2]);
+                    tempo_change_a_to_b(song, data[0].to_i(), data[1].to_i(), data[2].to_i());
                 } else if data.len() == 2 {
-                    tempo_change_a_to_b(song, song.tempo, data[0], data[1]);
+                    tempo_change_a_to_b(song, song.tempo, data[0].to_i(), data[1].to_i());
                 } else {
-                    tempo_change(song, data[0]);
+                    tempo_change(song, data[0].to_i());
                 }
             },
             TokenType::MetaText => {
-                let mut txt = data_get_str(&t.data, song);
-                if txt.len() > 128 {
-                    txt = txt.chars().take(40).collect();
+                let txt_raw = exec_args(song, &t.children.clone().unwrap_or(vec![]))[0].to_s();
+                let mut txt = String::from("");
+                let mut cnt = 0;
+                for c in txt_raw.chars() {
+                    cnt += c.len_utf8();
+                    if cnt < 128 {
+                        txt.push(c);
+                        continue;
+                    }
+                    break;
                 }
                 let e = Event::meta(
                     trk!(song).timepos,
@@ -257,15 +268,20 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.add_event(e);
             },
             TokenType::TimeSignature => {
-                song.timesig_frac = t.data[0].to_i();
-                song.timesig_deno = t.data[1].to_i();
+                let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                if args.len() < 2 {
+                    runtime_error(song, "[TimeSignature] argument must be 2");
+                    continue;
+                }
+                song.timesig_frac = args[0].to_i();
+                song.timesig_deno = args[1].to_i();
                 song.timesig_deno = match song.timesig_deno {
                     2 => 2,
                     4 => 4,
                     8 => 8,
                     16 => 16,
                     _ => {
-                        song.add_log(String::from("[TimeSignature] value must be 2/4/8/16,n"));
+                        runtime_error(song, "[TimeSignature] value must be 2/4/8/16,n");
                         4
                     }
                 };
@@ -444,21 +460,33 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Value => {
                 // extract value
-                // println!("Value=>{:?}", t);
+                // t.value ... (ex) LEX_VALUE (lexer.rs) 計算の時に使う
+                // t.data ... (ex) [SValue::S("=A")]
+                // t.tag ... 関数管理に使う (0: 値 / 1以上: 関数)
+                // t.value_type ... 値の種類 tokens::VALUE_XXXX
                 // check is variable?
-                if t.tag == 0 {
-                    let v = var_extract(&t.data[0], song);
-                    if song.flags.function_needs_return_value {
-                        song.stack.push(v);
-                    } else {
-                        // exec value
-                        let vs = v.to_s().clone();
-                        let tokens = lex(song, &vs, t.lineno);
-                        exec(song, &tokens);
-                    }
-                } else {
-                    // user function
-                    exec_sys_function(song, t);
+                let val = match t.value_type {
+                    token::VALUE_CONST_INT => t.data[0].clone(),
+                    token::VALUE_CONST_STR => t.data[0].clone(),
+                    token::VALUE_VARIABLE => var_extract(&t.data[0], song),
+                    _ => {
+                        if t.tag == 0 {
+                            // exec value
+                            let v = var_extract(&t.data[0], song);
+                            let vs = v.to_s().clone();
+                            // println!("lex={:?}", vs);
+                            let tokens = lex(song, &vs, t.lineno);
+                            exec(song, &tokens);
+                            song.stack.pop().unwrap_or(SValue::None)
+                        } else {
+                            // user function
+                            exec_sys_function(song, t);
+                            song.stack.pop().unwrap_or(SValue::None)
+                        }
+                    },
+                };
+                if song.flags.function_needs_return_value {
+                    song.stack.push(val);
                 }
             },
             TokenType::ValueInc => {
@@ -481,6 +509,11 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 exec_play(song, t);
             },
             TokenType::Rhythm => {},
+            TokenType::ControllChangeCommand => {},
+            TokenType::FadeIO => {}, // replaced CConTime 
+            TokenType::Cresc => {}, // replaced CConTime
+            TokenType::SysExCommand => {}, // replace SysEx
+            TokenType::SetRandomSeed => {}, // replace SetConfig
         }
         pos += 1;
     }
@@ -519,6 +552,29 @@ fn exec_play(song: &mut Song, t: &Token) -> bool {
     song.track_sync();
     song.cur_track = tmp_cur_track;
     true
+}
+
+fn exec_cc_rpn_nrpn(song: &mut Song, t: &Token, cc1: isize, cc2: isize, cc3: isize) {
+    let val = exec_value_int_by_token(song, t);
+    let msb = t.data[0].to_i();
+    let lsb = t.data[1].to_i();
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb));
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb));
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val)); 
+}
+
+fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc2: isize, cc3: isize) {
+    let args = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
+    if args.len() != 3 {
+        runtime_error(song, "RPN/NRPN needs 3 arguments");
+        return;
+    }
+    let msb = args[0].to_i();
+    let lsb = args[1].to_i();
+    let val = args[2].to_i();
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb));
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb));
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val)); 
 }
 
 fn exec_call_user_function(song: &mut Song, t: &Token) -> bool {
@@ -657,8 +713,7 @@ fn exec_if(song: &mut Song, t: &Token) -> bool {
     let false_token = &children[2];
     // eval cond
     let cond = cond_token.children.clone().unwrap();
-    exec(song, &cond);
-    let cond_val = song.stack.pop().unwrap_or(SValue::from_i(0));
+    let cond_val = exec_value(song, &cond);
     // exec true or false
     if cond_val.to_i() != 0 {
         let tokens = true_token.children.clone().unwrap();
@@ -685,8 +740,7 @@ fn exec_while(song: &mut Song, t: &Token) -> bool {
     loop {
         // eval cond
         let cond = cond_token.children.clone().unwrap();
-        exec(song, &cond);
-        let cond_val = song.stack.pop().unwrap_or(SValue::from_i(0));
+        let cond_val = exec_value(song, &cond);
         if cond_val.to_b() == false {
             break;
         }
@@ -742,8 +796,7 @@ fn exec_for(song: &mut Song, t: &Token) -> bool {
     loop {
         // eval cond
         let cond = cond_token.children.clone().unwrap();
-        exec(song, &cond);
-        let cond_val = song.stack.pop().unwrap_or(SValue::from_i(0));
+        let cond_val = exec_value(song, &cond);
         if cond_val.to_b() == false {
             break;
         }
@@ -958,20 +1011,6 @@ fn exec_get_time(song: &mut Song, t: &Token, cmd: &str) -> isize{
     let base = song.timebase * 4 / song.timesig_deno;
     let total = (mes - 1) * (base * song.timesig_frac) + (beat - 1) * base + tick;
     total
-}
-
-fn data_get_int(data: &Vec<SValue>, song: &mut Song) -> isize {
-    if data.len() == 0 {
-        return 0;
-    }
-    var_extract(&data[0], song).to_i()
-}
-
-fn data_get_str(data: &Vec<SValue>, song: &mut Song) -> String {
-    if data.len() == 0 {
-        return String::new();
-    }
-    var_extract(&data[0], song).to_s()
 }
 
 pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
@@ -1389,19 +1428,13 @@ fn exec_voice(song: &mut Song, t: &Token) {
     // voice no
     let args = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
     let no = if args.len() >= 1 { args[0].to_i() } else { 1 };
-    let mut bank_msb = if args.len() >= 2 { args[1].to_i() } else { 0 };
-    let mut bank_lsb = if args.len() >= 3 { args[2].to_i() } else { 0 };
+    let no = value_range(1, no, 128) - 1;
+    let bank_msb = if args.len() >= 2 { args[1].to_i() } else { 0 };
+    let bank_lsb = if args.len() >= 3 { args[2].to_i() } else { 0 };
     // bank ?
     if args.len() == 1 {
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
     } else {
-        if args.len() == 2 {
-            bank_lsb = var_extract(&t.data[1], song).to_i();
-        }
-        if args.len() == 3 {
-            bank_lsb = var_extract(&t.data[1], song).to_i();
-            bank_msb = var_extract(&t.data[2], song).to_i();
-        }
         song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x00, bank_msb)); // msb
         song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x20, bank_lsb)); // lsb
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));

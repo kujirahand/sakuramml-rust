@@ -15,6 +15,7 @@ pub enum MessageKind {
     ErrorRedfineFnuction,
     RuntimeError,
     ErrorDefineVariableIsReserved,
+    ErrorWrongArguments,
 }
 
 /// Language
@@ -123,6 +124,12 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
             match lang {
                 MessageLang::EN => "Define Variable is Reserved",
                 MessageLang::JA => "変数の定義が予約語です",
+            }
+        },
+        MessageKind::ErrorWrongArguments => {
+            match lang {
+                MessageLang::EN => "Wrong number of arguments.",
+                MessageLang::JA => "引数の数が間違っています。",
             }
         }
     }
