@@ -2,11 +2,13 @@ use super::svalue::SValue;
 
 /// TokenType
 #[allow(dead_code)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {
+    Unimplemented,
     Error,
     Empty,
     LineNo,
+    TimeBase,
     Print,
     Note,
     NoteN,
@@ -19,6 +21,7 @@ pub enum TokenType {
     OctaveRel,
     OctaveOnce,
     QLen,
+    QLenRel,
     Velocity,
     VelocityRel,
     Timing,
@@ -38,6 +41,7 @@ pub enum TokenType {
     LoopEnd,
     LoopBreak,
     Time,
+    Rhythm,
     HarmonyBegin,
     HarmonyEnd,
     Tokens, // should run children toknes
@@ -50,6 +54,7 @@ pub enum TokenType {
     DefStr,
     LetVar,
     PlayFrom,
+    PlayFromHere,
     VelocityRandom,
     QLenRandom,
     TimingRandom,
@@ -73,6 +78,10 @@ pub enum TokenType {
     CallUserFunction,
     Return,
     Play,
+    Include,
+    SongVelocityAdd,
+    SongQAdd,
+    SoundType,
 }
 
 #[derive(Debug, Clone)]

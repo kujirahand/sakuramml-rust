@@ -57,6 +57,19 @@ pub fn exec_value(song: &mut Song, tokens: &Vec<Token>) -> SValue {
     return_value
 }
 
+/// run tokens and get int value
+pub fn exec_value_int(song: &mut Song, tokens: &Vec<Token>) -> isize {
+    exec_value(song, tokens).to_i()
+}
+
+/// run tokens and get int value
+pub fn exec_value_int_by_token(song: &mut Song, tok: &Token) -> isize {
+    let empty_tokens = vec![];
+    let tokens = tok.children.as_ref().unwrap_or(&empty_tokens);
+    exec_value_int(song, tokens)
+}
+
+
 /// run tokens
 pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
     let mut pos = 0;
@@ -68,6 +81,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             println!("- exec({:03})(line:{}) {:?} {}", pos, song.lineno, t.ttype, t.to_debug_str());
         }
         match t.ttype {
+            TokenType::Unimplemented => {},
             TokenType::Empty => {},
             TokenType::LineNo => {
                 song.lineno = t.lineno;
@@ -77,6 +91,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     println!("[RUNTIME.ERROR]");
                 }
             },
+            TokenType::TimeBase => {}, // 構文解析の時に設定済み
+            TokenType::Include => {}, // 構文解析時
+            TokenType::SoundType => {},
             TokenType::Print => {
                 let args_tokens = t.children.clone().unwrap_or(vec![]);
                 // println!("print_args=:{:?}", args_tokens);
@@ -140,9 +157,13 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     }
                 }
             },
-            TokenType::Track => exec_track(song, t),
+            TokenType::Track => {
+                let no = exec_value_int_by_token(song, t) as usize;
+                song.change_cur_track(no);
+            },
             TokenType::Channel => {
-                let v = value_range(1, data_get_int(&t.data, song), 16) - 1; // CH(1 to 16)
+                let no = exec_value_int_by_token(song, t);
+                let v = value_range(1, no, 16) - 1; // CH(1 to 16)
                 trk!(song).channel = v as isize;
             },
             TokenType::Voice => exec_voice(song, t),
@@ -159,7 +180,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).octave = value_range(0, trk!(song).octave + t.value, 10);
             },
             TokenType::VelocityRel => {
-                trk!(song).velocity = value_range(0, trk!(song).velocity + t.value, 127);
+                trk!(song).velocity = value_range(0, trk!(song).velocity + (song.v_add * t.value), 127);
+            },
+            TokenType::QLenRel => {
+                trk!(song).qlen = trk!(song).qlen + (song.q_add * t.value);
             },
             TokenType::OctaveOnce => {
                 trk!(song).octave = value_range(0, trk!(song).octave + t.value, 10);
@@ -265,7 +289,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let e = Event::sysex(trk!(song).timepos, &t.data);
                 song.add_event(e);
             },
-            TokenType::Time => exec_time(song, t),
+            TokenType::Time => trk!(song).timepos = exec_get_time(song, t, "TIME"),
+            TokenType::PlayFrom => song.play_from = exec_get_time(song, t, "PlayFrom"),
             TokenType::HarmonyBegin => exec_harmony(song, t, true),
             TokenType::HarmonyEnd => exec_harmony(song, t, false),
             TokenType::Tokens => {
@@ -277,16 +302,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::Div => exec_div(song, t),
             TokenType::Sub => exec_sub(song, t),
             TokenType::KeyFlag => song.key_flag = t.data[0].to_int_array(),
-            TokenType::KeyShift => {
-                let args_tokens = t.children.clone().unwrap_or(vec![]);
-                let args = exec_args(song, &args_tokens);
-                song.key_shift = args[0].to_i();
-            },
-            TokenType::TrackKey => {
-                let args_tokens = t.children.clone().unwrap_or(vec![]);
-                let args = exec_args(song, &args_tokens);
-                trk!(song).track_key = args[0].to_i();
-            },
+            TokenType::KeyShift => song.key_shift = exec_value_int_by_token(song, t),
+            TokenType::TrackKey => trk!(song).track_key = exec_value_int_by_token(song, t),
             TokenType::DefInt => {
                 let var_key = t.data[0].to_s();
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
@@ -305,9 +322,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let val = exec_value(song, &val_tokens);
                 song.variables_insert(&var_key, val);
             },
-            TokenType::PlayFrom => {
-                song.play_from = trk!(song).timepos;
-            },
+            TokenType::PlayFromHere => song.play_from = trk!(song).timepos,
+            TokenType::SongVelocityAdd => song.v_add = exec_value_int_by_token(song, t),
+            TokenType::SongQAdd => song.q_add = exec_value_int_by_token(song, t),
             TokenType::VelocityRandom => {
                 trk!(song).v_rand = var_extract(&t.data[0], song).to_i();
             },
@@ -352,12 +369,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::PBonTime => {
                 trk!(song).write_pb_on_time(t.value, t.data[0].to_int_array(), song.timebase);
             },
-            TokenType::MeasureShift => {
-                song.flags.measure_shift = var_extract(&t.data[0], song).to_i();
-            },
+            TokenType::MeasureShift => song.flags.measure_shift = exec_value_int_by_token(song, t),
             TokenType::TrackSync => song.track_sync(),
             TokenType::TieMode => {
-                let args = &t.data[0].to_array();
+                let args = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
                 if args.len() >= 1 {
                     trk!(song).tie_mode = TieMode::from_i(var_extract(&args[0], song).to_i());
                 }
@@ -464,7 +479,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Play => {
                 exec_play(song, t);
-            }
+            },
+            TokenType::Rhythm => {},
         }
         pos += 1;
     }
@@ -769,7 +785,7 @@ fn get_system_value(cmd: &str, song: &Song) -> Option<SValue> {
         return Some(SValue::from_i(tr));
     }
     if cmd == "CH" || cmd == "CHANNEL" { // @ 現在のチャンネル番号を得る
-        let ch = trk!(song).channel;
+        let ch = trk!(song).channel + 1; // range: 1-16
         return Some(SValue::from_i(ch));
     }
     if cmd == "TIME" || cmd == "Time" { // @ 現在のタイムポインタ値を得る
@@ -919,16 +935,29 @@ fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
     }
 }
 
-fn exec_time(song: &mut Song, t: &Token) {
+fn exec_get_time(song: &mut Song, t: &Token, cmd: &str) -> isize{
     // Calc Time (SakuraObj_time2step)
     // (ref) https://github.com/kujirahand/sakuramml-c/blob/68b62cbc101669211c511258ae1cf830616f238e/src/k_main.c#L473
-    let mes = t.data[0].to_i() + song.flags.measure_shift;
-    let beat = t.data[1].to_i();
-    let tick = t.data[2].to_i();
+    let args = exec_args(song, t.children.as_ref().unwrap_or(&Vec::new()));
+    if args.len() == 0 {
+        runtime_error(song, &format!("[{}] no arguments", cmd));
+        return 0;
+    }
+    if args.len() == 1 {
+        return args[0].to_i();
+    }
+    if args.len() < 3 {
+        runtime_error(song, &format!("[{}] needs 1 or 3 arguments", cmd));
+        return 0;
+    }
+    let mes = args[0].to_i() + song.flags.measure_shift;
+    let beat = args[1].to_i();
+    let tick = args[2].to_i();
+
     // calc
     let base = song.timebase * 4 / song.timesig_deno;
     let total = (mes - 1) * (base * song.timesig_frac) + (beat - 1) * base + tick;
-    song.tracks[song.cur_track].timepos = total;
+    total
 }
 
 fn data_get_int(data: &Vec<SValue>, song: &mut Song) -> isize {
@@ -1358,17 +1387,18 @@ fn exec_rest(song: &mut Song, t: &Token) {
 
 fn exec_voice(song: &mut Song, t: &Token) {
     // voice no
-    let no = var_extract(&t.data[0], song).to_i() - 1;
-    let mut bank_msb = 0;
-    let mut bank_lsb = 0;
+    let args = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
+    let no = if args.len() >= 1 { args[0].to_i() } else { 1 };
+    let mut bank_msb = if args.len() >= 2 { args[1].to_i() } else { 0 };
+    let mut bank_lsb = if args.len() >= 3 { args[2].to_i() } else { 0 };
     // bank ?
-    if t.data.len() == 1 {
+    if args.len() == 1 {
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
     } else {
-        if t.data.len() == 2 {
+        if args.len() == 2 {
             bank_lsb = var_extract(&t.data[1], song).to_i();
         }
-        if t.data.len() == 3 {
+        if args.len() == 3 {
             bank_lsb = var_extract(&t.data[1], song).to_i();
             bank_msb = var_extract(&t.data[2], song).to_i();
         }
@@ -1377,14 +1407,6 @@ fn exec_voice(song: &mut Song, t: &Token) {
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
         // println!("voice: no={}, bank_msb={}, bank_lsb={}", no, bank_msb, bank_lsb);
     }
-}
-
-fn exec_track(song: &mut Song, t: &Token) {
-    let mut v = data_get_int(&t.data, song); // TR=0..
-    if v < 0 {
-        v = 0;
-    }
-    song.change_cur_track(v as usize);
 }
 
 fn exec_decres(song: &mut Song, t: &Token) {

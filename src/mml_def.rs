@@ -3,6 +3,7 @@
 use crate::sakura_version;
 use crate::svalue::SValue;
 use std::collections::HashMap;
+use crate::token::TokenType;
 
 /// Tie & Slur Mode
 /// 0: グリッサンド : ノートオンを、ポルタメントでつなぐ
@@ -342,4 +343,88 @@ pub fn init_reserved_words() -> HashMap<String, u8> {
     var.insert(String::from("End"), 255); // @ End
     //<RESERVED>
     var
+}
+
+macro_rules! sysfunc_add {
+    ($obj:expr, $name:expr, $func_id:expr, $arg_type:expr) => {
+        $obj.insert(String::from($name), SystemFunction{token_type: $func_id, arg_type: $arg_type});
+    };
+}
+#[derive(Debug, Clone, Copy)]
+pub struct SystemFunction {
+    pub token_type: TokenType,
+    pub arg_type: char, // 'I' or 'S' or 'A' or '*'(special)
+}
+pub fn init_system_functions() -> HashMap<String, SystemFunction> {
+    let mut sf = HashMap::new();
+    //@ Basic command
+    // sysfunc_add!(sf, "End", TokenType::End, '_'); // end of song
+    // sysfunc_add!(sf, "END", TokenType::End, '_'); // end of song
+    sysfunc_add!(sf, "Track", TokenType::Track, 'I'); // change current track [range:0 to 999] (ex) Track(1)
+    sysfunc_add!(sf, "TRACK", TokenType::Track, 'I'); // change current track [range:0 to 999] (ex) TRACK(1)
+    sysfunc_add!(sf, "TR", TokenType::Track, 'I'); // change current track [range:0 to 999] (ex) TR(1)
+    sysfunc_add!(sf, "Channel", TokenType::Channel, 'I'); // change channel no [range:1 to 16] (ex) Channel(1)
+    sysfunc_add!(sf, "CHANNEL", TokenType::Channel, 'I'); // change channel no [range:1 to 16] (ex) CHANNEL(1)
+    sysfunc_add!(sf, "CH", TokenType::Channel, 'I'); // change channel no [range:1 to 16] (ex) CH(1)
+    sysfunc_add!(sf, "Time", TokenType::Time, 'A'); // change time position, Time(measure:beat:step) (ex) Time(1:1:0) Time(0)
+    sysfunc_add!(sf, "TIME", TokenType::Time, 'A'); // change time position, TIME(measure:beat:step) (ex) Time(1:1:0) Time(0)
+    sysfunc_add!(sf, "System.TimeBase", TokenType::TimeBase, '*'); // set system time base (ex) TimeBase(96)
+    sysfunc_add!(sf, "Timebase", TokenType::TimeBase, '*'); // set system time base (ex) TimeBase(96)
+    sysfunc_add!(sf, "TimeBase", TokenType::TimeBase, '*'); // set system time base (ex) TimeBase(96)
+    sysfunc_add!(sf, "TIMEBASE", TokenType::TimeBase, '*'); // set system time base (ex) TimeBase(96)
+    sysfunc_add!(sf, "Rhythm", TokenType::Rhythm, '*'); // read Rhythm notes (ex) Rhythm{ bhsh bhsh }
+    sysfunc_add!(sf, "RHYTHM", TokenType::Rhythm, '*'); // read Rhythm notes (ex) Rhythm{ bhsh bhsh }
+    sysfunc_add!(sf, "R", TokenType::Rhythm, '*'); // read Rhythm notes (ex) Rhythm{ bhsh bhsh }
+    sysfunc_add!(sf, "Rythm", TokenType::Rhythm, '*'); // 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh }
+    sysfunc_add!(sf, "RTTHM", TokenType::Rhythm, '*'); // 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh }
+    sysfunc_add!(sf, "Div", TokenType::Div, '*'); // tuplet(連符) (ex) Div{ ceg }
+    sysfunc_add!(sf, "DIV", TokenType::Div, '*'); // tuplet(連符) (ex) Div{ ceg }
+    sysfunc_add!(sf, "Sub", TokenType::Sub, '*'); // sub track / rewind time position (ex) Sub{ceg} egb
+    sysfunc_add!(sf, "SUB", TokenType::Sub, '*'); // sub track / rewind time position (ex) Sub{ceg} egb
+    sysfunc_add!(sf, "S", TokenType::Sub, '*'); // sub track / rewind time position (ex) Sub{ceg} egb
+    sysfunc_add!(sf, "System.KeyFlag", TokenType::KeyFlag, '*'); // set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    sysfunc_add!(sf, "KeyFlag", TokenType::KeyFlag, '*'); // set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    sysfunc_add!(sf, "KF", TokenType::KeyFlag, '*'); // set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    sysfunc_add!(sf, "KeyShift", TokenType::KeyShift, 'I'); // set key-shift (ex) KeyShift(3)
+    sysfunc_add!(sf, "Key", TokenType::KeyShift, 'I'); // set key-shift (ex) Key(3)
+    sysfunc_add!(sf, "KEY", TokenType::KeyShift, 'I'); // set key-shift (ex) KEY(3)
+    sysfunc_add!(sf, "TrackKey", TokenType::TrackKey, 'I'); // set key-shift for track (ex) TrackKey(3)
+    sysfunc_add!(sf, "TR_KEY", TokenType::TrackKey, 'I'); // set key-shift for track (ex) TR_KEY(3)
+    sysfunc_add!(sf, "Play", TokenType::Play, '*'); // play multi track (ex) Play(AA,BB,CC)
+    sysfunc_add!(sf, "PLAY", TokenType::Play, '*'); // play multi track (ex) Play(AA,BB,CC)
+    sysfunc_add!(sf, "PlayFrom.SysEx", TokenType::Unimplemented, 'A'); // Unimplemented
+    sysfunc_add!(sf, "PlayFrom.CtrlChg", TokenType::Unimplemented, 'A'); // Unimplemented
+    sysfunc_add!(sf, "PlayFrom", TokenType::PlayFrom, 'A'); // play from time position (ex) PlayFrom(5:1:0)
+    sysfunc_add!(sf, "PLAY_FROM", TokenType::PlayFrom, 'A'); // play from time position (ex) PLAY_FROM(5:1:0)
+    sysfunc_add!(sf, "PlayFromHere", TokenType::PlayFromHere, '_'); // play from current time pos (ex) PlayFromHere
+    sysfunc_add!(sf, "PLAY_FROM_HRER", TokenType::PlayFromHere, '_'); // play from current time pos (ex) PLAY_FROM_HERE
+    sysfunc_add!(sf, "System.MeasureShift", TokenType::MeasureShift, 'I'); // set measure shift for time pointer (ex) System.MeasureShift(1)
+    sysfunc_add!(sf, "MeasureShift", TokenType::MeasureShift, 'I'); // set measure shift for time pointer (ex) MeasureShift(1)
+    sysfunc_add!(sf, "MEASURE_SHIFT", TokenType::MeasureShift, 'I'); // set measure shift for time pointer (ex) MeasureShift(1)
+    sysfunc_add!(sf, "TrackSync", TokenType::TrackSync, '_'); // synchronize time pointers for all tracks (ex) TrackSync
+    sysfunc_add!(sf, "TRACK_SYNC", TokenType::TrackSync, '_'); // synchronize time pointers for all tracks (ex) TrackSync
+    sysfunc_add!(sf, "Slur", TokenType::TieMode, 'A'); // set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1)
+    sysfunc_add!(sf, "SLUR", TokenType::TieMode, 'A'); // set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1)
+    sysfunc_add!(sf, "System.vAdd", TokenType::SongVelocityAdd, 'I'); // set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3)
+    sysfunc_add!(sf, "vAdd", TokenType::SongVelocityAdd, 'I'); // set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3)
+    sysfunc_add!(sf, "System.qAdd", TokenType::SongQAdd, 'I'); // set "q++" command value (ex) qAdd(3)
+    sysfunc_add!(sf, "qAdd", TokenType::SongQAdd, 'I'); // set "q++" command value (ex) qAdd(3)
+    sysfunc_add!(sf, "System.q2Add", TokenType::Unimplemented, 'I'); // Unimplemented
+    sysfunc_add!(sf, "q2Add", TokenType::Unimplemented, 'I'); // Unimplemented
+    sysfunc_add!(sf, "SoundType", TokenType::SoundType, 'S'); // set sound type (ex) SoundType({pico})
+    //@ Script command
+    sysfunc_add!(sf, "Int", TokenType::DefInt, '*'); // define int variables (ex) Int A = 3
+    sysfunc_add!(sf, "INT", TokenType::DefInt, '*'); // define int variables (ex) INT A = 3
+    sysfunc_add!(sf, "Str", TokenType::DefStr, '*'); // define string variables (ex) Str A = {cde}
+    sysfunc_add!(sf, "STR", TokenType::DefStr, '*'); // define string variables (ex) STR A = {cde}
+    sysfunc_add!(sf, "Print", TokenType::Print, 'S'); // print value (ex) Print({hello})
+    sysfunc_add!(sf, "PRINT", TokenType::Print, 'S'); // print value (ex) PRINT({hello})
+    sysfunc_add!(sf, "System.Include", TokenType::Include, '*'); // Unimplemented
+    sysfunc_add!(sf, "Include", TokenType::Include, '*'); // Unimplemented
+    sysfunc_add!(sf, "INCLUDE", TokenType::Include, '*'); // Unimplemented
+    //@ Controll Change etc.
+    sysfunc_add!(sf, "Voice", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
+    sysfunc_add!(sf, "VOICE", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
+    
+    sf
 }

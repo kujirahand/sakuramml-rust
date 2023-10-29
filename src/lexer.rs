@@ -121,8 +121,8 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '@' => result.push(read_voice(&mut cur, song)), // @ 音色の指定 範囲:1-128 (書式) @(no),(Bank_LSB),(Bank_MSB)
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ 音階を1つ上げる
             '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)), // @ 音階を1つ下げる
-            ')' => result.push(Token::new_value(TokenType::VelocityRel, song.v_add)), // @ 音量を8つ上げる
-            '(' => result.push(Token::new_value(TokenType::VelocityRel, -1 * song.v_add)), // @ 音量を8つ下げる
+            ')' => result.push(Token::new_value(TokenType::VelocityRel, song.v_add)), // @ 音量をvAddの値だけ上げる
+            '(' => result.push(Token::new_value(TokenType::VelocityRel, -1 * song.v_add)), // @ 音量をvAddの値だけ下げる
             // comment
             /*
             "//" => // @ 一行コメント
@@ -146,7 +146,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '{' => result.push(read_command_div(&mut cur, song, true)), // @ 連符 (例 {ceg}4) {c^d}(音長)
             '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)), // @ 一度だけ音階を+1する
             '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)), // @ 一度だけ音階を-1する
-            '?' => result.push(Token::new_value(TokenType::PlayFrom, 0)), // @ ここから演奏する (=PLAY_FROM)
+            '?' => result.push(Token::new_value(TokenType::PlayFromHere, 0)), // @ ここから演奏する (=PlayFromHere)
             '&' => {}, // @ タイ・スラー(Slurコマンドで動作が変更できる)
             // </CHAR_COMMANDS>
             _ => {
@@ -201,131 +201,40 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         }
     }
 
-    // <UPPER_COMMANDS>
-    /*
-    if cmd == "End" || cmd == "END" { } 
-    // @ それ移行をコンパイルしない
-    */
-    // Track & Channel
-    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" {
-        // @ トラック変更　TR=番号 範囲:0-
-        let v = read_arg_value(cur, song);
-        return Token::new(TokenType::Track, 0, vec![v]);
-    }
-    if cmd == "CH" || cmd == "Channel" {
-        // @ チャンネル変更 CH=番号 範囲:1-16
-        let v = read_arg_value(cur, song);
-        return Token::new(TokenType::Channel, 0, vec![v]);
-    }
-    if cmd == "TIME" || cmd == "Time" {
-        // @ タイム変更 TIME(節:拍:ステップ)
-        return read_command_time(cur, song);
-    }
-    if cmd == "RHYTHM" || cmd == "Rhythm" || cmd == "R" {
-        // @ リズムモード
-        return read_command_rhythm(cur, song);
-    }
-    if cmd == "RYTHM" || cmd == "Rythm" {
-        // @ リズムモード(v1の綴りミス対処[^^;]) RHYTHM または R と同じ
-        return read_command_rhythm(cur, song);
-    }
-    if cmd == "DIV" || cmd == "Div" {
-        // @ 連符 (例 DIV{ceg} )
-        return read_command_div(cur, song, false);
-    }
-    if cmd == "SUB" || cmd == "Sub" || cmd == "S" {
-        // @ タイムポインタを戻す (例 SUB{ceg} egb)
-        return read_command_sub(cur, song);
+    let lineno = cur.line;
+    // SystemFunction ?
+    if let Some(f) = song.system_functions.get(&cmd) {
+        let arg_t = f.arg_type;
+        let token_t = f.token_type;
+        match arg_t {
+            'I' | 'S' | 'A' => {
+                if cur.eq_char('=') { cur.next(); }
+                let args = read_args_tokens(cur, song);
+                return Token::new_tokens_lineno(token_t, 0, args, lineno);
+            },
+            '_' => { // no paramerter
+                return Token::new_tokens_lineno(token_t, 0, vec![], lineno);
+            },
+            _ => {
+                match token_t {
+                    TokenType::Rhythm => return read_command_rhythm(cur, song),
+                    TokenType::Div => return read_command_div(cur, song, false),
+                    TokenType::Sub => return read_command_sub(cur, song),
+                    TokenType::KeyFlag => return read_key_flag(cur, song),
+                    TokenType::DefInt => return read_def_int(cur, song),
+                    TokenType::DefStr => return read_def_str(cur, song),
+                    TokenType::Play => return read_play(cur, song),
+                    TokenType::TimeBase => return read_timebase(cur, song),
+                    TokenType::Include => return read_include(cur, song),
+                    _ => {
+                        println!("[SYSTEM_ERROR] FUNCTION NOT SET : {}", cmd);
+                    }
+                }
+            }
+        };
     }
 
-    if cmd == "KF" || cmd == "KeyFlag" {
-        // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
-        return read_key_flag(cur, song);
-    }
-    if cmd == "KEY" || cmd == "Key" || cmd == "KeyShift" {
-        // @ ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde)
-        return read_command_key(cur, song);
-    }
-    if cmd == "TR_KEY" || cmd == "TrackKey" {
-        // @ トラック毎、ノート(cdefgab)のキーをn半音シフトする (例 TrackKey=3 cde)
-        return read_command_track_key(cur, song);
-    }
-    if cmd == "INT" || cmd == "Int" {
-        // @ 変数を定義 (例 INT TestValue=30)
-        return read_def_int(cur, song);
-    }
-    if cmd == "STR" || cmd == "Str" {
-        // @ 文字列変数を定義 (例 STR A={cde})
-        return read_def_str(cur, song);
-    }
-    if cmd == "PLAY" || cmd == "Play" {
-        // @ 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc})
-        return read_play(cur, song);
-    }
-    if cmd == "PRINT" || cmd == "Print" {
-        // @ 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA))
-        return read_print(cur, song);
-    }
-    if cmd == "PlayFrom.SysEx" || cmd == "PlayFrom.CtrlChg" {
-        // @ 未実装
-        let _v = read_arg_value(cur, song);
-        println!("not supported : {}", cmd);
-    }
-    if cmd == "PLAY_FROM" || cmd == "PlayFrom" {
-        // @ ここから演奏する　(?と同じ意味)
-        return read_playfrom(cur, song);
-    }
-    if cmd == "System.MeasureShift" {
-        // @ 小節番号をシフトする (例 System.MeasureShift(1))
-        return read_command_mes_shift(cur, song);
-    }
-    if cmd == "System.KeyFlag" {
-        // @ 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
-        return read_key_flag(cur, song);
-    }
-    if cmd == "System.TimeBase" || cmd == "TIMEBASE" || cmd == "Timebase" || cmd == "TimeBase" {
-        // @ タイムベースを設定 (例 TIMEBASE=96)
-        return read_timebase(cur, song);
-    }
-    if cmd == "TRACK_SYNC" || cmd == "TrackSync" {
-        // @ 全てのトラックのタイムポインタを同期する
-        return Token::new_value(TokenType::TrackSync, 0);
-    }
-    if cmd == "SLUR" || cmd == "Slur" {
-        // @ タイ・スラー記号(&)の動作を変更する(0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ)
-        let args: SValue = read_arg_value_int_array(cur, song);
-        return Token::new(
-            TokenType::TieMode,
-            0,
-            vec![args]);
-    }
-    if cmd == "System.Include" || cmd == "Include" || cmd == "INCLUDE" {
-        // @ 未実装
-        cur.skip_space();
-        let v = if cur.eq_char('(') {
-            cur.get_token_nest('(', ')')
-        } else {
-            "".to_string()
-        };
-        return Token::new_empty(&v, cur.line);
-    }
-    if cmd == "System.vAdd" || cmd == "vAdd" {
-        // @ ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8))
-        return read_v_add(cur, song);
-    }
-    if cmd == "System.qAdd" || cmd == "qAdd" {
-        // @ 未定義
-        read_arg_value(cur, song);
-        return Token::new_empty("qAdd", cur.line);
-    }
-    if cmd == "SoundType" || cmd == "SOUND_TYPE" {
-        // @ 未実装
-        return Token::new(
-            TokenType::Empty,
-            0,
-            read_arg_int_array(cur, song).to_array(),
-        );
-    }
+    // <UPPER_COMMANDS>
     // Voice Change
     if cmd == "VOICE" || cmd == "Voice" {
         // @ モジュレーション 範囲: 0-127
@@ -658,6 +567,17 @@ fn read_error_cmd(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
     if song.debug { println!("{}", error_log); }
     song.add_log(error_log);
     return Token::new_empty("ERROR", cur.line);
+}
+
+fn read_include(cur: &mut TokenCursor, _song: &mut Song) -> Token {
+    // @ 未実装
+    cur.skip_space();
+    let filename = if cur.eq_char('(') {
+        cur.get_token_nest('(', ')')
+    } else {
+        "".to_string()
+    };
+    return Token::new_empty(&format!("Unimplemented Include({})", filename), cur.line);
 }
 
 fn read_error(cur: &mut TokenCursor, song: &mut Song, msg: &str) -> Token {
@@ -1298,11 +1218,13 @@ fn read_args_tokens(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
         let sub_tokens = read_calc(cur, song);
         tokens.push(Token::new_tokens(TokenType::Tokens, 0, sub_tokens));
         
+        // has next value?
         cur.skip_space();
-        if !cur.eq_char(',') {
+        if cur.eq_char(',') || cur.eq_char(':') {
+            cur.next(); // skip ',' or ':'
+        } else {
             break;
         }
-        cur.next(); // skip ,
     }
     if skip_paren {
         cur.skip_space();
@@ -1381,12 +1303,6 @@ fn read_timebase(cur: &mut TokenCursor, song: &mut Song) -> Token {
         song.timebase = 48;
     }
     Token::new_empty(&format!("TIMEBASE={}", v.to_i()), cur.line)
-}
-
-fn read_v_add(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let v = read_arg_value(cur, song);
-    song.v_add = v.to_i();
-    Token::new_empty("vAdd", cur.line)
 }
 
 fn read_key_flag(cur: &mut TokenCursor, _song: &mut Song) -> Token {
@@ -1510,24 +1426,6 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
     tok
 }
 
-fn read_playfrom(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    cur.skip_space();
-    if cur.eq_char('(') {
-        // time
-        let tok = read_command_time(cur, song);
-        let pf = Token::new_value(TokenType::PlayFrom, 0);
-        return Token::new_tokens(TokenType::Tokens, 0, vec![tok, pf]);
-    }
-    Token::new_value(TokenType::PlayFrom, 0)
-}
-
-fn read_print(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let lineno = cur.line;
-    cur.skip_space();
-    let tokens = read_args_tokens(cur, song);
-    Token::new_tokens_lineno(TokenType::Print, 0, tokens, lineno)
-}
-
 fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let lineno = cur.line;
     let arg_tokens = read_args_tokens(cur, song);
@@ -1583,20 +1481,6 @@ fn read_command_sub(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let tokens = lex(song, &block, cur.line);
     let mut tok = Token::new(TokenType::Sub, 0, vec![]);
     tok.children = Some(tokens);
-    tok
-}
-
-fn read_command_key(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let lineno = cur.line;
-    if cur.eq_char('=') { cur.next(); }
-    let arg_token = read_calc_token(cur, song);
-    let tok = Token::new_tokens_lineno(TokenType::KeyShift, 0, vec![arg_token], lineno);
-    tok
-}
-fn read_command_track_key(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let lineno = cur.line;
-    let arg_token = read_calc_token(cur, song);
-    let tok = Token::new_tokens_lineno(TokenType::TrackKey, 0, vec![arg_token], lineno);
     tok
 }
 
@@ -1694,40 +1578,6 @@ fn read_def_rhythm_macro(cur: &mut TokenCursor, song: &mut Song) {
             cur.line, ch
         ));
     }
-}
-
-fn read_command_time(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    cur.skip_space();
-    if cur.eq_char('=') {
-        cur.next();
-    }
-    cur.skip_space();
-    if cur.eq_char('(') {
-        cur.next();
-    }
-
-    let v1 = read_arg_value(cur, song);
-    cur.skip_space();
-    if cur.eq_char(':') {
-        cur.next();
-    }
-    let v2 = read_arg_value(cur, song);
-    cur.skip_space();
-    if cur.eq_char(':') {
-        cur.next();
-    }
-    let v3 = read_arg_value(cur, song);
-    cur.skip_space();
-    if cur.eq_char(')') {
-        cur.next();
-    }
-
-    return Token::new(TokenType::Time, 0, vec![v1, v2, v3]);
-}
-
-fn read_command_mes_shift(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let v = read_arg_value(cur, song);
-    return Token::new(TokenType::MeasureShift, 0, vec![v]);
 }
 
 fn read_tempo_change(cur: &mut TokenCursor, song: &mut Song) -> Token {
@@ -1907,8 +1757,8 @@ fn read_command_nrpn_n(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_voice(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let args = read_args_vec(cur, song);
-    Token::new(TokenType::Voice, 0, args)
+    let args = read_args_tokens(cur, song);
+    Token::new_tokens(TokenType::Voice, 0, args)
 }
 
 fn read_length(cur: &mut TokenCursor) -> Token {
@@ -1922,6 +1772,14 @@ fn read_octave(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    if cur.eq("++") {
+        cur.next_n(2);
+        return Token::new(TokenType::QLenRel, 1, vec![]);
+    }
+    if cur.eq("--") {
+        cur.next_n(2);
+        return Token::new(TokenType::QLenRel, -1, vec![]);
+    }
     if cur.eq("__") {
         // dummy
         cur.next();
@@ -1957,6 +1815,14 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
 }
 
 fn read_velocity(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    if cur.eq("++") {
+        cur.next_n(2);
+        return Token::new(TokenType::VelocityRel, 1, vec![]);
+    }
+    if cur.eq("--") {
+        cur.next_n(2);
+        return Token::new(TokenType::VelocityRel, -1, vec![]);
+    }
     let mut ino = -1;
     if cur.eq("__") {
         // sub velocity
