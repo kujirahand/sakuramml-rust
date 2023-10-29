@@ -215,6 +215,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
         let tag2 = f.tag2;
         match arg_t {
             'I' | 'S' | 'A' => {
+                cur.skip_space();
                 if cur.eq_char('=') { cur.next(); }
                 let args = read_args_tokens(cur, song);
                 return Token::new_tokens_lineno(token_t, tag1, args, lineno);
