@@ -608,7 +608,7 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
             let target = arg.clone().to_s();
             val_s = val_s.replace(&macro_n, &target);
         }
-        // println!("macro={}", val_s);
+        // println!("macro={}//{:?}", val_s, t);
         if song.flags.function_needs_return_value {
             song.stack.push(SValue::from_s(val_s));
         } else {

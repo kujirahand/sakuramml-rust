@@ -647,14 +647,16 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
 
 fn read_error_cmd(cur: &mut TokenCursor, song: &mut Song, cmd: &str) -> Token {
     let near = cur.peek_str_n(8).replace('\n', "↵");
-    song.add_log(format!(
+    let error_log = format!(
         "[ERROR]({}) {} \"{}\" {} \"{}\"",
         cur.line,
         song.get_message(MessageKind::ScriptSyntaxError),
         cmd,
         song.get_message(MessageKind::Near),
         near,
-    ));
+    );
+    if song.debug { println!("{}", error_log); }
+    song.add_log(error_log);
     return Token::new_empty("ERROR", cur.line);
 }
 
@@ -1137,6 +1139,7 @@ fn read_variables(cur: &mut TokenCursor, song: &mut Song, name: &str, sval: SVal
                 let mut tok = Token::new_tokens(TokenType::Value, LEX_VALUE, args);
                 tok.tag = 1; // Macro
                 tok.data = vec![SValue::from_s(format!("={}", name))];
+                tok.lineno = cur.line;
                 return tok;
             } else {
                 let tok = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_s(format!("={}", name))]);
