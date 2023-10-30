@@ -8,33 +8,6 @@ CMD_LIST=対象から「</CHAR_COMMANDS>」を切り取る。
 CMD_LIST=CMD_LIST&改行。
 CMD_LISTをコマンド変換処理してRES_1CHARに代入。
 
-Lから「<UPPER_COMMANDS>」を切り取る。
-CMD_LIST_U=対象から「</UPPER_COMMANDS>」を切り取る。
-CMD_LIST=""
-LAST_CMD=""
-CMD_LIST_Uを改行で区切って反復
-　　もし、LAST_CMD≠「」ならば
-　　　　対象で「// @」が何文字目
-　　　　もし、それ=0ならば続ける。
-　　　　解説＝対象
-　　　　それはLAST_CMD
-　　　　「cmd == 」を「」に置換。
-　　　　「if 」を「」に置換。
-　　　　『{』を「=>」に単置換。
-　　　　トリム
-　　　　LINE=それ＆解説
-　　　　CMD_LIST=CMD_LIST&LINE&改行。
-　　　　LINEを表示。
-　　　　＃
-　　ここまで
-　　対象で「if cmd ==」が何文字目
-　　もし、それ=0ならば
-　　　　LAST_CMD = ""
-　　　　続ける
-　　ここまで。
-　　LAST_CMD=対象。
-ここまで。
-CMD_LISTをコマンド変換処理してRES_UPに代入。
 # ------------------------------------------
 # ストトン表記 - sutoton.rs
 # ------------------------------------------
@@ -91,6 +64,18 @@ S_LISTを改行で区切って反復
 　　RES=RES&「| {KEY} | {VAL} |」&改行。
 ここまで。
 RES_RHYTHM_MACRO=RES
+# ------------------------------------------
+RES=""
+Lから「<SYSTEM_FUNCTION>」を切り取る。
+S_LIST=対象から「</SYSTEM_FUNCTION>」を切り取る。
+S_LISTを改行で区切って反復
+　　対象を『/"(.+)".*\/\/\s+(.*)/』で正規表現マッチ。
+　　もし、そうでなければ、続ける。
+　　KEY=抽出文字列[0]
+　　VAL=抽出文字列[1]
+　　RES=RES&「| {KEY} | {VAL} |」&改行。
+ここまで。
+RES_UP=RES
 
 # ------------------------------------------
 # 参照できるシステムの値 - runner.rs

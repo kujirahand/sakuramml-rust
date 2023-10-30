@@ -121,8 +121,8 @@
 | @ | 音色の指定 範囲:1-128 (書式) @(no),(Bank_LSB),(Bank_MSB) |
 | > | 音階を1つ上げる |
 | < | 音階を1つ下げる |
-| ) | 音量を8つ上げる |
-| ( | 音量を8つ下げる |
+| ) | 音量をvAddの値だけ上げる |
+| ( | 音量をvAddの値だけ下げる |
 | // | 一行コメント |
 | /* .. */ | 範囲コメント |
 | ## | 一行コメント |
@@ -136,7 +136,7 @@
 | { | 連符 (例 {ceg}4) {c^d}(音長) |
 | ` | 一度だけ音階を+1する |
 |  | 一度だけ音階を-1する |
-| ? | ここから演奏する (=PLAY_FROM) |
+| ? | ここから演奏する (=PlayFromHere) |
 | & | タイ・スラー(Slurコマンドで動作が変更できる) |
 
 
@@ -144,81 +144,153 @@
 
 | コマンド | 説明    |
 |---------|--------|
-| End / END | それ移行をコンパイルしない |
-| TR / TRACK / Track | トラック変更　TR=番号 範囲:0- |
-| CH / Channel | チャンネル変更 CH=番号 範囲:1-16 |
-| TIME / Time | タイム変更 TIME(節:拍:ステップ) |
-| RHYTHM / Rhythm / R | リズムモード |
-| RYTHM / Rythm | リズムモード(v1の綴りミス対処[^^;]) RHYTHM または R と同じ |
-| DIV / Div | 連符 (例 DIV{ceg} ) |
-| SUB / Sub / S | タイムポインタを戻す (例 SUB{ceg} egb) |
-| KF / KeyFlag | 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
-| KEY / Key / KeyShift | ノート(cdefgab)のキーをn半音シフトする (例 KEY=3 cde) |
-| TR_KEY / TrackKey | トラック毎、ノート(cdefgab)のキーをn半音シフトする (例 TrackKey=3 cde) |
-| INT / Int | 変数を定義 (例 INT TestValue=30) |
-| STR / Str | 文字列変数を定義 (例 STR A={cde}) |
-| PLAY / Play | 複数トラックを１度に書き込む (例 PLAY={aa},{bb},{cc}) |
-| PRINT / Print | 文字を出力する (例 PRINT{"cde"} )(例 INT AA=30;PRINT(AA)) |
-| PlayFrom.SysEx / PlayFrom.CtrlChg | 未実装 |
-| PLAY_FROM / PlayFrom | ここから演奏する　(?と同じ意味) |
-| System.MeasureShift | 小節番号をシフトする (例 System.MeasureShift(1)) |
-| System.KeyFlag | 臨時記号を設定 - KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
-| System.TimeBase / TIMEBASE / Timebase / TimeBase | タイムベースを設定 (例 TIMEBASE=96) |
-| TRACK_SYNC / TrackSync | 全てのトラックのタイムポインタを同期する |
-| SLUR / Slur | タイ・スラー記号(&)の動作を変更する(0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) |
-| System.Include / Include / INCLUDE | 未実装 |
-| System.vAdd / vAdd | ベロシティの相対変化(と)の変化値を指定する (例 System.vAdd(8)) |
-| System.qAdd / qAdd | 未定義 |
-| SoundType / SOUND_TYPE | 未実装 |
-| VOICE / Voice | モジュレーション 範囲: 0-127 |
-| M / Modulation | モジュレーション 範囲: 0-127 |
-| PT / PortamentoTime | ポルタメント 範囲: 0-127 |
-| V / MainVolume | メインボリューム 範囲: 0-127 |
-| P / Panpot | パンポット 範囲: 0-63-127 |
-| EP / Expression | エクスプレッション音量 範囲: 0-127 |
-| PS / PortamentoSwitch | ポルタメントスイッチ |
-| REV / Reverb | リバーブ 範囲: 0-127 |
-| CHO / Chorus | コーラス 範囲: 0-127 |
-| VAR / Variation | バリエーション 範囲: 0-127 |
-| PB / PitchBend | ピッチベンドを指定 範囲: -8192~0~8191の範囲 |
-| BR / PitchBendSensitivity | ピッチベンドの範囲を設定 範囲: 0-12半音 |
-| RPN | RPNを書き込む (例 RPN=0,1,64) |
-| NRPN | NRPNを書き込む (例 NRPN=1,0x64,10) |
-| FineTune | チューニングの微調整 範囲:0-64-127 (-100 - 0 - +99.99セント） |
-| CoarseTune | 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) |
-| VibratoRate | 音色の編集(GS/XG) 範囲: 0-127 |
-| VibratoDepth | 音色の編集(GS/XG) 範囲: 0-127 |
-| VibratoDelay | 音色の編集(GS/XG) 範囲: 0-127 |
-| FilterCutoff | 音色の編集(GS/XG) 範囲: 0-127 |
-| FilterResonance | 音色の編集(GS/XG) 範囲: 0-127 |
-| EGAttack | 音色の編集(GS/XG) 範囲: 0-127 |
-| EGDecay | 音色の編集(GS/XG) 範囲: 0-127 |
-| EGRelease | 音色の編集(GS/XG) 範囲: 0-127 |
-| Fadein / FADEIN | 小節数を指定してフェードインする (例: Fadein(1)) |
-| Fadeout / FADEOUT | 小節数を指定してフェードアウトする (例: Fadeout(1)) |
-| Decresc / DECRESC | デクレッシェンドを表現 (書式) Decresc([[[len],v1],v2]) だんだん小さく。エクスプレッションをlen(ｎ分音符指定で)の間に、v1からv2へ変更する。lenを省略すると全音符の長さになる。 |
-| Cresc / CRESC | クレッシェンドを表現 (書式) Cresc([[[len],v1],v2]) だんだん大きく。エクスプレッションをlen(ｎ分音符指定で)の間に、v1からv2へ変更する。lenを省略すると全音符の長さになる。 |
-| ResetGM | GMリセットを送信 |
-| ResetGS | GSリセットを送信 |
-| ResetXG | XGリセットを送信 |
-| TEMPO / Tempo / T | テンポの指定 |
-| TempoChange | テンポを連続で変更する (書式) TempoChange(開始値,終了値, !長さ) |
-| TimeSignature / TimeSig / TIMESIG / System.TimeSignature | 拍子の指定 |
-| MetaText / TEXT / Text | メタテキスト (例 TEXT{"abcd"}) |
-| COPYRIGHT / Copyright | メタテキスト著作権 (例 COPYRIGHT{"aaa"}) |
-| TRACK_NAME / TrackName | 曲名 (例 TRACK_NAME{"aaa"}) |
-| InstrumentName | 楽器名 (例 InstrumentName{"aaa"}) |
-| LYRIC / Lyric | メタテキスト歌詞 (例 LYRIC{"aaa"}) |
-| MAKER / Marker | マーカー (例 MAKER{"aaa"}) |
-| CuePoint | キューポイント (例 CuePoint{"aaa"}) |
-| IF / If | IF文 (書式) IF(条件){ … }ELSE{ … } |
-| FOR / For | FOR文 (書式) FOR(初期化式; 条件; 増加式){ … } |
-| WHILE / While | WHILE文 (書式) WHILE(条件){ … } |
-| EXIT / Exit / BREAK / Break | BREAK文 FOR/WHILEを抜ける |
-| CONTINUE / Continue | CONTINUE文 FOR/WHILEを続ける |
-| RETURN / Return | RETURN(戻り値) 関数を抜ける |
-| RandomSeed / RANDOM_SEED | 乱数の種を設定する (例 RandomSeed=1234) |
-| FUNCTION / Function | 関数を定義する (未実装) |
+| End | end of song |
+| END | end of song |
+| Track | change current track [range:0 to 999] (ex) Track(1) |
+| TRACK | change current track [range:0 to 999] (ex) TRACK(1) |
+| TR | change current track [range:0 to 999] (ex) TR(1) |
+| Channel | change channel no [range:1 to 16] (ex) Channel(1) |
+| CHANNEL | change channel no [range:1 to 16] (ex) CHANNEL(1) |
+| CH | change channel no [range:1 to 16] (ex) CH(1) |
+| Time | change time position, Time(measure:beat:step) (ex) Time(1:1:0) Time(0) |
+| TIME | change time position, TIME(measure:beat:step) (ex) Time(1:1:0) Time(0) |
+| System.TimeBase | set system time base (ex) TimeBase(96) |
+| Timebase | set system time base (ex) TimeBase(96) |
+| TimeBase | set system time base (ex) TimeBase(96) |
+| TIMEBASE | set system time base (ex) TimeBase(96) |
+| Rhythm | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| RHYTHM | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| R | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| Rythm | 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| RTTHM | 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| Div | tuplet(連符) (ex) Div{ ceg } |
+| DIV | tuplet(連符) (ex) Div{ ceg } |
+| Sub | sub track / rewind time position (ex) Sub{ceg} egb |
+| SUB | sub track / rewind time position (ex) Sub{ceg} egb |
+| S | sub track / rewind time position (ex) Sub{ceg} egb |
+| System.KeyFlag | set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
+| KeyFlag | set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
+| KF | set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
+| KeyShift | set key-shift (ex) KeyShift(3) |
+| Key | set key-shift (ex) Key(3) |
+| KEY | set key-shift (ex) KEY(3) |
+| TrackKey | set key-shift for track (ex) TrackKey(3) |
+| TR_KEY | set key-shift for track (ex) TR_KEY(3) |
+| Play | play multi track (ex) Play(AA,BB,CC) |
+| PLAY | play multi track (ex) Play(AA,BB,CC) |
+| PlayFrom.SysEx | Unimplemented |
+| PlayFrom.CtrlChg | Unimplemented |
+| PlayFrom | play from time position (ex) PlayFrom(5:1:0) |
+| PLAY_FROM | play from time position (ex) PLAY_FROM(5:1:0) |
+| PlayFromHere | play from current time pos (ex) PlayFromHere |
+| PLAY_FROM_HRER | play from current time pos (ex) PLAY_FROM_HERE |
+| System.MeasureShift | set measure shift for time pointer (ex) System.MeasureShift(1) |
+| MeasureShift | set measure shift for time pointer (ex) MeasureShift(1) |
+| MEASURE_SHIFT | set measure shift for time pointer (ex) MeasureShift(1) |
+| TrackSync | synchronize time pointers for all tracks (ex) TrackSync |
+| TRACK_SYNC | synchronize time pointers for all tracks (ex) TrackSync |
+| Slur | set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1) |
+| SLUR | set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1) |
+| System.vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3) |
+| vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3) |
+| System.qAdd | set "q++" command value (ex) qAdd(3) |
+| qAdd | set "q++" command value (ex) qAdd(3) |
+| System.q2Add | Unimplemented |
+| q2Add | Unimplemented |
+| SoundType | set sound type (ex) SoundType({pico}) |
+| Voice | set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1) |
+| VOICE | set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1) |
+| M | CC#1 Modulation (ex) M(10) |
+| Modulation | CC#1 Modulation range:0-127 (ex) M(10) |
+| PT | CC#5 Portamento Time range:0-127 (ex) PT(10) |
+| PortamentoTime | CC#5 Portamento Time range:0-127 (ex) PT(10) |
+| V | CC#7 Main Volume range:0-127 (ex) V(10) |
+| MainVolume | CC#7 Main Volume range:0-127 (ex) V(10) |
+| P | CC#10 Panpot range:0-63-127 (ex) P(63) |
+| Panpot | CC#10 Panpot range:0-63-127 (ex) Panpot(63) |
+| EP | CC#11 Expression range:0-127 (ex) EP(100) |
+| Expression | CC#11 Expression range:0-127 (ex) EP(100) |
+| PS | CC#65 Portament switch range:0-127 (ex) PS(1) |
+| PortamentoSwitch | CC#65 Portament switch range:0-127 (ex) PS(1) |
+| REV | CC#91 Reverb range:0-127 (ex) REV(100) |
+| Reverb | CC#91 Reverb range:0-127 (ex) REV(100) |
+| CHO | CC#93 Chorus range:0-127 (ex) CHO(100) |
+| Chorus | CC#93 Chorus range:0-127 (ex) Chorus(100) |
+| VAR | CC#94 Variation range:0-127 (ex) VAR(100) |
+| Variation | CC#94 Variation range:0-127 (ex) Variation(100) |
+| PB | Pitchbend range: -8192...0...8191 (ex) PB(10) |
+| RPN | write RPN (ex) RPN(0,1,64) |
+| NRPN | write NRPN (ex) NRPN(1,1,1) |
+| BR | PitchBendSensitivity (ex) BR(10)  |
+| PitchBendSensitivity | PitchBendSensitivity (ex) BR(10) |
+| FineTune | set fine tune range:0-63-127(-100 - 0 - +99.99セント）(ex) FineTune(63) |
+| CoarseTune | set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(63) |
+| VibratoRate | set VibratoRate range: 0-127 |
+| VibratoDepth | set VibratoRate range: 0-127 |
+| VibratoDelay | set VibratoRate range: 0-127 |
+| FilterCutoff | set FilterCutoff range: 0-127 |
+| FilterResonance | set FilterResonance range: 0-127 |
+| EGAttack | set EGAttack range: 0-127 |
+| EGDecay | set EGDecay range: 0-127 |
+| EGRelease | set EGRelease range: 0-127 |
+| Fadein | fadein 小節数を指定 (ex) Fadein(1) |
+| Fadeout | fadeout 小節数を指定 (ex) Fadeout(1) |
+| Cresc | cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1) |
+| Decresc | cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1) |
+| CRESC | cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1) |
+| DECRESC | cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1) |
+| ResetGM | ResetGM |
+| ResetGS | ResetGS |
+| ResetXG | ResetXG |
+| Tempo | set tempo (ex) Tempo(120) |
+| TEMPO | set tempo (ex) TEMPO(120) |
+| T | set tempo (ex) T(120) |
+| BPM | set tempo (ex) BPM(120) |
+| TempoChange | tempo change slowly TempoChange(start, end, !len) (ex) TempoChange(80,120,!1) |
+| TimeSignature | set time signature (ex) TimeSignature(4, 4) |
+| System.TimeSignature | set time signature (ex) TimeSignature(4, 4) |
+| TimeSig | set time signature (ex) TimeSignature(4, 4) |
+| TIMESIG | set time signature (ex) TimeSignature(4, 4) |
+| MetaText | write meta text (ex) MetaText{"hello"} |
+| Text | write meta text (ex) MetaText{"hello"} |
+| TEXT | write meta text (ex) MetaText{"hello"} |
+| Copyright | write copyright text (ex) Copyright{"hello"} |
+| COPYRIGHT | write copyright text (ex) COPYRIGHT{"hello"} |
+| TrackName | write TrackName text (ex) TrackName{"hello"} |
+| TRACK_NAME | write TrackName text (ex) TrackName{"hello"} |
+| InstrumentName | write InstrumentName text (ex) InstrumentName{"hello"} |
+| Lyric | write Lyric text (ex) Lyric{"hello"} |
+| LYRIC | write Lyric text (ex) LYRIC{"hello"} |
+| MAKER | write MAKER text (ex) MAKER{"hello"} |
+| Maker | write Maker text (ex) Maker{"hello"} |
+| CuePoint | write CuePoint text (ex) CuePoint{"hello"} |
+| Int | define int variables (ex) Int A = 3 |
+| INT | define int variables (ex) INT A = 3 |
+| Str | define string variables (ex) Str A = {cde} |
+| STR | define string variables (ex) STR A = {cde} |
+| Print | print value (ex) Print({hello}) |
+| PRINT | print value (ex) PRINT({hello}) |
+| System.Include | Unimplemented |
+| Include | Unimplemented |
+| INCLUDE | Unimplemented |
+| IF | IF(cond){ true }ELSE{ false } |
+| If | IF(cond){ true }ELSE{ false } |
+| FOR | FOR(INT I = 0; I < 10; I++){ ... } |
+| For | FOR(INT I = 0; I < 10; I++){ ... } |
+| WHILE | WHILE(cond) { ... } |
+| While | WHILE(cond) { ... } |
+| BREAK | exit from loop |
+| Break | exit from loop |
+| EXIT | exit from loop |
+| Exit | exit from loop |
+| CONTINUE | exit from loop |
+| Continue | exit from loop |
+| RETURN | return from function |
+| Return | return from function |
+| RANDOM_SEED | set random seed |
+| RandomSeed | set random seed |
+| FUNCTION | define user function |
+| Function | define user function |
 
 
 ## 計算式で参照できる値

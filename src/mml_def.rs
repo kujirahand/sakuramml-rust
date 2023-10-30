@@ -369,6 +369,7 @@ pub struct SystemFunction {
 }
 pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     let mut sf = HashMap::new();
+    //<SYSTEM_FUNCTION>
     //@ Basic command
     // sysfunc_add!(sf, "End", TokenType::End, '_'); // end of song
     // sysfunc_add!(sf, "END", TokenType::End, '_'); // end of song
@@ -521,7 +522,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "RandomSeed", TokenType::SetRandomSeed, '*'); // set random seed
     sysfunc_add!(sf, "FUNCTION", TokenType::DefUserFunction, '*'); // define user function
     sysfunc_add!(sf, "Function", TokenType::DefUserFunction, '*'); // define user function
-    
+    //</SYSTEM_FUNCTION>
     //
     sf
 }
