@@ -273,7 +273,6 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     runtime_error(song, "[TimeSignature] argument must be 2");
                     continue;
                 }
-                println!("@@@{:?}", args);
                 song.timesig_frac = value_range(2, args[0].to_i(), 64);
                 song.timesig_deno = value_range(2, args[1].to_i(), 64);
                 song.timesig_deno = match song.timesig_deno {

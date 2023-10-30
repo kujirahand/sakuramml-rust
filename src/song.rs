@@ -356,7 +356,7 @@ impl Track {
         // let _wave_len = end_pos - start_pos;
         self.timepos = start_pos;
         for cow in self.cc_on_note_wave.clone().iter() {
-            println!("write_cc_on_note_wave:no={}", cow.no);
+            // println!("write_cc_on_note_wave:no={}", cow.no);
             self.write_cc_on_time(cow.no, cow.data.clone());
         }
         self.timepos = end_pos;
