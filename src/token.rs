@@ -33,6 +33,7 @@ pub enum TokenType {
     Tempo,
     TempoChange,
     MetaText,
+    Port,
     SysEx,
     TimeSignature,
     PitchBend,

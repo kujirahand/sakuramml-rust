@@ -481,6 +481,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "System.TimeSignature", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
     sysfunc_add!(sf, "TimeSig", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
     sysfunc_add!(sf, "TIMESIG", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
+    sysfunc_add!(sf, "Port", TokenType::Port, 'I'); // set Port No (ex) Port(0)
     sysfunc_cc_add!(sf, "MetaText", TokenType::MetaText, 'S', 1); // write meta text (ex) MetaText{"hello"}
     sysfunc_cc_add!(sf, "Text", TokenType::MetaText, 'S', 1); // write meta text (ex) MetaText{"hello"}
     sysfunc_cc_add!(sf, "TEXT", TokenType::MetaText, 'S', 1); // write meta text (ex) MetaText{"hello"}

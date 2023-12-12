@@ -98,6 +98,7 @@ pub struct Track {
     pub v_rand: isize,
     pub q_rand: isize,
     pub t_rand: isize,
+    pub port: isize,
     pub track_key: isize,
     pub tie_mode: TieMode, // Slur(#7)
     pub tie_value: isize,
@@ -127,6 +128,7 @@ impl Track {
             qlen: 90,
             timing: 0,
             track_key: 0,
+            port: 0,
             tie_mode: TieMode::Port,
             tie_value: 0,
             v_sub: vec![0],

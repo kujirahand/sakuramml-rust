@@ -267,6 +267,18 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 );
                 song.add_event(e);
             },
+            TokenType::Port => {
+                let port = exec_args(song, &t.children.clone().unwrap_or(vec![]))[0].to_i();
+                 trk!(song).port = port;
+                let e = Event::meta(
+                    trk!(song).timepos,
+                    0xFF,
+                    0x21,
+                    0x01,
+                    vec![port as u8],
+                );
+                song.add_event(e);
+            },
             TokenType::TimeSignature => {
                 let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
                 if args.len() < 2 {
