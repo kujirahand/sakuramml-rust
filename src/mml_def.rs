@@ -500,6 +500,24 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "MAKER", TokenType::MetaText, 'S', 6); // write MAKER text (ex) MAKER{"hello"}
     sysfunc_cc_add!(sf, "Maker", TokenType::MetaText, 'S', 6); // write Maker text (ex) Maker{"hello"}
     sysfunc_cc_add!(sf, "CuePoint", TokenType::MetaText, 'S', 7); // write CuePoint text (ex) CuePoint{"hello"}
+    //@ GS
+    sysfunc_cc_add!(sf, "GSEffect", TokenType::GSEffect, 'A', 0); // GSEffect(num, val) (ex) GSEffect($30, 0)
+    sysfunc_cc_add!(sf, "GSReverbMacro", TokenType::GSEffect, 'I', 0x30); // GSReverbMacro(val) - 0:Room1 5:Hall 6:Delay (ex) GSReverbMacro(0)
+    sysfunc_cc_add!(sf, "GSReverbCharacter", TokenType::GSEffect, 'I', 0x31); // GSReverbCharacter(val) - 0:Room1 5:Hall 6:Delay (ex) GSReverbMacro(0)
+    sysfunc_cc_add!(sf, "GSReverbPRE_LPE", TokenType::GSEffect, 'I', 0x32); // GSReverbPRE_LPE(val) (ex) GSReverbPRE_LPE(0)
+    sysfunc_cc_add!(sf, "GSReverbLevel", TokenType::GSEffect, 'I', 0x33); // GSReverbLevel(val) (ex) GSReverbLevel(0)
+    sysfunc_cc_add!(sf, "GSReverbTime", TokenType::GSEffect, 'I', 0x34); // GSReverbTime(val) (ex) GSReverbTime(0)
+    sysfunc_cc_add!(sf, "GSReverbFeedback", TokenType::GSEffect, 'I', 0x35); // GSReverbFeedback(val) (ex) GSReverbFeedback(0)
+    sysfunc_cc_add!(sf, "GSReverbSendToChorus", TokenType::GSEffect, 'I', 0x36); // GSReverbSendToChorus(val) (ex) GSReverbSendToChorus(0)
+    sysfunc_cc_add!(sf, "GSChorusMacro", TokenType::GSEffect, 'I', 0x38); // GSChorusMacro(val) (ex) GSChorusMacro(0)
+    sysfunc_cc_add!(sf, "GSChorusPRE_LPF", TokenType::GSEffect, 'I', 0x39); // GSChorusPRE_LPF(val) (ex) GSChorusPRE_LPF(0)
+    sysfunc_cc_add!(sf, "GSChorusLevel", TokenType::GSEffect, 'I', 0x3A); // GSChorusLevel(val) (ex) GSChorusLevel(0)
+    sysfunc_cc_add!(sf, "GSChorusFeedback", TokenType::GSEffect, 'I', 0x3B); // GSChorusFeedback(val) (ex) GSChorusFeedback(0)
+    sysfunc_cc_add!(sf, "GSChorusDelay", TokenType::GSEffect, 'I', 0x3C); // GSChorusDelay(val) (ex) GSChorusDelay(0)
+    sysfunc_cc_add!(sf, "GSChorusRate", TokenType::GSEffect, 'I', 0x3D); // GSChorusRate(val) (ex) GSChorusRate(0)
+    sysfunc_cc_add!(sf, "GSChorusDepth", TokenType::GSEffect, 'I', 0x3E); // GSChorusDepth(val) (ex) GSChorusDepth(0)
+    sysfunc_cc_add!(sf, "GSChorusSendToReverb", TokenType::GSEffect, 'I', 0x3F); // GSChorusSendToReverb(val) (ex) GSChorusSendToReverb(0)
+    sysfunc_cc_add!(sf, "GSChorusSendToDelay", TokenType::GSEffect, 'I', 0x40); // GSChorusSendToDelay(val) (ex) GSChorusSendToDelay(0)
     //@ Script command
     sysfunc_add!(sf, "Int", TokenType::DefInt, '*'); // define int variables (ex) Int A = 3
     sysfunc_add!(sf, "INT", TokenType::DefInt, '*'); // define int variables (ex) INT A = 3

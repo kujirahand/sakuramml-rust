@@ -249,6 +249,8 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
                             _ => {},
                         }
                     },
+                    TokenType::GSEffect => {
+                    },
                     TokenType::If => return read_if(cur, song),
                     TokenType::For => return read_for(cur, song),
                     TokenType::While => return read_while(cur, song),

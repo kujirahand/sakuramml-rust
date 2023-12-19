@@ -317,6 +317,31 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let e = Event::sysex(trk!(song).timepos, &t.data);
                 song.add_event(e);
             },
+            TokenType::GSEffect => {
+                let num: u8;
+                let val: u8;
+                println!("TimePtr={:?}", trk!(song).timepos);
+                let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                println!("TimePtr={:?}", trk!(song).timepos);
+                match &t.value {
+                    0x00 => {
+                        num = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
+                        val = if data.len() >= 2 { data[1].to_i() as u8 } else { 0 };
+                    },
+                    0x01 ..= 0x40 => {
+                        num = (&t.value % 256) as u8;
+                        val = data[0].to_i() as u8;
+                    },
+                    _ => { num = 0xff; val = 0; },
+                }
+                let e = Event::sysex_raw(
+                    trk!(song).timepos,
+                    vec![0xF0, 0x41, song.device_number as u8, 0x42, 0x12, 0x40, 0x01, num, val, 0xf7],
+                );
+                if num != 0xff {
+                    song.add_event(e);
+                }
+            },
             TokenType::Time => trk!(song).timepos = exec_get_time(song, t, "TIME"),
             TokenType::PlayFrom => song.play_from = exec_get_time(song, t, "PlayFrom"),
             TokenType::HarmonyBegin => exec_harmony(song, t, true),

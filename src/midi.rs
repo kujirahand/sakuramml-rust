@@ -102,7 +102,9 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 if data[0] != 0xF0 {
                     res.push(0xF0); // SysEx
                 }
+                // 2nd byte must be length
                 res.push((data.len() & 0xFF) as u8);
+                // write data
                 for b in data.iter() {
                     res.push(*b);
                 }

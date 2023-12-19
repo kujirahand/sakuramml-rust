@@ -52,6 +52,9 @@ impl Event {
         }
         Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(a) }
     }
+    pub fn sysex_raw(time: isize, data_v: Vec<u8>) -> Self {
+        Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) }
+    }
     pub fn cc(time: isize, channel: isize, no: isize, value: isize) -> Self {
         Self { etype: EventType::ControllChange, time, channel, v1: no, v2: value, v3:0, data: None }
     }
@@ -438,6 +441,7 @@ pub struct Song {
     pub q_add: isize,
     pub stack: Vec<SValue>,
     pub rand_seed: u32,
+    pub device_number: u8,
     pub lineno: isize,
     logs: Vec<String>, // ログ
 }
@@ -474,6 +478,7 @@ impl Song {
             q_add: 1,
             stack: vec![],
             rand_seed: 1234567, // Random Seed
+            device_number: 0,
             lineno: 0,
         }
     }
