@@ -352,6 +352,25 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                             vec![0xF0, 0x41, dev, 0x42, 0x12, 0x40, 0x01, num, val, 0xf7],
                         ));
                     },
+                    0x11 => { // GSScaleTuning
+                        if data.len() >= 12 {
+                            let mut a = vec![];
+                            for v in data.iter() {
+                                a.push(v.to_i() as u8);
+                            }
+                            for ic in 0x11..=0x1F {
+                                let e = Event::sysex_raw(
+                                    time,
+                                    vec![
+                                        0xF0, 0x41, dev, 0x42, 0x12, 0x40, ic, 0x40,
+                                        a[0], a[1], a[2], a[3], a[4], a[5],
+                                        a[6], a[7], a[8], a[9], a[10], a[11],
+                                        0xf7
+                                    ]);
+                                song.add_event(e);
+                            }
+                        }
+                    },
                     0x15 => { // change to the rhytm part
                         let val = if data.len() >= 1 { data[1].to_i() as u8 } else { 0 };
                         let ch = trk!(song).channel;

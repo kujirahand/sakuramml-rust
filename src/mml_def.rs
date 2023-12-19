@@ -520,6 +520,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "GSChorusSendToReverb", TokenType::GSEffect, 'I', 0x3F); // GSChorusSendToReverb(val) (ex) GSChorusSendToReverb(0)
     sysfunc_cc_add!(sf, "GSChorusSendToDelay", TokenType::GSEffect, 'I', 0x40); // GSChorusSendToDelay(val) (ex) GSChorusSendToDelay(0)
     sysfunc_cc_add!(sf, "GS_RHYTHM", TokenType::GSEffect, 'I', 0x15); // Change to rhythm part val=0:instrument/1:drum1/2:drum2 (ex) GSChorusSendToDelay(0)
+    sysfunc_cc_add!(sf, "GSScaleTuning", TokenType::GSEffect, 'A', 0x11); // GS Scale Tuning. GSScaleTuning(C,Cp,D,Dp,E,F,Fp,G,Gp,A,Ap,B) (ex) GSScaleTuning(0,0,0,0,0,0,0,0,0,0,0,0)
     //@ Script command
     sysfunc_add!(sf, "Int", TokenType::DefInt, '*'); // define int variables (ex) Int A = 3
     sysfunc_add!(sf, "INT", TokenType::DefInt, '*'); // define int variables (ex) INT A = 3
