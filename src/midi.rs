@@ -163,12 +163,6 @@ fn generate_track(track: &Track) -> Vec<u8> {
 pub fn generate(song: &mut Song) -> Vec<u8> {
     let midi_format = 1;
     let mut res: Vec<u8> = vec![];
-    if song.debug {
-        println!("midi::generate");
-        println!("- MIDI Format={}", midi_format);
-        println!("- TimeBase={}", song.timebase);
-        println!("- TrackCount={}", song.tracks.len());
-    }
     song.play_from_all_track();
     song.normalize_and_sort();
     // header

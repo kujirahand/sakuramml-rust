@@ -302,8 +302,8 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
         if name.contains(" ") {
             // split string by " "
             let splited: Vec<&str> = name.split(" ").collect();
-            let name_s = splited[0].trim();
-            let type_s = splited[1].trim();
+            let type_s = splited[0].trim();
+            let name_s = splited[1].trim();
             // get type
             let mut type_sf = 'I';
             if type_s == "Str" || type_s == "STR" || type_s == "S" { type_sf = 'S'; }
@@ -838,11 +838,10 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
         song.variables_insert(&cmd, SValue::None);
         return Some(tok);
     }
-
     // variables?
     match song.variables_get(&cmd) {
         Some(sval) => {
-            // get variable
+           // get variable
             return Some(read_variables(cur, song, &cmd, sval.clone()));
         }
         None => {}
