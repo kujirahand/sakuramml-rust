@@ -448,6 +448,9 @@ impl Song {
         let trk = Track::new(timebase, 0);
         let global_vars = mml_def::init_variables();
         let vars_stack = vec![global_vars];
+        let sys_funcs = mml_def::init_system_functions();
+        let reserved = mml_def::init_reserved_words(&sys_funcs);
+
         Self {
             debug: false,
             message_data: MessageData::new(MessageLang::EN),
@@ -458,11 +461,11 @@ impl Song {
             timesig_frac: 4,
             timesig_deno: 4,
             flags: Flags::new(),
-            system_functions: mml_def::init_system_functions(),
+            system_functions: sys_funcs,
             rhthm_macro: mml_def::init_rhythm_macro(),
             variables_stack: vars_stack,
             functions: vec![],
-            reserved_words: mml_def::init_reserved_words(),
+            reserved_words: reserved,
             key_flag: vec![0,0,0,0,0,0,0,0,0,0,0,0],
             key_shift: 0,
             play_from: -1,

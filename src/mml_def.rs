@@ -271,8 +271,12 @@ pub fn init_variables() -> HashMap<String, SValue> {
     //</VARIABLES>
     var
 }
-pub fn init_reserved_words() -> HashMap<String, u8> {
+pub fn init_reserved_words(sys_funcs: &HashMap<String, SystemFunction>) -> HashMap<String, u8> {
     let mut var = HashMap::new();
+    // Add system functions to reserved words
+    for (i, (key, _value)) in sys_funcs.iter().enumerate() {
+        var.insert(key.clone(), (100 + i) as u8);
+    }
     //<RESERVED>
     var.insert(String::from("IF"), 0); // @ IF .. ELSE ..
     var.insert(String::from("If"), 0); // @ IF .. ELSE ..
@@ -525,6 +529,5 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "FUNCTION", TokenType::DefUserFunction, '*'); // define user function
     sysfunc_add!(sf, "Function", TokenType::DefUserFunction, '*'); // define user function
     //</SYSTEM_FUNCTION>
-    //
     sf
 }
