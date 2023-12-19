@@ -84,6 +84,7 @@ pub enum TokenType {
     SongVelocityAdd,
     SongQAdd,
     SoundType,
+    DeviceNumber,
     ControllChangeCommand,
     RPN,
     RPNCommand,
@@ -91,7 +92,7 @@ pub enum TokenType {
     NRPNCommand,
     FadeIO,
     Cresc,
-    SysExCommand,
+    SysexReset,
     SetRandomSeed,
 }
 

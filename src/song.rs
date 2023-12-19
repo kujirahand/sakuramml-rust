@@ -478,7 +478,7 @@ impl Song {
             q_add: 1,
             stack: vec![],
             rand_seed: 1234567, // Random Seed
-            device_number: 0,
+            device_number: 0x10, // default device number (0x10: General MIDI)
             lineno: 0,
         }
     }

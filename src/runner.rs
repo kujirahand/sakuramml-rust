@@ -93,7 +93,12 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::TimeBase => {}, // 構文解析の時に設定済み
             TokenType::Include => {}, // 構文解析時
-            TokenType::SoundType => {},
+            TokenType::SoundType => {}, // 現状意味なし
+            TokenType::DeviceNumber => {
+                let args_tokens = t.children.clone().unwrap_or(vec![]);
+                let n = exec_args(song, &args_tokens);
+                song.device_number = if n.len() >= 1 { n[0].to_i() as u8 } else { 0 };
+            },
             TokenType::Print => {
                 let args_tokens = t.children.clone().unwrap_or(vec![]);
                 // println!("print_args=:{:?}", args_tokens);
@@ -317,29 +322,57 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let e = Event::sysex(trk!(song).timepos, &t.data);
                 song.add_event(e);
             },
+            TokenType::SysexReset => {
+                let time = trk!(song).timepos;
+                let dev = song.device_number as u8;
+                match t.value {
+                    0 => { // GM
+                        song.add_event(Event::sysex_raw(time, vec![0x7E, 0x7F, 0x9, 0x1, 0xF7]));
+                    }
+                    1 => { // GS
+                        song.add_event(Event::sysex_raw(time, vec![0x41, dev, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7]));
+                    },
+                    2 => { // XG
+                        song.add_event(Event::sysex_raw(time, vec![0x43, dev, 0x4c, 0x00, 0x00, 0x7e, 0x00, 0xf7]));
+                    },
+                    _ => {},
+                }
+            },
             TokenType::GSEffect => {
-                let num: u8;
-                let val: u8;
+                let time = trk!(song).timepos;
+                let dev = song.device_number as u8;
+                let mut event: Option<Event> = Option::None;
                 let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
                 match &t.value {
-                    0x00 => {
-                        num = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
-                        val = if data.len() >= 2 { data[1].to_i() as u8 } else { 0 };
+                    0x00 => { // basic
+                        let num = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
+                        let val = if data.len() >= 2 { data[1].to_i() as u8 } else { 0 };
+                        event = Some(Event::sysex_raw(
+                            time,
+                            vec![0xF0, 0x41, dev, 0x42, 0x12, 0x40, 0x01, num, val, 0xf7],
+                        ));
                     },
-                    0x01 ..= 0x40 => {
-                        num = (&t.value % 256) as u8;
-                        val = data[0].to_i() as u8;
+                    0x15 => { // change to the rhytm part
+                        let val = if data.len() >= 1 { data[1].to_i() as u8 } else { 0 };
+                        let ch = trk!(song).channel;
+                        let sys_ch = if ch == 9 { 0 } else { if ch <= 9 { ch + 1 } else { ch } } as u8;
+                        event = Some(Event::sysex_raw(
+                            time,
+                            vec![0xF0, 0x41, dev, 0x42, 0x12, 0x40, sys_ch, 0x15, val, 0xf7],
+                        ));
+                    }
+                    // custom GS effect
+                    0x30 ..= 0x40 => {
+                        let num = (&t.value % 256) as u8;
+                        let val = data[0].to_i() as u8;
+                        event = Some(Event::sysex_raw(
+                            time,
+                            vec![0xF0, 0x41, song.device_number as u8, 0x42, 0x12, 0x40, 0x01, num, val, 0xf7],
+                        ));
                     },
-                    _ => {
-                        num = 0xff;
-                        val = 0;
-                    },
+                    _ => {},
                 }
-                let e = Event::sysex_raw(
-                    trk!(song).timepos,
-                    vec![0xF0, 0x41, song.device_number as u8, 0x42, 0x12, 0x40, 0x01, num, val, 0xf7],
-                );
-                if num != 0xff {
+                if let Some(e) = event {
                     song.add_event(e);
                 }
             },
@@ -550,7 +583,6 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::ControllChangeCommand => {},
             TokenType::FadeIO => {}, // replaced CConTime 
             TokenType::Cresc => {}, // replaced CConTime
-            TokenType::SysExCommand => {}, // replace SysEx
             TokenType::SetRandomSeed => {}, // replace SetConfig
         }
         pos += 1;

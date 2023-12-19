@@ -241,16 +241,6 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
                     TokenType::NRPNCommand => return read_nrpn_command(cur, tag1, tag2, song),
                     TokenType::FadeIO => return read_fadein(cur, song, tag1),
                     TokenType::Cresc => return read_decres(cur, song, tag1),
-                    TokenType::SysExCommand => {
-                        match tag1 {
-                            0 => return Token::new_sysex(vec![0x7E, 0x7F, 0x9, 0x1, 0xF7]),
-                            1 => return Token::new_sysex(vec![0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7]),
-                            2 => return Token::new_sysex(vec![0x43, 0x10, 0x4c, 0x00, 0x00, 0x7e, 0x00, 0xf7]),
-                            _ => {},
-                        }
-                    },
-                    TokenType::GSEffect => {
-                    },
                     TokenType::If => return read_if(cur, song),
                     TokenType::For => return read_for(cur, song),
                     TokenType::While => return read_while(cur, song),
