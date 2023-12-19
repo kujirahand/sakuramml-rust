@@ -320,9 +320,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::GSEffect => {
                 let num: u8;
                 let val: u8;
-                println!("TimePtr={:?}", trk!(song).timepos);
                 let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
-                println!("TimePtr={:?}", trk!(song).timepos);
                 match &t.value {
                     0x00 => {
                         num = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
@@ -332,7 +330,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                         num = (&t.value % 256) as u8;
                         val = data[0].to_i() as u8;
                     },
-                    _ => { num = 0xff; val = 0; },
+                    _ => {
+                        num = 0xff;
+                        val = 0;
+                    },
                 }
                 let e = Event::sysex_raw(
                     trk!(song).timepos,

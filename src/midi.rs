@@ -96,16 +96,21 @@ fn generate_track(track: &Track) -> Vec<u8> {
             EventType::SysEx => {
                 let data = e.data.clone().unwrap();
                 if data.len() == 0 { continue; }
-                array_push_delta(&mut res, e.time - timepos);
+                let delta_time = e.time - timepos;
+                array_push_delta(&mut res, delta_time);
                 timepos = e.time;
-                // 1st byte must be 0xF0
-                if data[0] != 0xF0 {
-                    res.push(0xF0); // SysEx
+                let mut size = data.len();
+                let last_byte = data[data.len()-1];
+                if last_byte != 0xF7 {
+                    size += 1;
                 }
+                // 1st byte must be 0xF0
+                res.push(0xF0); // SysEx Event
                 // 2nd byte must be length
-                res.push((data.len() & 0xFF) as u8);
+                res.push(size as u8);
                 // write data
-                for b in data.iter() {
+                for (i, b) in data.iter().enumerate() {
+                    if i == 0 && *b == 0xF0 { continue; }
                     res.push(*b);
                 }
                 // last byte must be 0xF7
@@ -158,6 +163,12 @@ fn generate_track(track: &Track) -> Vec<u8> {
 pub fn generate(song: &mut Song) -> Vec<u8> {
     let midi_format = 1;
     let mut res: Vec<u8> = vec![];
+    if song.debug {
+        println!("midi::generate");
+        println!("- MIDI Format={}", midi_format);
+        println!("- TimeBase={}", song.timebase);
+        println!("- TrackCount={}", song.tracks.len());
+    }
     song.play_from_all_track();
     song.normalize_and_sort();
     // header
@@ -281,15 +292,25 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
         },
         0xF0 => { // SysEx = 0xF0 ... 0xF7
             let mut m = String::new();
+            let mut index = 0;
             loop {
-                m.push_str(&format!("{:02x} ", bin[*pos]));
+                let b = bin[*pos];
+                if index == 1 {
+                    m.push_str(&format!("/*{:02x}*/", b));
+                } else {
+                    m.push_str(&format!("{:02x}", b));
+                    if b != 0xf7 {
+                        m.push(',');
+                    }
+                }
                 if bin[*pos] == 0xf7 {
                     *pos += 1;
                     break;
                 }
                 *pos += 1;
+                index += 1;
             }
-            format!("SysEx={}", m)
+            format!("SysEx={};", m)
         },
         _ => {
             format!("[ERROR] Unknown meta event...={:02x}", meta_type)
