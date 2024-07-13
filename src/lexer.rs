@@ -436,6 +436,7 @@ fn read_calc_token(cur: &mut TokenCursor, song: &mut Song) -> Token {
 fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
     let mut tokens = vec![];
     let mut paren_level:i32 = 0;
+    let mut flag_top_token = true;
     while !cur.is_eos() {
         cur.skip_space();
         let ch = zen2han(cur.peek().unwrap_or('\0'));
@@ -529,7 +530,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
             '-' => {
                 cur.next(); // skip '-'
                 let ch2 = cur.peek().unwrap_or('\0');
-                if ch2 >= '0' && ch2 <= '9' {
+                if flag_top_token && (ch2 >= '0' && ch2 <= '9') {
                     let num = cur.get_int(0) * -1;
                     tokens.push(Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_i(num)]));
                     if !read_calc_can_continue(cur, paren_level) { break; }
@@ -622,6 +623,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                 break;
             }
         }
+        flag_top_token = false;
     }
     // convert to postfix
     infix_to_postfix(cur, song, tokens)
@@ -1388,8 +1390,8 @@ fn read_command_cc(cur: &mut TokenCursor, no: isize, song: &mut Song) -> Token {
         }
     }
     if cur.eq_char('=') { cur.next(); }
-    let arg_token1 = read_calc_token(cur, song);
-    return Token::new_tokens(TokenType::CtrlChange, no, vec![arg_token1]);
+    let value_tokens = read_args_tokens(cur, song);
+    return Token::new_tokens(TokenType::CtrlChange, no, value_tokens);
 }
 
 fn read_rpn_command(cur: &mut TokenCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
@@ -1640,10 +1642,10 @@ fn read_cc(cur: &mut TokenCursor, song: &mut Song) -> Token {
             ))],
         );
     }
-    cur.next();
-    let val = read_arg_value(cur, song);
+    cur.next(); // skip ','
+    let val_tokens = read_args_tokens(cur, song);
     Token::new_tokens(TokenType::CtrlChange, no.to_i(), vec![
-        Token::new(TokenType::Value, 0, vec![val]),
+        Token::new_tokens(TokenType::Value, 0, val_tokens),
     ])
 }
 
