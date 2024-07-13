@@ -110,11 +110,14 @@ pub struct Track {
     pub v_on_time_start: isize,
     pub v_on_time: Option<Vec<isize>>,
     pub v_on_note_index: isize,
+    pub v_on_note_is_cycle: bool,
     pub v_on_note: Option<Vec<isize>>,
     pub q_on_note_index: isize,
     pub q_on_note: Option<Vec<isize>>,
+    pub q_on_note_is_cycle: bool,
     pub t_on_note_index: isize,
     pub t_on_note: Option<Vec<isize>>,
+    pub t_on_note_is_cycle: bool,
     pub o_on_note_index: isize,
     pub o_on_note: Option<Vec<isize>>,
     pub o_on_note_is_cycle: bool,
@@ -147,11 +150,14 @@ impl Track {
             v_on_time_start: -1,
             v_on_time: None,
             v_on_note_index: 0,
+            v_on_note_is_cycle: false,
             v_on_note: None,
             q_on_note_index: 0,
+            q_on_note_is_cycle: false,
             q_on_note: None,
             t_on_note_index: 0,
             t_on_note: None,
+            t_on_note_is_cycle: false,
             o_on_note_index: 0,
             o_on_note: None,
             o_on_note_is_cycle: false,
@@ -283,7 +289,17 @@ impl Track {
             Some(pia) => pia.clone()
         };
         if ia.len() == 0 { return def; }
+        if self.v_on_note_index >= ia.len() as isize {
+            if self.v_on_note_is_cycle {
+                self.v_on_note_index = 0;
+            } else {
+                self.v_on_note = None;
+                self.v_on_note_index = 0;
+                return def;
+            }
+        }
         let v = ia[(self.v_on_note_index as usize) % ia.len()];
+        self.velocity = v;
         self.v_on_note_index += 1;
         return v;
     }
@@ -294,7 +310,17 @@ impl Track {
             Some(pia) => pia.clone()
         };
         if ia.len() == 0 { return def; }
+        if self.t_on_note_index >= ia.len() as isize {
+            if self.t_on_note_is_cycle {
+                self.t_on_note_index = 0;
+            } else {
+                self.t_on_note = None;
+                self.t_on_note_index = 0;
+                return def;
+            }
+        }
         let t = ia[(self.t_on_note_index as usize) % ia.len()];
+        self.timing = t;
         self.t_on_note_index += 1;
         return t;
     }
@@ -305,7 +331,17 @@ impl Track {
             Some(pia) => pia.clone()
         };
         if ia.len() == 0 { return def; }
+        if self.q_on_note_index >= ia.len() as isize {
+            if self.q_on_note_is_cycle {
+                self.q_on_note_index = 0;
+            } else {
+                self.q_on_note = None;
+                self.q_on_note_index = 0;
+                return def;
+            }
+        }
         let qlen = ia[(self.q_on_note_index as usize) % ia.len()];
+        self.qlen = qlen;
         self.q_on_note_index += 1;
         return qlen;
     }
@@ -329,6 +365,7 @@ impl Track {
             }
         }
         let o = ia[(self.o_on_note_index as usize) % ia.len()];
+        self.octave = o;
         self.o_on_note_index += 1;
         return o;
     }
