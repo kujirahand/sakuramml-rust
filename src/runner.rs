@@ -325,7 +325,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.add_event(e);
             },
             TokenType::SysEx => {
-                let e = Event::sysex(trk!(song).timepos, &t.data);
+                // auto calc check sum (#28)
+                let args: Vec<SValue> = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
+                let e = Event::sysex(trk!(song).timepos, &args);
                 song.add_event(e);
             },
             TokenType::SysexReset => {

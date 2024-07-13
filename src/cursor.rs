@@ -241,6 +241,53 @@ impl TokenCursor {
         }
         res
     }
+    pub fn get_hex(&mut self, def: isize, check_flag: bool) -> isize {
+        let mut no: isize = 0;
+        let mut flag: isize = 1;
+        if check_flag {
+            // minus
+            if self.eq_char('-') {
+                flag = -1;
+                self.next();
+            }
+            // hex flag
+            if self.eq_char('$') {
+                self.next();
+            }
+            if self.eq("0x") {
+                self.index += 2;
+            }
+        }
+        // Hex chars?
+        let ch = self.peek_n(0);
+        match ch {
+            '0'..='9' | 'a'..='f' | 'A'..='F' => {},
+            _ => { return def; }
+        }
+        // calc number
+        while !self.is_eos() {
+            let ch = self.peek_n(0);
+            match ch {
+                '0'..='9' => {
+                    no = no << 4 | ch as isize - '0' as isize;
+                    self.next();
+                    continue;
+                },
+                'a'..='f' => {
+                    no = (no << 4) | (0x0a + (ch as isize - 'a' as isize));
+                    self.next();
+                    continue;
+                },
+                'A'..='F' => {
+                    no = (no << 4) | (0x0a + (ch as isize - 'A' as isize));
+                    self.next();
+                    continue;
+                },
+                _ => { break; }
+            }
+        }
+        return no * flag;
+    }
     pub fn get_int(&mut self, def: isize) -> isize {
         let mut no: isize = 0;
         let mut flag: isize = 1;
@@ -250,37 +297,8 @@ impl TokenCursor {
             self.next();
         }
         // Hex integer?
-        if self.eq("0x") {
-            self.index += 2; // skip 0x
-            // Hex chars?
-            let ch = self.peek_n(0);
-            match ch {
-                '0'..='9' | 'a'..='f' | 'A'..='F' => {},
-                _ => { return def; }
-            }
-            // calc number
-            while !self.is_eos() {
-                let ch = self.peek_n(0);
-                match ch {
-                    '0'..='9' => {
-                        no = no << 4 | ch as isize - '0' as isize;
-                        self.next();
-                        continue;
-                    },
-                    'a'..='f' => {
-                        no = (no << 4) | (0x0a + (ch as isize - 'a' as isize));
-                        self.next();
-                        continue;
-                    },
-                    'A'..='F' => {
-                        no = (no << 4) | (0x0a + (ch as isize - 'A' as isize));
-                        self.next();
-                        continue;
-                    },
-                    _ => { break; }
-                }
-            }
-            return no * flag;
+        if self.eq("0x") || self.eq_char('$') {
+            return flag * self.get_hex(def, true);
         }
         // Oct integer?
         if self.eq("0o") {
@@ -425,6 +443,12 @@ mod tests {
         assert_eq!(cur.get_int(0), -111);
         //
         let mut cur = TokenCursor::from("-0xFF");
+        assert_eq!(cur.get_int(0), -0xFF);
+        //
+        let mut cur = TokenCursor::from("$FF");
+        assert_eq!(cur.get_int(0), 0xFF);
+        //
+        let mut cur = TokenCursor::from("-$FF");
         assert_eq!(cur.get_int(0), -0xFF);
     }
     #[test]

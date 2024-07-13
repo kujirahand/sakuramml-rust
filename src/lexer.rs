@@ -244,6 +244,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
                     TokenType::If => return read_if(cur, song),
                     TokenType::For => return read_for(cur, song),
                     TokenType::While => return read_while(cur, song),
+                    TokenType::SysEx => return read_sysex(cur, song),
                     TokenType::Return => {
                         cur.skip_space();
                         let values = if cur.eq_char('(') {
@@ -1183,6 +1184,104 @@ fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let play_tok = Token::new_tokens_lineno(TokenType::Play, 0, arg_tokens, lineno);
     play_tok
 }
+
+fn read_sysex(cur: &mut TokenCursor, _song: &mut Song) -> Token {
+    // read sysex
+    let lineno = cur.line;
+    let hex_mode = if cur.eq_char('$') {
+        cur.next();
+        true
+    } else { false };
+    if cur.eq_char('=') { cur.next(); } // skip '='
+    let mut data_vec: Vec<Token> = vec![];
+    let mut calc_vec: Vec<u8> = vec![];
+    let mut flag_calc_checksum = false;
+    let mut checksum = 0;
+    loop {
+        cur.skip_space();
+        // sysex checksum mode
+        if flag_calc_checksum {
+            let v = if hex_mode {
+                cur.get_hex(0, true)
+            } else {
+                cur.get_int(0)
+            };
+            calc_vec.push(v as u8);
+            let mut t = Token::new(TokenType::Value, token::VALUE_CONST_INT, vec![SValue::from_i(v)]);
+            t.value_type = token::VALUE_CONST_INT;
+            t.lineno = lineno;
+            data_vec.push(t);
+            checksum += v;
+            cur.skip_space();
+            if cur.eq_char(',') {
+                cur.next(); // skip ','
+                cur.skip_space();
+                continue;
+            }
+            if cur.eq_char('}') {
+                cur.next(); // skip '}'
+                // TODO: 現状、変数を含んだSysExで自動計算は非対応とする！!
+                // calc checksum
+                flag_calc_checksum = false;
+                let checksum_v = 128 - checksum % 128;
+                let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_i(checksum_v)]);
+                t.value_type = token::VALUE_CONST_INT;
+                t.lineno = lineno;
+                data_vec.push(t);
+                // 続きのデータがあるか？
+                cur.skip_space();
+                if cur.eq_char(',') {
+                    cur.next();
+                    continue;
+                } else {
+                    break;
+                }
+            }
+        }
+        if cur.eq_char('{') {
+            cur.next(); // skip '{'
+            flag_calc_checksum = true;
+            continue;
+        }
+        if hex_mode {
+            let hex = cur.get_hex(0, true);
+            let mut v = Token::new(TokenType::Value, 0, vec![SValue::from_i(hex)]);
+            v.value_type = token::VALUE_CONST_INT;
+            v.lineno = lineno;
+            data_vec.push(v);
+        } else {
+            let c = cur.peek_n(0);
+            match c {
+                '0'..='9' | '$' => {
+                    let v = cur.get_int(0);
+                    let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_i(v)]);
+                    t.value_type = token::VALUE_CONST_INT;
+                    t.lineno = lineno;
+                    data_vec.push(t);
+                }
+                'A'..='Z' | '_' | '#' | 'a'..='z' => {
+                    let var_name = cur.get_word();
+                    let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_s(format!("={}", var_name))]);
+                    t.value_type = token::VALUE_VARIABLE;
+                    t.lineno = lineno;
+                    data_vec.push(t);
+                }
+                _ => {}
+            }
+        }
+        cur.skip_space();
+        // 続きのデータがあるか？
+        if cur.eq_char(',') {
+            cur.next();
+        } else {
+            break;
+        }
+    }
+    let mut t = Token::new_tokens(TokenType::SysEx, 0, data_vec);
+    t.lineno = lineno;
+    t
+}
+
 
 fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
     cur.skip_space();

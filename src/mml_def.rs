@@ -409,7 +409,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "TR_KEY", TokenType::TrackKey, 'I'); // set key-shift for track (ex) TR_KEY(3)
     sysfunc_add!(sf, "Play", TokenType::Play, '*'); // play multi track (ex) Play(AA,BB,CC)
     sysfunc_add!(sf, "PLAY", TokenType::Play, '*'); // play multi track (ex) Play(AA,BB,CC)
-    sysfunc_add!(sf, "PlayFrom.SysEx", TokenType::Unimplemented, 'A'); // Unimplemented
+    sysfunc_add!(sf, "SysEx", TokenType::SysEx, '*'); // Unimplemented
+    sysfunc_add!(sf, "PlayFrom.SysEx", TokenType::SysEx, '*'); // Unimplemented
     sysfunc_add!(sf, "PlayFrom.CtrlChg", TokenType::Unimplemented, 'A'); // Unimplemented
     sysfunc_add!(sf, "PlayFrom", TokenType::PlayFrom, 'A'); // play from time position (ex) PlayFrom(5:1:0)
     sysfunc_add!(sf, "PLAY_FROM", TokenType::PlayFrom, 'A'); // play from time position (ex) PLAY_FROM(5:1:0)
