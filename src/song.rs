@@ -121,6 +121,9 @@ pub struct Track {
     pub o_on_note_index: isize,
     pub o_on_note: Option<Vec<isize>>,
     pub o_on_note_is_cycle: bool,
+    pub l_on_note_index: isize,
+    pub l_on_note: Option<Vec<isize>>,
+    pub l_on_note_is_cycle: bool,
     pub cc_on_time_freq: isize,
     pub events: Vec<Event>,
     pub tie_notes: Vec<Event>,
@@ -161,6 +164,9 @@ impl Track {
             o_on_note_index: 0,
             o_on_note: None,
             o_on_note_is_cycle: false,
+            l_on_note_index: 0,
+            l_on_note: None,
+            l_on_note_is_cycle: false,
             channel,
             events: vec![],
             tie_notes: vec![],
@@ -368,6 +374,29 @@ impl Track {
         self.octave = o;
         self.o_on_note_index += 1;
         return o;
+    }
+    pub fn calc_l_on_note(&mut self, def: isize) -> isize {
+        // on_note?
+        let ia = match &self.l_on_note {
+            None => return def,
+            Some(pia) => pia.clone()
+        };
+        if ia.len() == 0 {
+            self.l_on_note = None;
+            return def;
+        }
+        if self.l_on_note_index >= ia.len() as isize {
+            if self.l_on_note_is_cycle {
+                self.l_on_note_index = 0;
+            } else {
+                self.l_on_note = None;
+                self.l_on_note_index = 0;
+                return def;
+            }
+        }
+        let l = ia[(self.l_on_note_index as usize) % ia.len()];
+        self.l_on_note_index += 1;
+        return l;
     }
     pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>) {
         let freq = self.cc_on_time_freq;

@@ -68,6 +68,8 @@ pub enum TokenType {
     VelocityOnCycle,
     QLenOnNote,
     QLenOnCycle,
+    LengthOnNote,
+    LengthOnCycle,
     TimingOnNote,
     TimingOnCycle,
     MeasureShift,

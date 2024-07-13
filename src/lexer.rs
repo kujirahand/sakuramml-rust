@@ -93,7 +93,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階)
             'n' => result.push(read_note_n(&mut cur, song)), // @ 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング)
             'r' => result.push(read_rest(&mut cur)),         // @ 休符
-            'l' => result.push(read_length(&mut cur)),       // @ 音長の指定(例 l4)
+            'l' => result.push(read_length(&mut cur, song)),       // @ 音長の指定(例 l4)
             'o' => result.push(read_octave(&mut cur, song)), // @ 音階の指定(例 o5) 範囲:0-10
             'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ ピッチベンドの指定 範囲:0-127 (63が中央)
             'q' => result.push(read_qlen(&mut cur, song)), // @ ゲートの指定 (例 q90) 範囲:0-100
@@ -1409,7 +1409,27 @@ fn read_voice(cur: &mut TokenCursor, song: &mut Song) -> Token {
     Token::new_tokens(TokenType::Voice, 0, args)
 }
 
-fn read_length(cur: &mut TokenCursor) -> Token {
+fn read_length(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    if cur.eq_char('.') {
+        cur.next(); // skip '.'
+        let cmd = cur.get_word();
+        if cmd == "Random" {
+            let _av = read_arg_int_array(cur, song);
+            return Token::new_empty(&format!("[ERROR]({}) l.Random not supported", cur.line), cur.line);
+        }
+        if cmd == "onTime" || cmd == "T" {
+            let _av = read_arg_int_array(cur, song);
+            return Token::new_empty(&format!("[ERROR]({}) l.onTime not supported", cur.line), cur.line);
+        }
+        if cmd == "onNote" || cmd == "N" {
+            let av = read_arg_int_array(cur, song);
+            return Token::new(TokenType::LengthOnNote, 0, vec![av]);
+        }
+        if cmd == "onCycle" || cmd == "C" {
+            let av = read_arg_int_array(cur, song);
+            return Token::new(TokenType::LengthOnCycle, 0, vec![av]);
+        }
+    }
     let s = cur.get_note_length();
     Token::new(TokenType::Length, 0, vec![SValue::from_s(s)])
 }

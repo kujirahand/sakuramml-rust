@@ -176,9 +176,11 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::NoteN => exec_note_n(song, t),
             TokenType::Rest => exec_rest(song, t),
             TokenType::Length => {
+                trk!(song).l_on_note = None;
                 trk!(song).length = calc_length(&t.data[0].to_s(), song.timebase, song.timebase);
             },
             TokenType::Octave => {
+                trk!(song).o_on_note = None;
                 trk!(song).octave = value_range(0, t.value, 10);
             },
             TokenType::OctaveRel => {
@@ -195,10 +197,13 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.flags.octave_once += t.value;
             },
             TokenType::QLen => {
+                trk!(song).q_on_note = None;
                 trk!(song).qlen = value_range(0, t.value, 100);
                 trk!(song).q_on_note = None;
             },
             TokenType::Velocity => {
+                trk!(song).v_on_note = None;
+                trk!(song).v_on_time = None;
                 let ino = t.data[0].to_i();
                 if ino > 0 {
                     while trk!(song).v_sub.len() >= ino as usize {
@@ -212,6 +217,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).v_on_note = None;
             },
             TokenType::Timing => {
+                trk!(song).t_on_note = None;
                 trk!(song).timing = t.value;
                 trk!(song).t_on_note = None;
             },
@@ -444,15 +450,18 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).q_rand = var_extract(&t.data[0], song).to_i();
             },
             TokenType::VelocityOnTime => {
+                trk!(song).v_on_note = None;
                 trk!(song).v_on_time_start = trk!(song).timepos;
                 trk!(song).v_on_time = Some(t.data[0].to_int_array());
             },
             TokenType::VelocityOnNote => {
+                trk!(song).v_on_time = None;
                 trk!(song).v_on_note_index = 0;
                 trk!(song).v_on_note = Some(t.data[0].to_int_array());
                 trk!(song).v_on_note_is_cycle = false;
             },
             TokenType::VelocityOnCycle => {
+                trk!(song).v_on_time = None;
                 trk!(song).v_on_note_index = 0;
                 trk!(song).v_on_note = Some(t.data[0].to_int_array());
                 trk!(song).v_on_note_is_cycle = true;
@@ -486,6 +495,16 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).o_on_note_index = 0;
                 trk!(song).o_on_note = Some(t.data[0].to_int_array());
                 trk!(song).o_on_note_is_cycle = true;
+            },
+            TokenType::LengthOnNote => {
+                trk!(song).l_on_note_index = 0;
+                trk!(song).l_on_note = Some(t.data[0].to_int_array());
+                trk!(song).l_on_note_is_cycle = false;
+            },
+            TokenType::LengthOnCycle => {
+                trk!(song).l_on_note_index = 0;
+                trk!(song).l_on_note = Some(t.data[0].to_int_array());
+                trk!(song).l_on_note_is_cycle = true;
             },
             TokenType::CConTime => {
                 trk!(song).remove_cc_on_note_wave(t.value);
@@ -1291,7 +1310,13 @@ fn exec_note(song: &mut Song, t: &Token) {
         qlen
     };
     // note len
-    let notelen = calc_length(&note.len_s, song.timebase, trk!(song).length);
+    let mut notelen = calc_length(&note.len_s, song.timebase, trk!(song).length);
+    // note len onNote / onCycle
+    let notelen_on_note = trk!(song).calc_l_on_note(-1);
+    if notelen_on_note != -1 { // onNote / onCycle の値があれば強制的に上書き
+        notelen = notelen_on_note;
+        println!("notelen_on_note={}", notelen);
+    }
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // check range
     let v = value_range(0, v, 127);
