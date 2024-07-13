@@ -319,7 +319,6 @@ impl Track {
             self.o_on_note = None;
             return def;
         }
-        println!("@@@ {}/{}", self.o_on_note_index, ia.len());
         if self.o_on_note_index >= ia.len() as isize {
             if self.o_on_note_is_cycle {
                 self.o_on_note_index = 0;
