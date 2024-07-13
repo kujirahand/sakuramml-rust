@@ -1317,7 +1317,6 @@ fn exec_note(song: &mut Song, t: &Token) {
     let notelen_on_note = trk!(song).calc_l_on_note(-1);
     if notelen_on_note != -1 { // onNote / onCycle の値があれば強制的に上書き
         notelen = notelen_on_note;
-        println!("notelen_on_note={}", notelen);
     }
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // check range
