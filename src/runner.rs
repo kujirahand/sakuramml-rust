@@ -538,6 +538,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     trk!(song).tie_value = var_extract(&args[1], song).to_i();
                 }
             },
+            TokenType::UseKeyShift => {
+                song.use_key_shift = t.value != 0;
+            },
             TokenType::If => {
                 exec_if(song, t);
             },
@@ -1268,8 +1271,10 @@ fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut Song) {
     } else {
         0
     };
-    noteno += song.key_shift;
-    noteno += trk!(song).track_key;
+    if song.use_key_shift {
+        noteno += song.key_shift;
+        noteno += trk!(song).track_key;
+    }
     note.no = noteno;
 }
 

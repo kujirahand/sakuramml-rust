@@ -539,6 +539,7 @@ pub struct Song {
     pub stack: Vec<SValue>,
     pub rand_seed: u32,
     pub device_number: u8,
+    pub use_key_shift: bool,
     pub lineno: isize,
     logs: Vec<String>, // ログ
 }
@@ -576,6 +577,7 @@ impl Song {
             stack: vec![],
             rand_seed: 1234567, // Random Seed
             device_number: 0x10, // default device number (0x10: General MIDI)
+            use_key_shift: true,
             lineno: 0,
         }
     }

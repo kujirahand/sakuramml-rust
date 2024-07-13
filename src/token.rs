@@ -51,6 +51,7 @@ pub enum TokenType {
     Sub,
     KeyFlag,
     KeyShift,
+    UseKeyShift,
     TrackKey,
     DefInt,
     DefStr,

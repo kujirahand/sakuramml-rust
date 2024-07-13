@@ -405,6 +405,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "KeyShift", TokenType::KeyShift, 'I'); // set key-shift (ex) KeyShift(3)
     sysfunc_add!(sf, "Key", TokenType::KeyShift, 'I'); // set key-shift (ex) Key(3)
     sysfunc_add!(sf, "KEY", TokenType::KeyShift, 'I'); // set key-shift (ex) KEY(3)
+    sysfunc_add!(sf, "UseKeyShift", TokenType::UseKeyShift, '*'); // set key shift mode value=on|off (ex) UseKeyShift(on)
     sysfunc_add!(sf, "TrackKey", TokenType::TrackKey, 'I'); // set key-shift for track (ex) TrackKey(3)
     sysfunc_add!(sf, "TR_KEY", TokenType::TrackKey, 'I'); // set key-shift for track (ex) TR_KEY(3)
     sysfunc_add!(sf, "Play", TokenType::Play, '*'); // play multi track (ex) Play(AA,BB,CC)

@@ -245,6 +245,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
                     TokenType::For => return read_for(cur, song),
                     TokenType::While => return read_while(cur, song),
                     TokenType::SysEx => return read_sysex(cur, song),
+                    TokenType::UseKeyShift => return read_use_key_shift(cur, song),
                     TokenType::Return => {
                         cur.skip_space();
                         let values = if cur.eq_char('(') {
@@ -1183,6 +1184,27 @@ fn read_play(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let arg_tokens = read_args_tokens(cur, song);
     let play_tok = Token::new_tokens_lineno(TokenType::Play, 0, arg_tokens, lineno);
     play_tok
+}
+
+fn read_use_key_shift(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    cur.skip_space();
+    if cur.eq_char('=') || cur.eq_char('(') {
+        cur.next();
+        cur.skip_space();
+    }
+    let v = if cur.eq("on") || cur.eq("ON") {
+        cur.next_n(2);
+        1
+    } else if cur.eq("off") || cur.eq("OFF") {
+        cur.next_n(3);
+        0
+    } else {
+        read_arg_value(cur, song).to_i()
+    };
+    if cur.eq_char(')') {
+        cur.next();
+    }
+    Token::new(TokenType::UseKeyShift, v, vec![])
 }
 
 fn read_sysex(cur: &mut TokenCursor, _song: &mut Song) -> Token {
