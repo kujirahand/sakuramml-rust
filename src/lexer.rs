@@ -1474,9 +1474,8 @@ fn read_qlen(cur: &mut TokenCursor, song: &mut Song) -> Token {
             return Token::new(TokenType::QLenOnNote, 0, vec![av]);
         }
         if cmd == "onCycle" || cmd == "C" {
-            // TODO: not supported
-            let _ = read_arg_int_array(cur, song);
-            return Token::new_empty("not supported : onCycle", cur.line);
+            let av = read_arg_int_array(cur, song);
+            return Token::new(TokenType::QLenOnCycle, 0, vec![av]);
         }
     }
     let value = read_arg_value(cur, song);

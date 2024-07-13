@@ -470,12 +470,12 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::QLenOnNote => {
                 trk!(song).q_on_note_index = 0;
                 trk!(song).q_on_note = Some(t.data[0].to_int_array());
-                trk!(song).t_on_note_is_cycle = false;
+                trk!(song).q_on_note_is_cycle = false;
             },
             TokenType::QLenOnCycle => {
                 trk!(song).q_on_note_index = 0;
                 trk!(song).q_on_note = Some(t.data[0].to_int_array());
-                trk!(song).t_on_note_is_cycle = true;
+                trk!(song).q_on_note_is_cycle = true;
             },
             TokenType::OctaveOnNote => {
                 trk!(song).o_on_note_index = 0;
