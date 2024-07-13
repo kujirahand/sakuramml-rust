@@ -431,6 +431,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::PlayFromHere => song.play_from = trk!(song).timepos,
             TokenType::SongVelocityAdd => song.v_add = exec_value_int_by_token(song, t),
             TokenType::SongQAdd => song.q_add = exec_value_int_by_token(song, t),
+            TokenType::OctaveRandom => {
+                trk!(song).o_rand = var_extract(&t.data[0], song).to_i();
+            },
             TokenType::VelocityRandom => {
                 trk!(song).v_rand = var_extract(&t.data[0], song).to_i();
             },
@@ -455,6 +458,16 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::QLenOnNote => {
                 trk!(song).q_on_note_index = 0;
                 trk!(song).q_on_note = Some(t.data[0].to_int_array());
+            },
+            TokenType::OctaveOnNote => {
+                trk!(song).o_on_note_index = 0;
+                trk!(song).o_on_note = Some(t.data[0].to_int_array());
+                trk!(song).o_on_note_is_cycle = false;
+            },
+            TokenType::OctaveOnCycle => {
+                trk!(song).o_on_note_index = 0;
+                trk!(song).o_on_note = Some(t.data[0].to_int_array());
+                trk!(song).o_on_note_is_cycle = true;
             },
             TokenType::CConTime => {
                 trk!(song).remove_cc_on_note_wave(t.value);
@@ -1233,7 +1246,17 @@ fn exec_note(song: &mut Song, t: &Token) {
     let v = trk!(song).calc_v_on_note(v);
     let t = trk!(song).calc_t_on_note(note.t);
     let qlen = trk!(song).calc_qlen_on_note(note.qlen);
+    let o_abs = trk!(song).calc_o_on_note(-1);
+    if o_abs != -1 {// ノートはそのままでオクターブだけ変える
+        note.no = note.no % 12 + o_abs * 12; // set absolute octave
+    }
     // Random
+    if trk!(song).o_rand > 0 { // octave randomize
+        let r = song.calc_rand_value(0, trk!(song).o_rand);
+        if r != 0 {
+            note.no += r * 12;
+        }
+    }
     let v = if trk!(song).v_rand > 0 {
         song.calc_rand_value(v, trk!(song).v_rand)
     } else {

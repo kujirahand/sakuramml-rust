@@ -1415,6 +1415,27 @@ fn read_length(cur: &mut TokenCursor) -> Token {
 }
 
 fn read_octave(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    // 先行指定を行うか
+    if cur.eq_char('.') {
+        cur.next(); // skip '.'
+        let cmd = cur.get_word();
+        if cmd == "Random" {
+            let r = read_arg_value(cur, song);
+            return Token::new(TokenType::OctaveRandom, 0, vec![r]);
+        }
+        if cmd == "onTime" || cmd == "T" {
+            let _av = read_arg_int_array(cur, song);
+            return Token::new_empty(&format!("[ERROR]({}) o.onTime not supported", cur.line), cur.line);
+        }
+        if cmd == "onNote" || cmd == "N" {
+            let av = read_arg_int_array(cur, song);
+            return Token::new(TokenType::OctaveOnNote, 0, vec![av]);
+        }
+        if cmd == "onCycle" || cmd == "C" {
+            let r = read_arg_int_array(cur, song);
+            return Token::new(TokenType::OctaveOnCycle, 0, vec![r]);
+        }
+    }
     let value = read_arg_value(cur, song);
     Token::new(TokenType::Octave, value.to_i(), vec![])
 }

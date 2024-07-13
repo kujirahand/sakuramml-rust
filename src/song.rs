@@ -101,6 +101,7 @@ pub struct Track {
     pub v_rand: isize,
     pub q_rand: isize,
     pub t_rand: isize,
+    pub o_rand: isize,
     pub port: isize,
     pub track_key: isize,
     pub tie_mode: TieMode, // Slur(#7)
@@ -114,6 +115,9 @@ pub struct Track {
     pub q_on_note: Option<Vec<isize>>,
     pub t_on_note_index: isize,
     pub t_on_note: Option<Vec<isize>>,
+    pub o_on_note_index: isize,
+    pub o_on_note: Option<Vec<isize>>,
+    pub o_on_note_is_cycle: bool,
     pub cc_on_time_freq: isize,
     pub events: Vec<Event>,
     pub tie_notes: Vec<Event>,
@@ -138,6 +142,7 @@ impl Track {
             v_rand: 0,
             q_rand: 0,
             t_rand: 0,
+            o_rand: 0,
             cc_on_time_freq: 4,
             v_on_time_start: -1,
             v_on_time: None,
@@ -147,6 +152,9 @@ impl Track {
             q_on_note: None,
             t_on_note_index: 0,
             t_on_note: None,
+            o_on_note_index: 0,
+            o_on_note: None,
+            o_on_note_is_cycle: false,
             channel,
             events: vec![],
             tie_notes: vec![],
@@ -300,6 +308,30 @@ impl Track {
         let qlen = ia[(self.q_on_note_index as usize) % ia.len()];
         self.q_on_note_index += 1;
         return qlen;
+    }
+    pub fn calc_o_on_note(&mut self, def: isize) -> isize {
+        // on_note?
+        let ia = match &self.o_on_note {
+            None => return def,
+            Some(pia) => pia.clone()
+        };
+        if ia.len() == 0 {
+            self.o_on_note = None;
+            return def;
+        }
+        println!("@@@ {}/{}", self.o_on_note_index, ia.len());
+        if self.o_on_note_index >= ia.len() as isize {
+            if self.o_on_note_is_cycle {
+                self.o_on_note_index = 0;
+            } else {
+                self.o_on_note = None;
+                self.o_on_note_index = 0;
+                return def;
+            }
+        }
+        let o = ia[(self.o_on_note_index as usize) % ia.len()];
+        self.o_on_note_index += 1;
+        return o;
     }
     pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>) {
         let freq = self.cc_on_time_freq;
