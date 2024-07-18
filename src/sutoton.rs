@@ -2,6 +2,7 @@
 use super::cursor::TokenCursor;
 use super::token::zen2han;
 
+/// Sutoton Item for converter
 #[derive(Debug, Clone)]
 struct SutotonItem {
     name: String,
@@ -18,6 +19,7 @@ impl SutotonItem {
     }
 }
 
+/// Sutoton List
 struct SutotonList {
     items: Vec<SutotonItem>,
     sorted: bool,
@@ -158,6 +160,7 @@ fn init_items() -> SutotonList {
     items
 }
 
+/// Sutoton Converter
 pub fn convert(src: &str) -> String {
     let mut items = init_items();
     let mut res = String::new();
@@ -171,6 +174,25 @@ pub fn convert(src: &str) -> String {
                     let s = cur.get_token_s("\"}");
                     res.push_str(&s);
                     res.push_str("\"}");
+                    continue;
+                }
+                res.push(ch);
+                cur.next();
+                continue;
+            }
+            '/' => {
+                // line comment
+                if cur.eq("//") {
+                    let s = cur.get_token_s("\n");
+                    res.push_str(&s);
+                    res.push('\n');
+                    continue;
+                }
+                // range comment
+                if cur.eq("/*") {
+                    let s = cur.get_token_s("*/");
+                    res.push_str(&s);
+                    res.push_str("*/");
                     continue;
                 }
                 res.push(ch);
@@ -222,7 +244,7 @@ pub fn convert(src: &str) -> String {
             cur.index += 1;
         }
     }
-    return res;
+    res.trim().to_string()
 }
 
 #[cfg(test)]
@@ -240,5 +262,11 @@ mod tests {
             convert("~{じゅー}={c}ドレミじゅーレミ"),
             String::from("cdecde")
         );
+    }
+    #[test]
+    fn test_comment() {
+        assert_eq!(convert("ドレ//ミ"), String::from("cd//ミ"));
+        assert_eq!(convert("ドレ//ミ\nドレ"), String::from("cd//ミ\ncd"));
+        assert_eq!(convert("ドレ/*ミ*/ドレ"), String::from("cd/*ミ*/cd"));
     }
 }

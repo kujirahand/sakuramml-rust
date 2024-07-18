@@ -1,9 +1,9 @@
 [package]
 name = "sakuramml"
-version = "0.1.29"
+version = "0.1.31"
 edition = "2021"
 authors = ["kujirahand <web@kujirahand.com>"]
-rust-version = "1.64.0"
+rust-version = "1.78.0"
 description = "sakuramml is MML/ABC to MIDI Compiler"
 readme = "README.md"
 homepage = "https://sakuramml.com"
@@ -19,4 +19,3 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 wasm-bindgen = "0.2"
-

@@ -12,7 +12,7 @@ use crate::token::{self, zen2han, Token, TokenType};
 const LEX_MAX_ERROR: usize = 30;
 
 /// prerpcess 
-pub fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
+fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
     let tmp_lineno = cur.line;
     while !cur.is_eos() {
         // skip comment
@@ -136,9 +136,16 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '/' => {
                 if cur.eq_char('/') {
                     cur.get_token_ch('\n');
+                    continue;
                 } else if cur.eq_char('*') {
+                    cur.next();
                     cur.get_token_s("*/");
+                    continue;
                 }
+                // パースエラー
+                let err = format!("Could not parse flag '{}'", ch);
+                lex_error(&mut cur, song, &err);
+                continue;
             }
             '[' => result.push(read_loop(&mut cur, song)), // @ ループ開始 (例 [4 cdeg])
             ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)), // @ ループ最終回に脱出 (例　[4 cde:g]e)

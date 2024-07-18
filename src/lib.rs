@@ -23,19 +23,33 @@ pub const SAKURA_DEBUG_NONE: u32 = 0;
 pub const SAKURA_DEBUG_INFO: u32 = 1;
 
 // ------------------------------------------
-// Functions for JavaScript
+// Sakura Functions for JavaScript
 // ------------------------------------------
+// `console.log`を呼び出すための外部関数を定義
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
 /// get sakura compiler version info
 #[wasm_bindgen]
 pub fn get_version() -> String {
     sakura_version::SAKURA_VERSION.to_string()
 }
 
+#[wasm_bindgen]
+pub fn aaa(msg: &str) -> bool {
+    log(msg);
+    true
+}
+
 /// SakuraCompiler Object
 #[wasm_bindgen]
 pub struct SakuraCompiler {
     song: song::Song,
-    log: String,
+    log_str: String,
+    lang: String,
     debug_level: u32,
 }
 #[wasm_bindgen]
@@ -44,31 +58,40 @@ impl SakuraCompiler {
     pub fn new() -> Self {
         SakuraCompiler {
             song: song::Song::new(),
-            log: String::new(),
+            log_str: "".to_string(),
             debug_level: 0,
+            lang: "en".to_string(),
         }
     }
     /// compile to MIDI data
     pub fn compile(&mut self, source: &str) -> Vec<u8> {
         if self.debug_level > 0 {
             self.song.debug = true;
+            std::panic::set_hook(Box::new(|panic_info| {
+                    log(&format!("SakuraCompiler::compile::panic=>{:?}", panic_info));
+                }));
         }
+        self.song.set_language(&self.lang);
+        // convert sutoton
         let source_mml = sutoton::convert(source);
+        // parse MML
         let tokens = lexer::lex(&mut self.song, &source_mml, 0);
+        // run Tokens
         runner::exec(&mut self.song, &tokens);
+        // generate MIDI
         let bin = midi::generate(&mut self.song);
+        // get log text
         let log_text = self.song.get_logs_str();
-        self.log.push_str(&log_text);
-        // sakura_log(&log_text);
-        return bin;
+        self.log_str.push_str(&log_text);
+        bin
     }
     /// set message language
     pub fn set_language(&mut self, code: &str) {
-        self.song.set_language(code);
+        self.lang = code.to_string();
     }
     /// get log text
     pub fn get_log(&self) -> String {
-        return self.log.clone();
+        self.log_str.to_string()
     }
     /// set debug level
     pub fn set_debug_level(&mut self, level: u32) {
@@ -76,9 +99,30 @@ impl SakuraCompiler {
     }
 }
 
+/// compile source to MIDI data
+#[wasm_bindgen]
+pub fn compile_to_midi(source: &str, debug_level: u32) -> Vec<u8> {
+    std::panic::set_hook(Box::new(|panic_info| {
+            log(&format!("SakuraCompiler::compile::panic=>{:?}", panic_info));
+        }));
+    // log(&format!("compile_to_midi: source={} debug={}", source, debug_level));
+    let mut song = song::Song::new();
+    if debug_level >= 1 {
+        song.debug = true;
+    }
+    let source_mml = sutoton::convert(source);
+    let tokens = lexer::lex(&mut song, &source_mml, 0);
+    runner::exec(&mut song, &tokens);
+    let bin = midi::generate(&mut song);
+    //let log_text = song.get_logs_str();
+    bin
+}
+
+
 // ------------------------------------------
-// Functions for Rust
+// Functions for Rust Native
 // ------------------------------------------
+/// compiler result struct
 #[derive(Debug)]
 pub struct SakuraResult {
     /// MIDI binary data
@@ -86,6 +130,7 @@ pub struct SakuraResult {
     /// MIDI binary data
     pub log: String,
 }
+
 /// compile source to MIDI data
 pub fn compile(source: &str, debug_level: u32) -> SakuraResult {
     let mut song = song::Song::new();

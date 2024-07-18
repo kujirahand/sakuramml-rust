@@ -10,6 +10,7 @@ use crate::token::Tokens;
 // const
 pub const SAKURA_MAX_LOGS: usize = 100; // lines
 pub const SAKURA_MAX_LOGS_CHARS: usize = 1024 * 4; // chars
+pub const SAKURA_DEFAULT_RANDOM_SEED: u32 = 3958587042; // random seed
 
 /// Event Type
 #[derive(Debug, Clone, PartialEq)]
@@ -575,7 +576,7 @@ impl Song {
             v_add: 8,
             q_add: 1,
             stack: vec![],
-            rand_seed: 1234567, // Random Seed
+            rand_seed: SAKURA_DEFAULT_RANDOM_SEED, // Random Seed
             device_number: 0x10, // default device number (0x10: General MIDI)
             use_key_shift: true,
             lineno: 0,
