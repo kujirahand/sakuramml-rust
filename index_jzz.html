@@ -9,7 +9,7 @@
   
 <script type="module">
   // WebAssemblyを読み込む
-  import init, {compile,get_version} 
+  import init, {get_version, SakuraCompiler} 
     from './pkg/sakuramml.js?v';
 
   // player
@@ -31,22 +31,17 @@
     s = s.replace(/\n/g,'<br>\n')
     return s
   }
-  // これが必要
-  window.sakura_log = function (s) {
-    console.log(s)
-    document.getElementById('msg').innerHTML = tohtml(s)
-  }
   window.addEventListener('load', () => {
     player = new JZZ.gui.Player('player_gui');
     JZZ.synth.Tiny.register('Web Audio');
     console.log('player=', player);
   })
   function playMML() {
-
     const txt = document.getElementById('txt')
     localStorage["picosakura_txt"] = txt.value
     try {
-      const a = compile(txt.value)
+      const com = SakuraCompiler.new()
+      const a = com.compile(txt.value)
       const smfData = new Uint8Array(a);
       player.load(new JZZ.MIDI.SMF(smfData));
       player.play();

@@ -25,23 +25,10 @@ pub const SAKURA_DEBUG_INFO: u32 = 1;
 // ------------------------------------------
 // Sakura Functions for JavaScript
 // ------------------------------------------
-// `console.log`を呼び出すための外部関数を定義
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
-
 /// get sakura compiler version info
 #[wasm_bindgen]
 pub fn get_version() -> String {
     sakura_version::SAKURA_VERSION.to_string()
-}
-
-#[wasm_bindgen]
-pub fn aaa(msg: &str) -> bool {
-    log(msg);
-    true
 }
 
 /// SakuraCompiler Object
@@ -67,9 +54,6 @@ impl SakuraCompiler {
     pub fn compile(&mut self, source: &str) -> Vec<u8> {
         if self.debug_level > 0 {
             self.song.debug = true;
-            std::panic::set_hook(Box::new(|panic_info| {
-                    log(&format!("SakuraCompiler::compile::panic=>{:?}", panic_info));
-                }));
         }
         self.song.set_language(&self.lang);
         // convert sutoton
@@ -102,10 +86,6 @@ impl SakuraCompiler {
 /// compile source to MIDI data
 #[wasm_bindgen]
 pub fn compile_to_midi(source: &str, debug_level: u32) -> Vec<u8> {
-    std::panic::set_hook(Box::new(|panic_info| {
-            log(&format!("SakuraCompiler::compile::panic=>{:?}", panic_info));
-        }));
-    // log(&format!("compile_to_midi: source={} debug={}", source, debug_level));
     let mut song = song::Song::new();
     if debug_level >= 1 {
         song.debug = true;
@@ -114,10 +94,8 @@ pub fn compile_to_midi(source: &str, debug_level: u32) -> Vec<u8> {
     let tokens = lexer::lex(&mut song, &source_mml, 0);
     runner::exec(&mut song, &tokens);
     let bin = midi::generate(&mut song);
-    //let log_text = song.get_logs_str();
     bin
 }
-
 
 // ------------------------------------------
 // Functions for Rust Native
