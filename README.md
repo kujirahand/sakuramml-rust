@@ -26,7 +26,7 @@ It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAss
 
 ## Binary - command line
 
-- [Command line v0.1.13(win/mac/ubuntu)](https://github.com/kujirahand/sakuramml-rust/releases/tag/0.1.13)
+- [Command line binary(win/mac)](https://github.com/kujirahand/sakuramml-rust/releases/)
 
 ## Compile
 

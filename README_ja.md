@@ -22,7 +22,7 @@ Web版が「[こちら(ピコサクラ)](https://sakuramml.com/go.php?15)」で�
 
 ダウンロードして使いたい場合、コマンドライン版が使えます。以下より各OSのバイナリをダウンロードしてください。
 
-- [Command line v0.1.13(win/mac/ubuntu)](https://github.com/kujirahand/sakuramml-rust/releases/tag/0.1.13)
+- [Command line(win/mac)](https://github.com/kujirahand/sakuramml-rust/releases/)
 
 ## 最新版のコンパイル (Rust)
 

@@ -1,15 +1,15 @@
 [package]
 name = "sakuramml"
-version = "0.1.31"
+version = "0.1.32"
 edition = "2021"
-authors = ["kujirahand <web@kujirahand.com>"]
 rust-version = "1.78.0"
+authors = ["kujirahand <web@kujirahand.com>"]
 description = "sakuramml is MML/ABC to MIDI Compiler"
 readme = "README.md"
 homepage = "https://sakuramml.com"
 repository = "https://github.com/kujirahand/sakuramml-rust"
 license-file = "LICENSE"
-keywords = ["MML", "MIDI", "Compiler", "ABC"]
+keywords = ["MML", "MIDI", "Compiler", "ABC", "script", "wasm", "music"]
 documentation = "https://docs.rs/sakuramml"
 exclude = ["/test.sh", "/test.mml", "/test.mid", "/eval.mid", ".*", "/pkg/*"]
 include = ["/src", "LICENSE", "/samples"]
