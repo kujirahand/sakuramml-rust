@@ -144,43 +144,49 @@ RES_REF=RES
 MD=「
 # Sakuramml command list - テキスト音楽 サクラ
 
-## One character command - 1文字コマンド
+## Single-character command
 
-Lower character command list.
+Single-character(lower case) command list. (1文字小文字コマンド)
 
 | Command | Description |
 |---------|--------|
 {RES_1CHAR}
 
-## Multi characters command - 複数文字の大文字コマンド
+## Multiple-character command
 
-Upper characters command list.
+Multiple-character(upper case) command list. (複数文字/大文字コマンド)
 
 | Command | Description |
 |---------|--------|
 {RES_UP}
 
-## Variables - 計算式で参照できる値
+## Values in a formula
+
+Values that can be referenced in a formula (計算式で参照できる値)
 
 | Command | Description |
 |---------|--------|
 {RES_REF}
 
-## Macro and Voice List (マクロや音色など変数定義)
+## Macro and Voice List 
+
+Macros and Voice list (マクロや音色など変数定義)
 
 | Voice | Description |
 |-------|----|
 {RES_VOICE}
 
-## Rhythm macro (リズムマクロ)
+## Rhythm macro
+
+Rhythm macro (リズムマクロ)
 
 | Macro's name | Value |
 |---------|--------|
 {RES_RHYTHM_MACRO}
 
-## Sutoton - ストトン表記
+## Sutoton
 
-日本語で指示できるコマンド
+日本語で指示できるストトン表記
 
 {RES_SUTOTON}
 」

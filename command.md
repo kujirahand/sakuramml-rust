@@ -1,8 +1,8 @@
 # Sakuramml command list - テキスト音楽 サクラ
 
-## One character command - 1文字コマンド
+## Single-character command
 
-Lower character command list.
+Single-character(lower case) command list. (1文字小文字コマンド)
 
 | Command | Description |
 |---------|--------|
@@ -39,9 +39,9 @@ Lower character command list.
 | & | tie and slur - タイ・スラー(Slurコマンドで動作が変更できる) |
 
 
-## Multi characters command - 複数文字の大文字コマンド
+## Multiple-character command
 
-Upper characters command list.
+Multiple-character(upper case) command list. (複数文字/大文字コマンド)
 
 | Command | Description |
 |---------|--------|
@@ -218,7 +218,9 @@ Upper characters command list.
 | Function | define user function |
 
 
-## Variables - 計算式で参照できる値
+## Values in a formula
+
+Values that can be referenced in a formula (計算式で参照できる値)
 
 | Command | Description |
 |---------|--------|
@@ -227,7 +229,9 @@ Upper characters command list.
 | TIME /  Time  |現在のタイムポインタ値を得る|
 
 
-## Macro and Voice List (マクロや音色など変数定義)
+## Macro and Voice List 
+
+Macros and Voice list (マクロや音色など変数定義)
 
 | Voice | Description |
 |-------|----|
@@ -444,7 +448,9 @@ Upper characters command list.
 | OpenSurdo |  音色:OpenSurdo (値:87) |
 
 
-## Rhythm macro (リズムマクロ)
+## Rhythm macro
+
+Rhythm macro (リズムマクロ)
 
 | Macro's name | Value |
 |---------|--------|
@@ -457,9 +463,9 @@ Upper characters command list.
 | _ | "r" |
 
 
-## Sutoton - ストトン表記
+## Sutoton
 
-日本語で指示できるコマンド
+日本語で指示できるストトン表記
 
 
 | ストトン表記 | 説明 (=定義) |
