@@ -170,7 +170,8 @@ Values that can be referenced in a formula (計算式で参照できる値)
 
 ## Macro and Voice List 
 
-Macros and Voice list (マクロや音色など変数定義)
+[🔗voice list - 日本語付きの音色一覧はこちら](voice.md)
+Macros and Voice list (マクロや音色など変数定義):
 
 | Voice | Description |
 |-------|----|

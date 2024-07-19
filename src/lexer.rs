@@ -82,8 +82,10 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
         // println!("lex: ch = {}", ch);
         match ch {
             // <CHAR_COMMANDS>
-            // space
-            ' ' | '\t' | '\r' | '|' | ';' => {}, // @ space - 空白文字
+            /*
+            SPACE TAB CR LF ; CHR(0x7C) => // @ space - 空白文字 / ';'や'|'も読み飛ばす
+            */
+            ' ' | '\t' | '\r' | '|' | ';' => {},
             // ret
             '\n' => {
                 cur.line += 1;

@@ -6,7 +6,7 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 
 | Command | Description |
 |---------|--------|
-|     \t   \r       ; | space - 空白文字 |
+| SPACE TAB CR LF ; CHR(0x7C) | space - 空白文字 / ';'や'|'も読み飛ばす |
 | c   d   e   f   g   a   b | note - ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階) |
 | n | note no - 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング) |
 | r | rest - 休符 |
@@ -231,7 +231,8 @@ Values that can be referenced in a formula (計算式で参照できる値)
 
 ## Macro and Voice List 
 
-Macros and Voice list (マクロや音色など変数定義)
+[🔗voice list - 日本語付きの音色一覧はこちら](voice.md)
+Macros and Voice list (マクロや音色など変数定義):
 
 | Voice | Description |
 |-------|----|
