@@ -19,7 +19,7 @@ CMD_LISTを改行で区切って反復：
 　　もし、それ=0ならば続ける。
 　　C=対象；
 　　Cから「=>」を切り取る。
-　　トリムして「|」を「/」に置換してFコマンドに代入。
+　　トリムして「|」を「 」に置換して、「'」を「」に置換して、Fコマンドに代入。
 　　Cを「// @」で区切る。
 　　それ[1]をトリムしてF説明に代入。
 　　R=R&「| {Fコマンド} | {F説明} |」&改行。
@@ -145,9 +145,9 @@ Lower character command list.
 |---------|--------|
 {RES_1CHAR}
 
-## Multi character command - 複数文字の大文字コマンド
+## Multi characters command - 複数文字の大文字コマンド
 
-Upper character command list.
+Upper characters command list.
 
 | Command | Description |
 |---------|--------|

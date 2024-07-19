@@ -6,42 +6,42 @@ Lower character command list.
 
 | Command | Description |
 |---------|--------|
-| ' ' / '\t' / '\r' / '/' / ';' | space - 空白文字 |
-| 'c' / 'd' / 'e' / 'f' / 'g' / 'a' / 'b' | note - ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階) |
-| 'n' | note no - 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング) |
-| 'r' | rest - 休符 |
-| 'l' | length - 音長の指定(例 l4) |
-| 'o' | octave - 音階の指定(例 o5) 範囲:0-10 |
-| 'p' | pitch bend - ピッチベンドの指定 範囲:0-127 (63が中央) |
-| 'q' | gate - ゲートの指定 (例 q90) 範囲:0-100 |
-| 'v' | velocity - ベロシティ音量の指定 範囲:0-127 / v.Random=n |
-| 't' | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
-| 'y' | Control change - コントロールチェンジの指定 (ex) y1,100) / range:0-127 / y1.onTime(low,high,len) |
-| '@' | Voice select(音色の指定) range:1-128 (format) @(no),(Bank_LSB),(Bank_MSB) |
-| '>' | Octave up (音階を1つ上げる) |
-| '<' | Octave down (音階を1つ下げる) |
-| ')' | velocity up - 音量をvAddの値だけ上げる |
-| '(' | velocity down - 音量をvAddの値だけ下げる |
+|     \t   \r       ; | space - 空白文字 |
+| c   d   e   f   g   a   b | note - ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階) |
+| n | note no - 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング) |
+| r | rest - 休符 |
+| l | length - 音長の指定(例 l4) |
+| o | octave - 音階の指定(例 o5) 範囲:0-10 |
+| p | pitch bend - ピッチベンドの指定 範囲:0-127 (63が中央) |
+| q | gate - ゲートの指定 (例 q90) 範囲:0-100 |
+| v | velocity - ベロシティ音量の指定 範囲:0-127 / v.Random=n |
+| t | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
+| y | Control change - コントロールチェンジの指定 (ex) y1,100) / range:0-127 / y1.onTime(low,high,len) |
+| @ | Voice select(音色の指定) range:1-128 (format) @(no),(Bank_LSB),(Bank_MSB) |
+| > | Octave up (音階を1つ上げる) |
+| < | Octave down (音階を1つ下げる) |
+| ) | velocity up - 音量をvAddの値だけ上げる |
+| ( | velocity down - 音量をvAddの値だけ下げる |
 | "\/\*" ... "\*\/" | range comment (範囲コメント) |
 | "//" | line comment (一行コメント) |
 | "##" | line comment (一行コメント) |
 | "# " | line comment (一行コメント) |
 | "#-" | line comment (一行コメント) |
-| '[' | begin of loop - ループ開始 (ex) [4 cdeg] |
-| ':' | break of loop - ループ最終回に脱出 (ex)　[4 cde:g]e |
-| ']' | end of loop - ループ終了 |
-| '\'' | harmony - 和音 (ex) 'ceg' (format) 'ceg'(音長),(ゲート) |
-| '$' | define rhythm macro - リズムマクロ定義 (format) $char{ defined } |
-| '{' | 連符 (例 {ceg}4) {c^d}(音長) |
-| '`' | Octave up once - 一度だけ音階を+1する |
-| '"' | Octave down once - 一度だけ音階を-1する |
-| '?' | play from here - ここから演奏する (=PlayFromHere) |
-| '&' | tie and slur - タイ・スラー(Slurコマンドで動作が変更できる) |
+| [ | begin of loop - ループ開始 (ex) [4 cdeg] |
+| : | break of loop - ループ最終回に脱出 (ex)　[4 cde:g]e |
+| ] | end of loop - ループ終了 |
+| \ | harmony - 和音 (ex) 'ceg' (format) 'ceg'(音長),(ゲート) |
+| $ | define rhythm macro - リズムマクロ定義 (format) $char{ defined } |
+| { | 連符 (例 {ceg}4) {c^d}(音長) |
+| ` | Octave up once - 一度だけ音階を+1する |
+| " | Octave down once - 一度だけ音階を-1する |
+| ? | play from here - ここから演奏する (=PlayFromHere) |
+| & | tie and slur - タイ・スラー(Slurコマンドで動作が変更できる) |
 
 
-## Multi character command - 複数文字の大文字コマンド
+## Multi characters command - 複数文字の大文字コマンド
 
-Upper character command list.
+Upper characters command list.
 
 | Command | Description |
 |---------|--------|
