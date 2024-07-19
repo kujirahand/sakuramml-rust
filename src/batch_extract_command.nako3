@@ -1,8 +1,15 @@
+# ------------------------------------------
+# extract command
+# ------------------------------------------
+SCRIPT_DIR=母艦パス
+ROOT_DIR=SCRIPT_DIRからパス抽出
+「ROOT=」&ROOT_DIRを表示
+# ------------------------------------------
 RES=""
 # ------------------------------------------
 # lexer.rs
 # ------------------------------------------
-L=「lexer.rs」を開く。
+L=「{SCRIPT_DIR}/lexer.rs」を開く。
 Lから「<CHAR_COMMANDS>」を切り取る。
 CMD_LIST=対象から「</CHAR_COMMANDS>」を切り取る。
 CMD_LIST=CMD_LIST&改行。
@@ -12,7 +19,7 @@ CMD_LISTをコマンド変換処理してRES_1CHARに代入。
 # ストトン表記 - sutoton.rs
 # ------------------------------------------
 CMD_LIST=""
-L=「sutoton.rs」を開く。
+L=「{SCRIPT_DIR}/sutoton.rs」を開く。
 Lから「<SUTOTON>」を切り取る。
 S_LIST=対象から「</SUTOTON>」を切り取る。
 S_LISTを改行で区切って反復
@@ -31,7 +38,7 @@ S_LISTを改行で区切って反復
 　　Ｓ名前＝トリム（SS[0]）
 　　Ｓ定義＝トリム(ＳＳ[1])
 　　Ｓ＝S名前＆「=> // @ {S説明}(={S定義}) 」
-　　Ｓを表示。
+　　# Ｓを表示。
 　　CMD_LIST=CMD_LIST&S&改行。
 ここまで。
 CMD_LISTをコマンド変換処理してRES_SUTOTONに代入。
@@ -40,9 +47,8 @@ CMD_LISTをコマンド変換処理してRES_SUTOTONに代入。
 # 音色 - mml_def.rs
 # ------------------------------------------
 RES=""
-L=「mml_def.rs」を開く。
-Lから「<VARIABLES>」を切り取る。
-S_LIST=対象から「</VARIABLES>」を切り取る。
+L=「{SCRIPT_DIR}/mml_def.rs」を開く。
+Lの「<VARIABLES>」から「</VARIABLES>」まで範囲切り取って、S_LISTに代入。
 S_LISTを改行で区切って反復
 　　対象を『/"(.+?)".*\((\d+|\".+?\").*\/\/ \@(.+?)$/』で正規表現マッチ。
 　　もし、そうでなければ、続ける。
@@ -54,8 +60,7 @@ S_LISTを改行で区切って反復
 RES_VOICE=RES
 # ------------------------------------------
 RES=""
-Lから「<RHYTHM_MACRO>」を切り取る。
-S_LIST=対象から「</RHYTHM_MACRO>」を切り取る。
+Lの「<RHYTHM_MACRO>」から「</RHYTHM_MACRO>」を範囲切り取る。S_LISTに代入。
 S_LISTを改行で区切って反復
 　　対象を『/'(.)'.*:from\((".+?")/』で正規表現マッチ。
 　　もし、そうでなければ、続ける。
@@ -66,8 +71,7 @@ S_LISTを改行で区切って反復
 RES_RHYTHM_MACRO=RES
 # ------------------------------------------
 RES=""
-Lから「<SYSTEM_FUNCTION>」を切り取る。
-S_LIST=対象から「</SYSTEM_FUNCTION>」を切り取る。
+Lの「<SYSTEM_FUNCTION>」から「</SYSTEM_FUNCTION>」を範囲切り取る。S_LISTに代入。
 S_LISTを改行で区切って反復
 　　対象を『/"(.+)".*\/\/\s+(.*)/』で正規表現マッチ。
 　　もし、そうでなければ、続ける。
@@ -81,9 +85,8 @@ RES_UP=RES
 # 参照できるシステムの値 - runner.rs
 # ------------------------------------------
 RES=""
-L=「runner.rs」を開く。
-Lから「<SYSTEM_REF>」を切り取る。
-S_LIST=対象から「</SYSTEM_REF>」を切り取る。
+L=「{SCRIPT_DIR}/runner.rs」を開く。
+Lの「<SYSTEM_REF>」から「</SYSTEM_REF>」を範囲切り取る。S_LISTに代入。
 S_LISTを改行で区切って反復
 　　対象で「if cmd ==」が何文字目。
 　　もし、それが0ならば、続ける。
@@ -152,9 +155,7 @@ MD=「
 
 ## マクロや音色など変数定義
 
-| 変数名 | 値    |
-|---------|--------|
-{RES_VOICE}
+- [🔗 Voice List and Macro](voice.md)
 
 ## リズムマクロ
 
@@ -165,9 +166,17 @@ MD=「
 
 」
 
-
-
+# command.md
 MD=トリム(MD)
 MDを表示。
-MDを「command.md」に保存。
-「ok」と表示。
+
+MDを「{ROOT_DIR}/command.md」に保存。
+# voice.md
+「# Voice List
+
+| Voice | NO |
+|-------|----|
+{RES_VOICE}
+」を「{ROOT_DIR}/voice.md」に保存。
+
+「ok.」と表示。

@@ -198,8 +198,8 @@ P1
 #Unison{cde},7
 ```
 
-## 参考
+## ファンレンス
 
-- サクラ(Rust版)のコマンド一覧 --- [command.md](src/command.md)
+- サクラ(Rust版)のコマンド一覧 --- [command.md](command.md)
   - サクラ(v2版)のコマンド一覧 --- https://sakuramml.com/doc/command/index.htm
-
+- 音色一覧 --- [voice.md](voice.md)

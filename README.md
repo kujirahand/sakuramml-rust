@@ -195,7 +195,7 @@ FOR (INT N=1; N < 5; N++) {
 }
 ```
 
-## memo
+## reference
 
-- Command List(ja) --- [command.md](src/command.md)
-
+- Command List(ja) --- [command.md](command.md)
+- Voice List - [voice.md](voice.md)

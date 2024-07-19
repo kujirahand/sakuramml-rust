@@ -215,7 +215,9 @@ Int OpenSurdo = 87;
 　　RES=RES&「| {VAR} | {VAL} |」&改行
 ここまで。
 
+/*
 「# Voice List
 | Voice | NO |
 |-------|----|
 {RES}」を「voice.md」に保存。
+*/

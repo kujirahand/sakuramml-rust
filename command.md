@@ -144,22 +144,201 @@
 
 | コマンド | 説明    |
 |---------|--------|
+| End | end of song |
+| END | end of song |
+| Track | change current track [range:0 to 999] (ex) Track(1) |
+| TRACK | change current track [range:0 to 999] (ex) TRACK(1) |
+| TR | change current track [range:0 to 999] (ex) TR(1) |
+| Channel | change channel no [range:1 to 16] (ex) Channel(1) |
+| CHANNEL | change channel no [range:1 to 16] (ex) CHANNEL(1) |
+| CH | change channel no [range:1 to 16] (ex) CH(1) |
+| Time | change time position, Time(measure:beat:step) (ex) Time(1:1:0) Time(0) |
+| TIME | change time position, TIME(measure:beat:step) (ex) Time(1:1:0) Time(0) |
+| System.TimeBase | set system time base (ex) TimeBase(96) |
+| Timebase | set system time base (ex) TimeBase(96) |
+| TimeBase | set system time base (ex) TimeBase(96) |
+| TIMEBASE | set system time base (ex) TimeBase(96) |
+| Rhythm | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| RHYTHM | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| R | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| Rythm | 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| RTTHM | 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| Div | tuplet(連符) (ex) Div{ ceg } |
+| DIV | tuplet(連符) (ex) Div{ ceg } |
+| Sub | sub track / rewind time position (ex) Sub{ceg} egb |
+| SUB | sub track / rewind time position (ex) Sub{ceg} egb |
+| S | sub track / rewind time position (ex) Sub{ceg} egb |
+| System.KeyFlag | set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
+| KeyFlag | set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
+| KF | set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
+| KeyShift | set key-shift (ex) KeyShift(3) |
+| Key | set key-shift (ex) Key(3) |
+| KEY | set key-shift (ex) KEY(3) |
+| UseKeyShift | set key shift mode value=on|off (ex) UseKeyShift(on) |
+| TrackKey | set key-shift for track (ex) TrackKey(3) |
+| TR_KEY | set key-shift for track (ex) TR_KEY(3) |
+| Play | play multi track (ex) Play(AA,BB,CC) |
+| PLAY | play multi track (ex) Play(AA,BB,CC) |
+| SysEx | System Exclusive (ex) SysEx$=f0,43,10,4c,00,{00,00,30,f0},f7 |
+| PlayFrom.SysEx | Unimplemented |
+| PlayFrom.CtrlChg | Unimplemented |
+| PlayFrom | play from time position (ex) PlayFrom(5:1:0) |
+| PLAY_FROM | play from time position (ex) PLAY_FROM(5:1:0) |
+| PlayFromHere | play from current time pos (ex) PlayFromHere |
+| PLAY_FROM_HRER | play from current time pos (ex) PLAY_FROM_HERE |
+| System.MeasureShift | set measure shift for time pointer (ex) System.MeasureShift(1) |
+| MeasureShift | set measure shift for time pointer (ex) MeasureShift(1) |
+| MEASURE_SHIFT | set measure shift for time pointer (ex) MeasureShift(1) |
+| TrackSync | synchronize time pointers for all tracks (ex) TrackSync |
+| TRACK_SYNC | synchronize time pointers for all tracks (ex) TrackSync |
+| Slur | set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1) |
+| SLUR | set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1) |
+| System.vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3) |
+| vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3) |
+| System.qAdd | set "q++" command value (ex) qAdd(3) |
+| qAdd | set "q++" command value (ex) qAdd(3) |
+| System.q2Add | Unimplemented |
+| q2Add | Unimplemented |
+| SoundType | set sound type (ex) SoundType({pico}) |
+| DeviceNumber | set Device Number (ex) DeviceNumber=$10 |
+| Voice | set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1) |
+| VOICE | set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1) |
+| M | CC#1 Modulation (ex) M(10) |
+| Modulation | CC#1 Modulation range:0-127 (ex) M(10) |
+| PT | CC#5 Portamento Time range:0-127 (ex) PT(10) |
+| PortamentoTime | CC#5 Portamento Time range:0-127 (ex) PT(10) |
+| V | CC#7 Main Volume range:0-127 (ex) V(10) |
+| MainVolume | CC#7 Main Volume range:0-127 (ex) V(10) |
+| P | CC#10 Panpot range:0-63-127 (ex) P(63) |
+| Panpot | CC#10 Panpot range:0-63-127 (ex) Panpot(63) |
+| EP | CC#11 Expression range:0-127 (ex) EP(100) |
+| Expression | CC#11 Expression range:0-127 (ex) EP(100) |
+| PS | CC#65 Portament switch range:0-127 (ex) PS(1) |
+| PortamentoSwitch | CC#65 Portament switch range:0-127 (ex) PS(1) |
+| REV | CC#91 Reverb range:0-127 (ex) REV(100) |
+| Reverb | CC#91 Reverb range:0-127 (ex) REV(100) |
+| CHO | CC#93 Chorus range:0-127 (ex) CHO(100) |
+| Chorus | CC#93 Chorus range:0-127 (ex) Chorus(100) |
+| VAR | CC#94 Variation range:0-127 (ex) VAR(100) |
+| Variation | CC#94 Variation range:0-127 (ex) Variation(100) |
+| PB | Pitchbend range: -8192...0...8191 (ex) PB(10) |
+| RPN | write RPN (ex) RPN(0,1,64) |
+| NRPN | write NRPN (ex) NRPN(1,1,1) |
+| BR | PitchBendSensitivity (ex) BR(10)  |
+| PitchBendSensitivity | PitchBendSensitivity (ex) BR(10) |
+| FineTune | set fine tune range:0-63-127(-100 - 0 - +99.99セント）(ex) FineTune(63) |
+| CoarseTune | set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(63) |
+| VibratoRate | set VibratoRate range: 0-127 |
+| VibratoDepth | set VibratoRate range: 0-127 |
+| VibratoDelay | set VibratoRate range: 0-127 |
+| FilterCutoff | set FilterCutoff range: 0-127 |
+| FilterResonance | set FilterResonance range: 0-127 |
+| EGAttack | set EGAttack range: 0-127 |
+| EGDecay | set EGDecay range: 0-127 |
+| EGRelease | set EGRelease range: 0-127 |
+| Fadein | fadein 小節数を指定 (ex) Fadein(1) |
+| Fadeout | fadeout 小節数を指定 (ex) Fadeout(1) |
+| Cresc | cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1) |
+| Decresc | cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1) |
+| CRESC | cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1) |
+| DECRESC | cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1) |
+| ResetGM | ResetGM |
+| ResetGS | ResetGS |
+| ResetXG | ResetXG |
+| Tempo | set tempo (ex) Tempo(120) |
+| TEMPO | set tempo (ex) TEMPO(120) |
+| T | set tempo (ex) T(120) |
+| BPM | set tempo (ex) BPM(120) |
+| TempoChange | tempo change slowly TempoChange(start, end, !len) (ex) TempoChange(80,120,!1) |
+| TimeSignature | set time signature (ex) TimeSignature(4, 4) |
+| System.TimeSignature | set time signature (ex) TimeSignature(4, 4) |
+| TimeSig | set time signature (ex) TimeSignature(4, 4) |
+| TIMESIG | set time signature (ex) TimeSignature(4, 4) |
+| Port | set Port No (ex) Port(0) |
+| PORT | set Port No (ex) Port(0) |
+| MetaText | write meta text (ex) MetaText{"hello"} |
+| Text | write meta text (ex) MetaText{"hello"} |
+| TEXT | write meta text (ex) MetaText{"hello"} |
+| Copyright | write copyright text (ex) Copyright{"hello"} |
+| COPYRIGHT | write copyright text (ex) COPYRIGHT{"hello"} |
+| TrackName | write TrackName text (ex) TrackName{"hello"} |
+| TRACK_NAME | write TrackName text (ex) TrackName{"hello"} |
+| InstrumentName | write InstrumentName text (ex) InstrumentName{"hello"} |
+| Lyric | write Lyric text (ex) Lyric{"hello"} |
+| LYRIC | write Lyric text (ex) LYRIC{"hello"} |
+| MAKER | write MAKER text (ex) MAKER{"hello"} |
+| Maker | write Maker text (ex) Maker{"hello"} |
+| CuePoint | write CuePoint text (ex) CuePoint{"hello"} |
+| GSEffect | GSEffect(num, val) (ex) GSEffect($30, 0) |
+| GSReverbMacro | GSReverbMacro(val) - 0:Room1 5:Hall 6:Delay (ex) GSReverbMacro(0) |
+| GSReverbCharacter | GSReverbCharacter(val) - 0:Room1 5:Hall 6:Delay (ex) GSReverbMacro(0) |
+| GSReverbPRE_LPE | GSReverbPRE_LPE(val) (ex) GSReverbPRE_LPE(0) |
+| GSReverbLevel | GSReverbLevel(val) (ex) GSReverbLevel(0) |
+| GSReverbTime | GSReverbTime(val) (ex) GSReverbTime(0) |
+| GSReverbFeedback | GSReverbFeedback(val) (ex) GSReverbFeedback(0) |
+| GSReverbSendToChorus | GSReverbSendToChorus(val) (ex) GSReverbSendToChorus(0) |
+| GSChorusMacro | GSChorusMacro(val) (ex) GSChorusMacro(0) |
+| GSChorusPRE_LPF | GSChorusPRE_LPF(val) (ex) GSChorusPRE_LPF(0) |
+| GSChorusLevel | GSChorusLevel(val) (ex) GSChorusLevel(0) |
+| GSChorusFeedback | GSChorusFeedback(val) (ex) GSChorusFeedback(0) |
+| GSChorusDelay | GSChorusDelay(val) (ex) GSChorusDelay(0) |
+| GSChorusRate | GSChorusRate(val) (ex) GSChorusRate(0) |
+| GSChorusDepth | GSChorusDepth(val) (ex) GSChorusDepth(0) |
+| GSChorusSendToReverb | GSChorusSendToReverb(val) (ex) GSChorusSendToReverb(0) |
+| GSChorusSendToDelay | GSChorusSendToDelay(val) (ex) GSChorusSendToDelay(0) |
+| GS_RHYTHM | Change to rhythm part val=0:instrument/1:drum1/2:drum2 (ex) GSChorusSendToDelay(0) |
+| GSScaleTuning | GS Scale Tuning. GSScaleTuning(C,Cp,D,Dp,E,F,Fp,G,Gp,A,Ap,B) (ex) GSScaleTuning(0,0,0,0,0,0,0,0,0,0,0,0) |
+| Int | define int variables (ex) Int A = 3 |
+| INT | define int variables (ex) INT A = 3 |
+| Str | define string variables (ex) Str A = {cde} |
+| STR | define string variables (ex) STR A = {cde} |
+| Print | print value (ex) Print({hello}) |
+| PRINT | print value (ex) PRINT({hello}) |
+| System.Include | Unimplemented |
+| Include | Unimplemented |
+| INCLUDE | Unimplemented |
+| IF | IF(cond){ true }ELSE{ false } |
+| If | IF(cond){ true }ELSE{ false } |
+| FOR | FOR(INT I = 0; I < 10; I++){ ... } |
+| For | FOR(INT I = 0; I < 10; I++){ ... } |
+| WHILE | WHILE(cond) { ... } |
+| While | WHILE(cond) { ... } |
+| BREAK | exit from loop |
+| Break | exit from loop |
+| EXIT | exit from loop |
+| Exit | exit from loop |
+| CONTINUE | exit from loop |
+| Continue | exit from loop |
+| RETURN | return from function |
+| Return | return from function |
+| RANDOM_SEED | set random seed |
+| RandomSeed | set random seed |
+| FUNCTION | define user function |
+| Function | define user function |
 
 
 ## 計算式で参照できる値
 
 | コマンド | 説明    |
 |---------|--------|
+| TR /  TRACK /  Track  |現在のトラック番号を得る|
+| CH /  CHANNEL  |現在のチャンネル番号を得る|
+| TIME /  Time  |現在のタイムポインタ値を得る|
 
 
 
 ## マクロや音色など変数定義
 
-| 変数名 | 値    |
-|---------|--------|
-
+- [🔗 Voice List and Macro](voice.md)
 
 ## リズムマクロ
 
 | 変数名 | 値    |
 |---------|--------|
+| b | "n36," |
+| s | "n38," |
+| h | "n42," |
+| H | "n44," |
+| o | "n46," |
+| c | "n49," |
+| _ | "r" |
