@@ -1,216 +1,216 @@
 # Voice List
 
-| Voice | NO |
-|-------|----|
-| OctaveUnison |  オクターブユニゾンを演奏 (例 OctaveUnison{cde}) (値:"Sub{> #?1 <} #?1") |
-| Unison5th |  5度のユニゾンを演奏 (例 Unison5th{cde}) (値:"Sub{ Key=7 #?1 Key=0 } #?1") |
-| Unison3th |  3度のユニゾンを演奏 (例 Unison3th{cde}) (値:"Sub{ Key=4 #?1 Key=0 } #?1") |
-| Unison |  N度のユニゾンを演奏 (例 Unison{cde},7) (値:"Sub{ Key=#?2 #?1 Key=0 } #?1") |
-| SLUR_PORT |  スラー定数。グリッサンド。ノートオンを、ポルタメントでつなぐ (例 Slur(SlurPort, !8) のように指定) (値:0) |
-| SLUR_BEND |  スラー定数。ベンド。異音程をベンドで表現。ギターのハンマリングに近い。 (例 Slur(SlurPort, !8) のように指定) (値:1) |
-| SLUR_GATE |  スラー定数。＆のついた音符のゲートを、valueにする (値:2) |
-| SLUR_ALPE |  スラー定数。＆でつないだ音符の終わりまでゲートを伸ばす (値:3) |
-| GrandPiano |  音色:GrandPiano (値:1) |
-| BrightPiano |  音色:BrightPiano (値:2) |
-| ElectricGrandPiano |  音色:ElectricGrandPiano (値:3) |
-| HonkyTonkPiano |  音色:HonkyTonkPiano (値:4) |
-| ElectricPiano1 |  音色:ElectricPiano1 (値:5) |
-| ElectricPiano2 |  音色:ElectricPiano2 (値:6) |
-| Harpsichord |  音色:Harpsichord (値:7) |
-| Clavi |  音色:Clavi (値:8) |
-| CelestaStrings |  音色:CelestaStrings (値:9) |
-| Glockenspiel |  音色:Glockenspiel (値:10) |
-| MusicBox |  音色:MusicBox (値:11) |
-| Vibraphone |  音色:Vibraphone (値:12) |
-| Marimba |  音色:Marimba (値:13) |
-| Xylophone |  音色:Xylophone (値:14) |
-| TubularBells |  音色:TubularBells (値:15) |
-| Dulcimer |  音色:Dulcimer (値:16) |
-| DrawbarOrgan |  音色:DrawbarOrgan (値:17) |
-| PercussiveOrgan |  音色:PercussiveOrgan (値:18) |
-| RockOrgan |  音色:RockOrgan (値:19) |
-| ChurchOrgan |  音色:ChurchOrgan (値:20) |
-| ReedOrgan |  音色:ReedOrgan (値:21) |
-| Accordion |  音色:Accordion (値:22) |
-| Hamonica |  音色:Hamonica (値:23) |
-| TangoAccordion |  音色:TangoAccordion (値:24) |
-| NylonGuitar |  音色:NylonGuitar (値:25) |
-| SteelcGuitar |  音色:SteelcGuitar (値:26) |
-| JazzGuitar |  音色:JazzGuitar (値:27) |
-| CleanGuitar |  音色:CleanGuitar (値:28) |
-| MutedGuitar |  音色:MutedGuitar (値:29) |
-| OverdrivenGuitar |  音色:OverdrivenGuitar (値:30) |
-| DistortionGuitar |  音色:DistortionGuitar (値:31) |
-| GuitarHarmonics |  音色:GuitarHarmonics (値:32) |
-| AcousticBass |  音色:AcousticBass (値:33) |
-| FingerBase |  音色:FingerBase (値:34) |
-| FingerBass |  音色:FingerBass (値:34) |
-| PickBass |  音色:PickBass (値:35) |
-| FretlessBass |  音色:FretlessBass (値:36) |
-| SlapBass1 |  音色:SlapBass1 (値:37) |
-| SlapBass2 |  音色:SlapBass2 (値:38) |
-| SynthBass1 |  音色:SynthBass1 (値:39) |
-| SynthBass2 |  音色:SynthBass2 (値:40) |
-| Violin |  音色:Violin (値:41) |
-| Viola |  音色:Viola (値:42) |
-| Cello |  音色:Cello (値:43) |
-| Contrabass |  音色:Contrabass (値:44) |
-| TremoloStrings |  音色:TremoloStrings (値:45) |
-| PizzicatoStrings |  音色:PizzicatoStrings (値:46) |
-| OrchestralHarp |  音色:OrchestralHarp (値:47) |
-| Timpani |  音色:Timpani (値:48) |
-| Strings1 |  音色:Strings1 (値:49) |
-| Strings2 |  音色:Strings2 (値:50) |
-| SynthStrings1 |  音色:SynthStrings1 (値:51) |
-| SynthStrings2 |  音色:SynthStrings2 (値:52) |
-| ChoirAahs |  音色:ChoirAahs (値:53) |
-| VoiceOohs |  音色:VoiceOohs (値:54) |
-| SynthVoice |  音色:SynthVoice (値:55) |
-| OrchestraHit |  音色:OrchestraHit (値:56) |
-| Trumpet |  音色:Trumpet (値:57) |
-| Trombone |  音色:Trombone (値:58) |
-| Tuba |  音色:Tuba (値:59) |
-| MutedTrumpet |  音色:MutedTrumpet (値:60) |
-| FrenchHorn |  音色:FrenchHorn (値:61) |
-| BrassSection |  音色:BrassSection (値:62) |
-| SynthBrass1 |  音色:SynthBrass1 (値:63) |
-| SynthBrass2 |  音色:SynthBrass2 (値:64) |
-| SopranoSax |  音色:SopranoSax (値:65) |
-| AltoSax |  音色:AltoSax (値:66) |
-| TenorSax |  音色:TenorSax (値:67) |
-| BaritoneSax |  音色:BaritoneSax (値:68) |
-| Oboe |  音色:Oboe (値:69) |
-| EnglishHorn |  音色:EnglishHorn (値:70) |
-| Bassoon |  音色:Bassoon (値:71) |
-| Clarinet |  音色:Clarinet (値:72) |
-| Piccolo |  音色:Piccolo (値:73) |
-| Flute |  音色:Flute (値:74) |
-| Recorder |  音色:Recorder (値:75) |
-| PanFlute |  音色:PanFlute (値:76) |
-| BlownBottle |  音色:BlownBottle (値:77) |
-| Shakuhachi |  音色:Shakuhachi (値:78) |
-| Whistle |  音色:Whistle (値:79) |
-| Ocarina |  音色:Ocarina (値:80) |
-| SquareLead |  音色:SquareLead (値:81) |
-| SawtoothLead |  音色:SawtoothLead (値:82) |
-| CalliopeLead |  音色:CalliopeLead (値:83) |
-| ChiffLead |  音色:ChiffLead (値:84) |
-| CharangLead |  音色:CharangLead (値:85) |
-| VoiceLead |  音色:VoiceLead (値:86) |
-| FifthsLead |  音色:FifthsLead (値:87) |
-| BassLead |  音色:BassLead (値:88) |
-| NewAgePad |  音色:NewAgePad (値:89) |
-| WarmPad |  音色:WarmPad (値:90) |
-| PolySynthPad |  音色:PolySynthPad (値:91) |
-| ChoirPad |  音色:ChoirPad (値:92) |
-| BowedPad |  音色:BowedPad (値:93) |
-| MetallicPad |  音色:MetallicPad (値:94) |
-| HaloPad |  音色:HaloPad (値:95) |
-| SweepPad |  音色:SweepPad (値:96) |
-| Rain |  音色:Rain (値:97) |
-| SoundTrack |  音色:SoundTrack (値:98) |
-| Crystal |  音色:Crystal (値:99) |
-| Atmosphere |  音色:Atmosphere (値:100) |
-| Brightness |  音色:Brightness (値:101) |
-| Goblins |  音色:Goblins (値:102) |
-| Echoes |  音色:Echoes (値:103) |
-| Sci_Fi |  音色:Sci_Fi (値:104) |
-| Sitar |  音色:Sitar (値:105) |
-| Banjo |  音色:Banjo (値:106) |
-| Shamisen |  音色:Shamisen (値:107) |
-| Koto |  音色:Koto (値:108) |
-| Kalimba |  音色:Kalimba (値:109) |
-| Bagpipe |  音色:Bagpipe (値:110) |
-| Fiddle |  音色:Fiddle (値:111) |
-| Shanai |  音色:Shanai (値:112) |
-| TibkleBell |  音色:TibkleBell (値:113) |
-| TinkleBell |  音色:TinkleBell (値:113) |
-| Agogo |  音色:Agogo (値:114) |
-| SteelDrums |  音色:SteelDrums (値:115) |
-| Woodblock |  音色:Woodblock (値:116) |
-| TaikoDrum |  音色:TaikoDrum (値:117) |
-| MelodicTom |  音色:MelodicTom (値:118) |
-| SynthDrum |  音色:SynthDrum (値:119) |
-| ReverseCymbal |  音色:ReverseCymbal (値:120) |
-| FretNoise |  音色:FretNoise (値:121) |
-| BreathNoise |  音色:BreathNoise (値:122) |
-| Seashore |  音色:Seashore (値:123) |
-| BirdTweet |  音色:BirdTweet (値:124) |
-| TelephoneRing |  音色:TelephoneRing (値:125) |
-| Helicopter |  音色:Helicopter (値:126) |
-| Applause |  音色:Applause (値:127) |
-| Gunshot |  音色:Gunshot (値:128) |
-| StandardSet |  音色:StandardSet (値:1) |
-| StandardSet2 |  音色:StandardSet2 (値:2) |
-| RoomSet |  音色:RoomSet (値:9) |
-| PowerSet |  音色:PowerSet (値:17) |
-| ElectronicSet |  音色:ElectronicSet (値:25) |
-| AnalogSet |  音色:AnalogSet (値:26) |
-| DanceSet |  音色:DanceSet (値:27) |
-| JazzSet |  音色:JazzSet (値:33) |
-| BrushSet |  音色:BrushSet (値:41) |
-| OrchestraSet |  音色:OrchestraSet (値:49) |
-| SnareRoll |  音色:SnareRoll (値:25) |
-| FingerSnap |  音色:FingerSnap (値:26) |
-| HighQ |  音色:HighQ (値:27) |
-| Slap |  音色:Slap (値:28) |
-| ScratchPush |  音色:ScratchPush (値:29) |
-| ScratchPull |  音色:ScratchPull (値:30) |
-| Sticks |  音色:Sticks (値:31) |
-| SquareClick |  音色:SquareClick (値:32) |
-| MetronomeClick |  音色:MetronomeClick (値:33) |
-| MetronomeBell |  音色:MetronomeBell (値:34) |
-| Kick2 |  音色:Kick2 (値:35) |
-| Kick1 |  音色:Kick1 (値:36) |
-| SideStick |  音色:SideStick (値:37) |
-| Snare1 |  音色:Snare1 (値:38) |
-| HandClap |  音色:HandClap (値:39) |
-| Snare2 |  音色:Snare2 (値:40) |
-| LowTom2 |  音色:LowTom2 (値:41) |
-| ClosedHiHat |  音色:ClosedHiHat (値:42) |
-| LowTom1 |  音色:LowTom1 (値:43) |
-| PedalHiHat |  音色:PedalHiHat (値:44) |
-| MidTom2 |  音色:MidTom2 (値:45) |
-| OpenHiHat |  音色:OpenHiHat (値:46) |
-| MidTom1 |  音色:MidTom1 (値:47) |
-| HighTom2 |  音色:HighTom2 (値:48) |
-| CrashCymbal1 |  音色:CrashCymbal1 (値:49) |
-| HighTom1 |  音色:HighTom1 (値:50) |
-| RideCymbal1 |  音色:RideCymbal1 (値:51) |
-| ChineseCymbal |  音色:ChineseCymbal (値:52) |
-| RideBell |  音色:RideBell (値:53) |
-| Tambourine |  音色:Tambourine (値:54) |
-| SplashCymbal |  音色:SplashCymbal (値:55) |
-| Cowbell |  音色:Cowbell (値:56) |
-| CrashCymbal2 |  音色:CrashCymbal2 (値:57) |
-| VibraSlap |  音色:VibraSlap (値:58) |
-| RideCymbal2 |  音色:RideCymbal2 (値:59) |
-| HighBongo |  音色:HighBongo (値:60) |
-| LowBongo |  音色:LowBongo (値:61) |
-| MuteHighConga |  音色:MuteHighConga (値:62) |
-| OpenHighConga |  音色:OpenHighConga (値:63) |
-| LowConga |  音色:LowConga (値:64) |
-| HighTimbale |  音色:HighTimbale (値:65) |
-| LowTimbale |  音色:LowTimbale (値:66) |
-| HighAgogo |  音色:HighAgogo (値:67) |
-| LowAgogo |  音色:LowAgogo (値:68) |
-| Cabasa |  音色:Cabasa (値:69) |
-| Maracas |  音色:Maracas (値:70) |
-| ShortHiWhistle |  音色:ShortHiWhistle (値:71) |
-| LongLowWhistle |  音色:LongLowWhistle (値:72) |
-| ShortGuiro |  音色:ShortGuiro (値:73) |
-| LongGuiro |  音色:LongGuiro (値:74) |
-| Claves |  音色:Claves (値:75) |
-| HighWoodBlock |  音色:HighWoodBlock (値:76) |
-| LowWoodBlock |  音色:LowWoodBlock (値:77) |
-| MuteCuica |  音色:MuteCuica (値:78) |
-| OpenCuica |  音色:OpenCuica (値:79) |
-| MuteTriangle |  音色:MuteTriangle (値:80) |
-| OpenTriangle |  音色:OpenTriangle (値:81) |
-| Shaker |  音色:Shaker (値:82) |
-| JingleBell |  音色:JingleBell (値:83) |
-| BellTree |  音色:BellTree (値:84) |
-| Castanets |  音色:Castanets (値:85) |
-| MuteSurdo |  音色:MuteSurdo (値:86) |
-| OpenSurdo |  音色:OpenSurdo (値:87) |
+| NO | Voice | 説明(ja) |
+|----|-------|----------|
+| 1 | GrandPiano | グランドピアノ |
+| 2 | BrightPiano | ブライトピアノ |
+| 3 | ElectricGrandPiano | エレクトリックグランドピアノ |
+| 4 | HonkyTonkPiano | ホンキートンクピアノ |
+| 5 | ElectricPiano1 | エレクトリックピアノ1 |
+| 6 | ElectricPiano2 | エレクトリックピアノ2 |
+| 7 | Harpsichord | ハープシコード |
+| 8 | Clavi | クラヴィ |
+| 9 | CelestaStrings | チェレスタストリングス |
+| 10 | Glockenspiel | グロッケンシュピール |
+| 11 | MusicBox | オルゴール(ミュージックボックス) |
+| 12 | Vibraphone | ヴィブラフォン |
+| 13 | Marimba | マリンバ |
+| 14 | Xylophone | シロフォン |
+| 15 | TubularBells | チューブラーベル |
+| 16 | Dulcimer | ダルシマー |
+| 17 | DrawbarOrgan | ドローバーオルガン |
+| 18 | PercussiveOrgan | パーカッシブオルガン |
+| 19 | RockOrgan | ロックオルガン |
+| 20 | ChurchOrgan | チャーチオルガン |
+| 21 | ReedOrgan | リードオルガン |
+| 22 | Accordion | アコーディオン |
+| 23 | Hamonica | ハーモニカ |
+| 24 | TangoAccordion | タンゴアコーディオン |
+| 25 | NylonGuitar | ナイロンギター(アコースティックギター)  |
+| 26 | SteelGuitar | スティールギター |
+| 27 | JazzGuitar | エレクトリックギター(ジャズ) |
+| 28 | CleanGuitar | エレクトリックギター(クリーン) |
+| 29 | MutedGuitar | エレクトリックギター(ミュート) |
+| 30 | OverdrivenGuitar | オーバードライブギター |
+| 31 | DistortionGuitar | ディストーションギター |
+| 32 | GuitarHarmonics | ギターハーモニクス |
+| 33 | AcousticBass | アコースティックベース |
+| 34 | FingerBass | フィンガーベース |
+| 35 | PickBass | ピックベース |
+| 36 | FretlessBass | フレットレスベース |
+| 37 | SlapBass1 | スラップベース1 |
+| 38 | SlapBass2 | スラップベース2 |
+| 39 | SynthBass1 | シンセベース1 |
+| 40 | SynthBass2 | シンセベース2 |
+| 41 | Violin | バイオリン |
+| 42 | Viola | ヴィオラ/ビオラ |
+| 43 | Cello | チェロ |
+| 44 | Contrabass | コントラバス |
+| 45 | TremoloStrings | トレモロストリングス |
+| 46 | PizzicatoStrings | ピチカートストリングス |
+| 47 | OrchestralHarp | オーケストラハープ |
+| 48 | Timpani | ティンパニ |
+| 49 | Strings1 | ストリングス1 |
+| 50 | Strings2 | ストリングス2 |
+| 51 | SynthStrings1 | シンセストリングス1 |
+| 52 | SynthStrings2 | シンセストリングス2 |
+| 53 | ChoirAahs | ボイス(アー) |
+| 54 | VoiceOohs | ボイス(ウー) |
+| 55 | SynthVoice | シンセボイス |
+| 56 | OrchestraHit | オーケストラヒット |
+| 57 | Trumpet | トランペット |
+| 58 | Trombone | トロンボーン |
+| 59 | Tuba | チューバ |
+| 60 | MutedTrumpet | ミュートトランペット |
+| 61 | FrenchHorn | フレンチホルン |
+| 62 | BrassSection | ブラスセクション |
+| 63 | SynthBrass1 | シンセブラス1 |
+| 64 | SynthBrass2 | シンセブラス2 |
+| 65 | SopranoSax | ソプラノサックス |
+| 66 | AltoSax | アルトサックス |
+| 67 | TenorSax | テナーサックス |
+| 68 | BaritoneSax | バリトンサックス |
+| 69 | Oboe | オーボエ |
+| 70 | EnglishHorn | イングリッシュホルン |
+| 71 | Bassoon | バスーン |
+| 72 | Clarinet | クラリネット |
+| 73 | Piccolo | ピッコロ |
+| 74 | Flute | フルート |
+| 75 | Recorder | リコーダー |
+| 76 | PanFlute | パンフルート |
+| 77 | BlownBottle | ブロウンボトル |
+| 78 | Shakuhachi | 尺八 |
+| 79 | Whistle | ホイッスル / 口笛 |
+| 80 | Ocarina | オカリナ |
+| 81 | SquareLead | リード/矩形波 |
+| 82 | SawtoothLead | リード/ノコギリ波 |
+| 83 | CalliopeLead | カリオペリード/上記オルガン |
+| 84 | ChiffLead | チフリード |
+| 85 | CharangLead | チャランリード |
+| 86 | VoiceLead | ボイスリード |
+| 87 | FifthsLead | フィフスリード |
+| 88 | BassLead | ベースリード |
+| 89 | NewAgePad | ニューエイジパッド |
+| 90 | WarmPad | ウォームパッド |
+| 91 | PolySynthPad | ポリシンセパッド |
+| 92 | ChoirPad | クワイアパッド |
+| 93 | BowedPad | ボウドパッド |
+| 94 | MetallicPad | メタリックパッド |
+| 95 | HaloPad | ハローパッド |
+| 96 | SweepPad | スイープパッド |
+| 97 | Rain | レイン(雨) |
+| 98 | SoundTrack | サウンドトラック |
+| 99 | Crystal | クリスタル |
+| 100 | Atmosphere | アトモスフィア |
+| 101 | Brightness | ブライトネス |
+| 102 | Goblins | ゴブリンズ |
+| 103 | Echoes | エコーズ |
+| 104 | Sci_Fi | サイファイ |
+| 105 | Sitar | シタール |
+| 106 | Banjo | バンジョー |
+| 107 | Shamisen | 三味線 |
+| 108 | Koto | 琴 |
+| 109 | Kalimba | カリンバ |
+| 110 | Bagpipe | バグパイプ |
+| 111 | Fiddle | フィドル |
+| 112 | Shanai | シャナイ |
+| 113 | TinkleBell | ティンクルベル |
+| 114 | Agogo | アゴゴ |
+| 115 | SteelDrums | スティールドラム |
+| 116 | Woodblock | ウッドブロック |
+| 117 | TaikoDrum | 太鼓 |
+| 118 | MelodicTom | メロディックトム |
+| 119 | SynthDrum | シンセドラム |
+| 120 | ReverseCymbal | リバースシンバル |
+| 121 | FretNoise | フレットノイズ |
+| 122 | BreathNoise | ブレスノイズ |
+| 123 | Seashore | 海辺 |
+| 124 | BirdTweet | 鳥のさえずり |
+| 125 | TelephoneRing | 電話のベル |
+| 126 | Helicopter | ヘリコプター |
+| 127 | Applause | 拍手喝采 |
+| 128 | Gunshot | ガンショット |
 
+
+# Drum set
+
+| NO | Voice | 音色(ja) |
+|----|-------|----------|
+| 1 | StandardSet | スタンダードセット |
+| 2 | StandardSet2 | スタンダードセット2 |
+| 9 | RoomSet | ルームセット |
+| 17 | PowerSet | パワーセット |
+| 25 | ElectronicSet | エレクトロニックセット |
+| 26 | AnalogSet | アナログセット |
+| 27 | DanceSet | ダンスセット |
+| 33 | JazzSet | ジャズセット |
+| 41 | BrushSet | ブラッシュセット |
+| 49 | OrchestraSet | オーケストラセット |
+
+# Drum note
+
+| NO | NoteName | 説明(ja) |
+|----|-------|----------|
+| 25 | SnareRoll | スネアロール |
+| 26 | FingerSnap | フィンガースナップ |
+| 27 | HighQ | ハイQ |
+| 28 | Slap | スラップ |
+| 29 | ScratchPush | スクラッチプッシュ |
+| 30 | ScratchPull | スクラッチプル |
+| 31 | Sticks | スティックス |
+| 32 | SquareClick | スクエアクリック |
+| 33 | MetronomeClick | メトロノームクリック |
+| 34 | MetronomeBell | メトロノームベル |
+| 35 | Kick2 | キック2 |
+| 36 | Kick1 | キック1 |
+| 37 | SideStick | サイドスティック |
+| 38 | Snare1 | スネア1 |
+| 39 | HandClap | ハンドクラップ |
+| 40 | Snare2 | スネア2 |
+| 41 | LowTom2 | ロウトム2 |
+| 42 | ClosedHiHat | クローズドハイハット |
+| 43 | LowTom1 | ロウトム1 |
+| 44 | PedalHiHat | ペダルハイハット |
+| 45 | MidTom2 | ミッドトム2 |
+| 46 | OpenHiHat | オープンハイハット |
+| 47 | MidTom1 | ミッドトム1 |
+| 48 | HighTom2 | ハイトム2 |
+| 49 | CrashCymbal1 | クラッシュシンバル1 |
+| 50 | HighTom1 | ハイトム1 |
+| 51 | RideCymbal1 | ライドシンバル1 |
+| 52 | ChineseCymbal | チャイニーズシンバル |
+| 53 | RideBell | ライドベル |
+| 54 | Tambourine | タンバリン |
+| 55 | SplashCymbal | スプラッシュシンバル |
+| 56 | Cowbell | カウベル |
+| 57 | CrashCymbal2 | クラッシュシンバル2 |
+| 58 | VibraSlap | ヴィブラスラップ |
+| 59 | RideCymbal2 | ライドシンバル2 |
+| 60 | HighBongo | ハイボンゴ |
+| 61 | LowBongo | ロウボンゴ |
+| 62 | MuteHighConga | ミュートハイコンガ |
+| 63 | OpenHighConga | オープンハイコンガ |
+| 64 | LowConga | ロウコンガ |
+| 65 | HighTimbale | ハイティンバレス |
+| 66 | LowTimbale | ロウティンバレス |
+| 67 | HighAgogo | ハイアゴゴ |
+| 68 | LowAgogo | ロウアゴゴ |
+| 69 | Cabasa | カバサ |
+| 70 | Maracas | マラカス |
+| 71 | ShortHiWhistle | ショートハイホイッスル |
+| 72 | LongLowWhistle | ロングロウホイッスル |
+| 73 | ShortGuiro | ショートギロ |
+| 74 | LongGuiro | ロングギロ |
+| 75 | Claves | クラベス |
+| 76 | HighWoodBlock | ハイウッドブロック |
+| 77 | LowWoodBlock | ロウウッドブロック |
+| 78 | MuteCuica | ミュートクイーカ |
+| 79 | OpenCuica | オープンクイーカ |
+| 80 | MuteTriangle | ミュートトライアングル |
+| 81 | OpenTriangle | オープントライアングル |
+| 82 | Shaker | シェイカー |
+| 83 | JingleBell | ジングルベル |
+| 84 | BellTree | ベルツリー |
+| 85 | Castanets | カスタネット |
+| 86 | MuteSurdo | ミュートスルド |
+| 87 | OpenSurdo | オープンスルド |

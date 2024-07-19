@@ -183,4 +183,4 @@ MD=トリム(MD)
 MDを表示。
 
 MDを「{ROOT_DIR}/command.md」に保存。
-「ok.」と表示。
+「ok. {今}」と表示。
