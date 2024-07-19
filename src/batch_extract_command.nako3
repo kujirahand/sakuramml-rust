@@ -13,15 +13,24 @@ L=「{SCRIPT_DIR}/lexer.rs」を開く。
 Lから「<CHAR_COMMANDS>」を切り取る。
 CMD_LIST=対象から「</CHAR_COMMANDS>」を切り取る。
 CMD_LIST=CMD_LIST&改行。
-CMD_LISTをコマンド変換処理してRES_1CHARに代入。
-
+R=""
+CMD_LISTを改行で区切って反復：
+　　対象で「// @ 」が何文字目。
+　　もし、それ=0ならば続ける。
+　　C=対象；
+　　Cから「=>」を切り取る。
+　　トリムして「|」を「/」に置換してFコマンドに代入。
+　　Cを「// @」で区切る。
+　　それ[1]をトリムしてF説明に代入。
+　　R=R&「| {Fコマンド} | {F説明} |」&改行。
+RES_1CHAR=R
 # ------------------------------------------
 # ストトン表記 - sutoton.rs
 # ------------------------------------------
 CMD_LIST=""
 L=「{SCRIPT_DIR}/sutoton.rs」を開く。
-Lから「<SUTOTON>」を切り取る。
-S_LIST=対象から「</SUTOTON>」を切り取る。
+Lの「<SUTOTON>」から「</SUTOTON>」を範囲切り取る。
+S_LISTに代入。
 S_LISTを改行で区切って反復
 　　S=対象。
 　　Ｓで「items.set_item」が何文字目。
@@ -126,44 +135,47 @@ RES_REF=RES
 ここまで。
 
 MD=「
-# テキスト音楽 サクラ(Rust版) コマンド一覧
+# Sakuramml command list - テキスト音楽 サクラ
 
-## ストトン表記
+## One character command - 1文字コマンド
+
+Lower character command list.
+
+| Command | Description |
+|---------|--------|
+{RES_1CHAR}
+
+## Multi character command - 複数文字の大文字コマンド
+
+Upper character command list.
+
+| Command | Description |
+|---------|--------|
+{RES_UP}
+
+## Variables - 計算式で参照できる値
+
+| Command | Description |
+|---------|--------|
+{RES_REF}
+
+## Macro and Voice List (マクロや音色など変数定義)
+
+| Voice | Description |
+|-------|----|
+{RES_VOICE}
+
+## Rhythm macro (リズムマクロ)
+
+| Macro's name | Value |
+|---------|--------|
+{RES_RHYTHM_MACRO}
+
+## Sutoton - ストトン表記
 
 | コマンド | 説明    |
 |---------|--------|
 {RES_SUTOTON}
-
-## 1文字コマンド
-
-| コマンド | 説明    |
-|---------|--------|
-{RES_1CHAR}
-
-## 大文字コマンド
-
-| コマンド | 説明    |
-|---------|--------|
-{RES_UP}
-
-## 計算式で参照できる値
-
-| コマンド | 説明    |
-|---------|--------|
-{RES_REF}
-
-
-## マクロや音色など変数定義
-
-- [🔗 Voice List and Macro](voice.md)
-
-## リズムマクロ
-
-| 変数名 | 値    |
-|---------|--------|
-{RES_RHYTHM_MACRO}
-
-
 」
 
 # command.md
@@ -171,12 +183,4 @@ MD=トリム(MD)
 MDを表示。
 
 MDを「{ROOT_DIR}/command.md」に保存。
-# voice.md
-「# Voice List
-
-| Voice | NO |
-|-------|----|
-{RES_VOICE}
-」を「{ROOT_DIR}/voice.md」に保存。
-
 「ok.」と表示。

@@ -1,3 +1,6 @@
+SCRIPT_DIR=母艦パス
+ROOT_DIR=SCRIPT_DIRからパス抽出
+「ROOT=」&ROOT_DIRを表示
 RES=""
 『
 // voice
@@ -215,9 +218,12 @@ Int OpenSurdo = 87;
 　　RES=RES&「| {VAR} | {VAL} |」&改行
 ここまで。
 
-/*
+
 「# Voice List
 | Voice | NO |
 |-------|----|
-{RES}」を「voice.md」に保存。
+{RES}」を「{ROOT}/voice_raw.md」に保存。
+
+/*
+### ChatGPTで、{ROOT}/voice.md を出力済み
 */
