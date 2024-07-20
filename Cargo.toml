@@ -1,6 +1,6 @@
 [package]
 name = "sakuramml"
-version = "0.1.32"
+version = "0.1.35"
 edition = "2021"
 rust-version = "1.78.0"
 authors = ["kujirahand <web@kujirahand.com>"]

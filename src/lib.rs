@@ -13,6 +13,7 @@ pub mod midi;
 pub mod sutoton;
 pub mod runner;
 pub mod mml_def;
+pub mod song_test;
 
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;

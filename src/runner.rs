@@ -1177,8 +1177,16 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
         }
     }
     if cur.peek_n(0) == '.' {
-        cur.next();
-        res = (res as f32 * 1.5) as isize;
+        if cur.eq("...") { // 複付点音符(3連)の場合
+            cur.next_n(3);
+            res += (res as f32 / 2.0 + res as f32 / 4.0 + res as f32 / 8.0) as isize;
+        } else if cur.eq("..") { // 複付点音符の場合
+            cur.next_n(2);
+            res += (res as f32 / 2.0 + res as f32 / 4.0) as isize;
+        } else {
+            cur.next();
+            res += (res as f32 / 2.0) as isize;
+        }
     }
     while !cur.is_eos() {
         let c = cur.peek_n(0);
@@ -1201,7 +1209,13 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
                     timebase * 4 / i
                 }
             };
-            if cur.peek_n(0) == '.' {
+            if cur.eq("...") {
+                cur.next_n(3);
+                n += (n as f32 / 2.0 + n as f32 / 4.0 + n as f32 / 8.0) as isize;
+            } if cur.eq("..") {
+                cur.next_n(2);
+                n += (n as f32 / 2.0 + n as f32 / 4.0) as isize;
+            } else if cur.peek_n(0) == '.' {
                 cur.next();
                 n = (n as f32 * 1.5) as isize;
             }

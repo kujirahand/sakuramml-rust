@@ -5,7 +5,7 @@ use std::io::{Write, Read};
 
 use sakuramml::sakura_version::SAKURA_VERSION;
 use sakuramml::lexer::lex;
-use sakuramml::song::Song;
+use sakuramml::song::{Song, SAKURA_DEFAULT_RANDOM_SEED};
 use sakuramml::midi::{generate, dump_midi};
 use sakuramml::runner::exec;
 
@@ -126,7 +126,7 @@ fn main() {
 fn compile_to_midi(src: &str, midifile: &str, debug: bool) {
     let mut song = Song::new();
     song.debug = debug;
-    song.rand_seed = (time_to_u64() ^ thread_id_to_u64()) as u32;
+    song.rand_seed = SAKURA_DEFAULT_RANDOM_SEED ^ (time_to_u64() ^ thread_id_to_u64()) as u32;
     // sutoton
     let src = sakuramml::sutoton::convert(&src);
     // println!("{}", src);
