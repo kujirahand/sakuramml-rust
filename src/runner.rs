@@ -1157,6 +1157,7 @@ fn exec_get_time(song: &mut Song, t: &Token, cmd: &str) -> isize{
     total
 }
 
+/// Calculate note length
 pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
     let mut res = def_len;
     if len_str == "" {
@@ -1177,13 +1178,16 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
         }
     }
     if cur.peek_n(0) == '.' {
-        if cur.eq("...") { // 複付点音符(3連)の場合
+        if cur.eq("....") {
+            cur.next_n(4);
+            res += (res as f32 / 2.0 + res as f32 / 4.0 + res as f32 / 8.0 + res as f32 / 16.0) as isize;
+        } else if cur.eq("...") { // triple dotted note (三付点音符)
             cur.next_n(3);
             res += (res as f32 / 2.0 + res as f32 / 4.0 + res as f32 / 8.0) as isize;
-        } else if cur.eq("..") { // 複付点音符の場合
+        } else if cur.eq("..") { // double dotted note (複付点音符)
             cur.next_n(2);
             res += (res as f32 / 2.0 + res as f32 / 4.0) as isize;
-        } else {
+        } else { // dotted note
             cur.next();
             res += (res as f32 / 2.0) as isize;
         }
@@ -1209,10 +1213,13 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
                     timebase * 4 / i
                 }
             };
-            if cur.eq("...") {
+            if cur.eq("....") {
+                cur.next_n(4);
+                n += (n as f32 / 2.0 + n as f32 / 4.0 + n as f32 / 8.0 + n as f32 / 16.0) as isize;
+            } else if cur.eq("...") {
                 cur.next_n(3);
                 n += (n as f32 / 2.0 + n as f32 / 4.0 + n as f32 / 8.0) as isize;
-            } if cur.eq("..") {
+            } else if cur.eq("..") {
                 cur.next_n(2);
                 n += (n as f32 / 2.0 + n as f32 / 4.0) as isize;
             } else if cur.peek_n(0) == '.' {
@@ -1280,12 +1287,13 @@ fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut Song) {
     }
     // calc note no
     let mut noteno = note.o * 12 + note.no + note.flag;
-    noteno += if note.natural == 0 {
-        song.key_flag[note.no as usize]
-    } else {
-        0
-    };
+    // key_shift / key_flag / track_key
     if song.use_key_shift {
+        noteno += if note.natural == 0 {
+            song.key_flag[note.no as usize]
+        } else {
+            0
+        };
         noteno += song.key_shift;
         noteno += trk!(song).track_key;
     }
