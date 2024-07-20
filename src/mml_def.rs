@@ -547,6 +547,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "Continue", TokenType::Continue, '_'); // exit from loop
     sysfunc_add!(sf, "RETURN", TokenType::Return, '*'); // return from function
     sysfunc_add!(sf, "Return", TokenType::Return, '*'); // return from function
+    // sysfunc_add!(sf, "Result", TokenType::Return, '*'); // set function's result
     sysfunc_add!(sf, "RANDOM_SEED", TokenType::SetRandomSeed, '*'); // set random seed
     sysfunc_add!(sf, "RandomSeed", TokenType::SetRandomSeed, '*'); // set random seed
     sysfunc_add!(sf, "FUNCTION", TokenType::DefUserFunction, '*'); // define user function
