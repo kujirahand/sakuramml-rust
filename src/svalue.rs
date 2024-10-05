@@ -62,6 +62,10 @@ impl SValue {
             Self::Int(i) => i.to_string(),
             Self::Str(s, _) => s.clone(),
             Self::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
+            Self::Array(a) => {
+                let s = a.iter().map(|v| v.to_s()).collect::<Vec<String>>().join(",");
+                format!("({})", s)
+            },
             Self::None => String::new(),
             _ => String::new(),
         }

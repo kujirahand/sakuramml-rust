@@ -55,6 +55,7 @@ pub enum TokenType {
     TrackKey,
     DefInt,
     DefStr,
+    DefArray,
     LetVar,
     PlayFrom,
     PlayFromHere,

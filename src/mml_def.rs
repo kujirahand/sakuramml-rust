@@ -528,6 +528,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "INT", TokenType::DefInt, '*'); // define int variables (ex) INT A = 3
     sysfunc_add!(sf, "Str", TokenType::DefStr, '*'); // define string variables (ex) Str A = {cde}
     sysfunc_add!(sf, "STR", TokenType::DefStr, '*'); // define string variables (ex) STR A = {cde}
+    sysfunc_add!(sf, "Array", TokenType::DefArray, '*'); // define string variables (ex) Str A = {cde}
+    sysfunc_add!(sf, "ARRAY", TokenType::DefArray, '*'); // define string variables (ex) STR A = {cde}
     sysfunc_add!(sf, "Print", TokenType::Print, 'S'); // print value (ex) Print({hello})
     sysfunc_add!(sf, "PRINT", TokenType::Print, 'S'); // print value (ex) PRINT({hello})
     sysfunc_add!(sf, "System.Include", TokenType::Include, '*'); // Unimplemented

@@ -436,6 +436,12 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let val = exec_value(song, &val_tokens);
                 song.variables_insert(&var_key, val);
             },
+            TokenType::DefArray => {
+                let var_ley = t.data[0].to_s();
+                let val_tokens = t.children.clone().unwrap_or(vec![]);
+                let vals = exec_args(song, &val_tokens);
+                song.variables_insert(&var_ley, SValue::Array(vals));
+            },
             TokenType::PlayFromHere => song.play_from = trk!(song).timepos,
             TokenType::SongVelocityAdd => song.v_add = exec_value_int_by_token(song, t),
             TokenType::SongQAdd => song.q_add = exec_value_int_by_token(song, t),
@@ -648,7 +654,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 }
             },
             TokenType::CallUserFunction => {
-                exec_call_user_function(song, t);
+                exec_call_user_function_or_array(song, t);
             },
             TokenType::Play => {
                 exec_play(song, t);
@@ -721,7 +727,34 @@ fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc2: isize, c
     song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val)); 
 }
 
-fn exec_call_user_function(song: &mut Song, t: &Token) -> bool {
+fn exec_call_user_function_or_array(song: &mut Song, t: &Token) -> bool {
+    // check value is array?
+    if t.data.len() == 0 {
+        runtime_error(song, "[SYSTEM ERROR] call_user_function needs function name");
+        return false;
+    }
+    let name = t.data[0].to_s();
+    let var = song.variables_get(&name).unwrap_or(&SValue::None).clone();
+    match var {
+        SValue::Array(a) => {
+            // get arg
+            let args_tokens = t.children.clone().unwrap();
+            let args: Vec<SValue> = exec_args(song, &args_tokens);
+            if args.len() == 0 {
+                runtime_error(song, &format!("get Array({}) element needs arguments", name));
+                return false;
+            }
+            let index = args[0].to_i() as usize;
+            if a.len() <= index {
+                runtime_error(song, &format!("Array({}) index out of range", name));
+                return false;
+            }
+            let v = a[index].clone();
+            song.stack.push(v);
+            return true;
+        },
+        _ => {}
+    }
     // check func_id
     let func_id = t.tag as usize;
     if song.functions.len() <= func_id {
@@ -763,13 +796,14 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
     let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
     match func_val {
         SValue::UserFunc(_func_id) => {
-            exec_call_user_function(song, t);
+            exec_call_user_function_or_array(song, t);
         },
         _ => {}, // maybe system function
     }
     //
     // todo: https://sakuramml.com/wiki/index.php?%E7%B5%84%E3%81%BF%E8%BE%BC%E3%81%BF%E9%96%A2%E6%95%B0
     //
+    // 参照できるシステム関数
     if func_name == "Random" || func_name == "RANDOM" || func_name == "RandomInt" || func_name == "RND" || func_name == "Rnd" {
         if arg_count >= 2 {
             let min = args[0].to_i();
@@ -810,6 +844,18 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
             song.stack.push(SValue::from_str(s));
         } else {
             song.stack.push(SValue::from_str("(MID:ERROR)"));
+        }
+    }
+    if func_name == "SizeOf" || func_name == "SIZEOF" {
+        if arg_count >= 1 {
+            let v = match &args[0] {
+                SValue::Array(a) => a.len(),
+                SValue::Str(s, _) => s.len(),
+                SValue::IntArray(a) => a.len(),
+                SValue::StrArray(a) => a.len(),
+                _ => 0
+            };
+            song.stack.push(SValue::from_i(v as isize));
         }
     }
     else {

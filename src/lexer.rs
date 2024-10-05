@@ -241,6 +241,7 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
                     TokenType::KeyFlag => return read_key_flag(cur, song),
                     TokenType::DefInt => return read_def_int(cur, song),
                     TokenType::DefStr => return read_def_str(cur, song),
+                    TokenType::DefArray => return read_def_array(cur, song),
                     TokenType::Play => return read_play(cur, song),
                     TokenType::TimeBase => return read_timebase(cur, song),
                     TokenType::Include => return read_include(cur, song),
@@ -486,7 +487,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                 // println!("read_calc:{}", varname);
                 tok.tag = 0;
                 if cur.eq_char('(') {
-                    // function call
+                    // function call or array
                     let arg_lineno = cur.line;
                     let arg_str = cur.get_token_nest('(', ')');
                     // println!("read_calc_args={:?}", arg_str);
@@ -494,7 +495,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                     tok.children = Some(arg_tokens);
                     tok.tag = 1; // FUNCTION
                     tok.data.push(SValue::from_s(varname.clone()));
-                    // is user function?
+                    // is user function or array?
                     let func_val = song.variables_get(&varname);
                     if func_val.is_some() {
                         let func_id: SValue = func_val.unwrap_or(&SValue::from_i(0)).clone();
@@ -602,7 +603,12 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                     cur.next(); // skip !
                     let len_str = cur.get_note_length();
                     let val = SValue::from_i(calc_length(&len_str, song.timebase, song.timebase));
-                    tokens.push(Token::new(TokenType::Value, LEX_VALUE, vec![val]));
+                    // val is const
+                    let mut tok_num = Token::new(TokenType::Value, LEX_VALUE, vec![val]);
+                    tok_num.tag = 0;
+                    tok_num.value_type = token::VALUE_CONST_INT;
+                    tokens.push(tok_num);
+                    if !read_calc_can_continue(cur, paren_level) { break; }
                 }
             },
             '>' | '<' => {
@@ -1353,6 +1359,36 @@ fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let mut tok = Token::new_tokens(TokenType::DefStr, 0, init_value_tokens);
     tok.data = vec![SValue::from_s(var_name.clone())];
     song.variables_insert(&var_name, var_value);
+    tok
+}
+
+fn read_def_array(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    cur.skip_space();
+    let var_name = cur.get_word();
+    if var_name == "" {
+        song.add_log(format!(
+            "[ERROR]({}): Array variable's name should be Upper case like \"Test\"",
+            cur.line
+        ));
+        return Token::new_empty("Failed to def STR", cur.line);
+    }
+    // check reserved words
+    if song.reserved_words.contains_key(&var_name) {
+        let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), var_name);
+        read_error(cur, song, &msg);
+        return Token::new_empty("Failed to def STR", cur.line);
+    }
+    cur.skip_space();
+    let mut init_value_tokens = vec![];
+    if cur.eq_char('=') { // 代入文が存在する場合
+        cur.next(); // skip '='
+        cur.skip_space();
+        init_value_tokens = read_args_tokens(cur, song);
+        // println!("init_value_tokens: {:?}", init_value_tokens);
+    }
+    let mut tok = Token::new_tokens(TokenType::DefArray, 0, init_value_tokens);
+    tok.data = vec![SValue::from_s(var_name.clone())];
+    song.variables_insert(&var_name, SValue::None);
     tok
 }
 
