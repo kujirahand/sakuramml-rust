@@ -630,7 +630,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                             exec(song, &tokens);
                             song.stack.pop().unwrap_or(SValue::None)
                         } else {
-                            // user function
+                            // user function or system function ref
                             exec_sys_function(song, t);
                             song.stack.pop().unwrap_or(SValue::None)
                         }
@@ -729,31 +729,29 @@ fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc2: isize, c
 
 fn exec_call_user_function_or_array(song: &mut Song, t: &Token) -> bool {
     // check value is array?
-    if t.data.len() == 0 {
-        runtime_error(song, "[SYSTEM ERROR] call_user_function needs function name");
-        return false;
-    }
-    let name = t.data[0].to_s();
-    let var = song.variables_get(&name).unwrap_or(&SValue::None).clone();
-    match var {
-        SValue::Array(a) => {
-            // get arg
-            let args_tokens = t.children.clone().unwrap();
-            let args: Vec<SValue> = exec_args(song, &args_tokens);
-            if args.len() == 0 {
-                runtime_error(song, &format!("get Array({}) element needs arguments", name));
-                return false;
-            }
-            let index = args[0].to_i() as usize;
-            if a.len() <= index {
-                runtime_error(song, &format!("Array({}) index out of range", name));
-                return false;
-            }
-            let v = a[index].clone();
-            song.stack.push(v);
-            return true;
-        },
-        _ => {}
+    if t.data.len() > 0 {
+        let name = t.data[0].to_s();
+        let var = song.variables_get(&name).unwrap_or(&SValue::None).clone();
+        match var {
+            SValue::Array(a) => {
+                // get arg
+                let args_tokens = t.children.clone().unwrap();
+                let args: Vec<SValue> = exec_args(song, &args_tokens);
+                if args.len() == 0 {
+                    runtime_error(song, &format!("get Array({}) element needs arguments", name));
+                    return false;
+                }
+                let index = args[0].to_i() as usize;
+                if a.len() <= index {
+                    runtime_error(song, &format!("Array({}) index out of range", name));
+                    return false;
+                }
+                let v = a[index].clone();
+                song.stack.push(v);
+                return true;
+            },
+            _ => {}
+        }
     }
     // check func_id
     let func_id = t.tag as usize;
@@ -796,7 +794,7 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
     let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
     match func_val {
         SValue::UserFunc(_func_id) => {
-            exec_call_user_function_or_array(song, t);
+            if exec_call_user_function_or_array(song, t) { return true; }
         },
         _ => {}, // maybe system function
     }
@@ -823,7 +821,7 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
         let r = song.rand() as usize % arg_count;
         song.stack.push(args[r as usize].clone());
     }
-    if func_name == "CHR" || func_name == "Chr" {
+    else if func_name == "CHR" || func_name == "Chr" {
         if arg_count >= 1 {
             let val = args[0].to_i();
             let mut s = String::new();
@@ -833,7 +831,7 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
             song.stack.push(SValue::from_str(" "));
         }
     }
-    if func_name == "MID" || func_name == "Mid" {
+    else if func_name == "MID" || func_name == "Mid" {
         if arg_count >= 3 {
             let val = args[0].to_s();
             let i_from = args[1].to_i() as usize;
@@ -846,7 +844,7 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
             song.stack.push(SValue::from_str("(MID:ERROR)"));
         }
     }
-    if func_name == "SizeOf" || func_name == "SIZEOF" {
+    else if func_name == "SizeOf" || func_name == "SIZEOF" {
         if arg_count >= 1 {
             let v = match &args[0] {
                 SValue::Array(a) => a.len(),
@@ -1891,5 +1889,13 @@ mod tests {
         assert_eq!(song.get_logs_str(), "[PRINT](0) c");
         // let song = exec_easy("STR A={#?1} A{e}");
         // assert_eq!(song.get_logs_str(), "[PRINT](0) c");
+    }
+    #[test]
+    fn test_array() {
+        let song = exec_easy("ARRAY A=(1,2,3) PRINT(A)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) (1,2,3)");
+        // SizeOf
+        let song = exec_easy("ARRAY A=(1,2,3) PRINT(SizeOf(A))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 3");
     }
  }
