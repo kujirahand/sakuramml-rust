@@ -615,7 +615,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     token::VALUE_CONST_STR => t.data[0].clone(),
                     token::VALUE_VARIABLE => var_extract(&t.data[0], song),
                     _ => {
-                        if t.tag == 0 {
+                        if t.tag == 0 && t.data.len() > 0 {
                             // exec value
                             let v = var_extract(&t.data[0], song);
                             let vs = v.to_s().clone();
@@ -758,7 +758,7 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
     let args_tokens = t.children.clone().unwrap_or(vec![]);
     let args:Vec<SValue> = exec_args(song, &args_tokens);
     let arg_count = args.len();
-    let func_name = t.data[0].to_s();
+    let func_name = if t.data.len() > 0 { t.data[0].to_s() } else { "".to_string() };
     // is user function?
     let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
     match func_val {

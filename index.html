@@ -5,7 +5,7 @@
 <script type="module">
   // WebAssemblyを読み込む
   import init, {
-    get_version, compile_to_midi, SakuraCompiler
+    get_version, compile_to_midi, SakuraCompiler, 
   } from './pkg/sakuramml.js';
   // Promiseの仕組みでライブラリを読み込む
   init().then(() => {
@@ -26,8 +26,13 @@
     console.log('play')
     // get mml data
     const mml = document.getElementById('mml').value
+    saveToStorage(mml)
     const com = SakuraCompiler.new()
     const midi = com.compile(mml)
+    const log = com.get_log()
+    if (log) {
+      document.getElementById('msg').innerHTML = tohtml(log)
+    }
     // parse midi to play
     const parsedData = picoAudio.parseSMF(new Uint8Array(midi))
     picoAudio.setData(parsedData)
@@ -38,6 +43,19 @@
     console.log('stop')
     picoAudio.stop();
   });
+  // storage
+  function saveToStorage(mml) {
+    localStorage.setItem('mml', mml)
+  }
+  document.addEventListener('DOMContentLoaded', () => {
+    const mml = localStorage.getItem('mml')
+    if (mml) {
+      document.getElementById('mml').value = mml
+    }
+  });
+  function tohtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+  }
 </script>
 <style>
   * { margin: 0; padding: 0;}
@@ -57,7 +75,7 @@
 <div id="player">
   <button id="play">Play</button>
   <button id="stop">Stop</button>
-  <textarea id="mml" rows="10" style="width:100%;">ドレミ</textarea>
+  <textarea id="mml" rows="20" style="width:100%;">ドレミ</textarea>
 </div>
 <div id="msg"></div>
 
