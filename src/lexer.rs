@@ -8,8 +8,7 @@ use crate::token::{zen2han, Token, TokenType, TokenValueType};
 
 const LEX_MAX_ERROR: usize = 30;
 
-/// prerpcess 
-/// trim comment and check function name
+/// prerpcess ... check user function
 fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
     let tmp_lineno = cur.line;
     while !cur.is_eos() {
@@ -134,14 +133,16 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             "#-" => // @ line comment (一行コメント)
             */
             '/' => {
-                if cur.eq_char('/') {
+                cur.prev();
+                if cur.eq("//") {
                     cur.get_token_ch('\n');
                     continue;
-                } else if cur.eq_char('*') {
+                } else if cur.eq("/*") {
                     cur.next();
                     cur.get_token_s("*/");
                     continue;
                 }
+                cur.next();
                 // パースエラー
                 let err = format!("Could not parse flag '{}'", ch);
                 lex_error(&mut cur, song, &err);
@@ -537,6 +538,9 @@ fn read_operator(cur: &mut TokenCursor) -> Option<(char, isize)> {
     cur.skip_space();
     let mut ch = cur.peek_n(0);
     if !is_operator_char(ch) { return None; }
+    if cur.eq("//") || cur.eq("/*"){
+        return None;
+    }
     if cur.eq(">=") {
         cur.next_n(2);
         ch = '≧';
