@@ -1,11 +1,12 @@
 //! runner from tokens
 
 use crate::mml_def::TieMode;
+use crate::token::TokenValueType;
 use super::cursor::TokenCursor;
 use super::lexer::lex;
 use super::song::{Event, NoteInfo, Song};
 use super::svalue::SValue;
-use super::token::{self, Token, TokenType};
+use super::token::{Token, TokenType};
 use super::sakura_message::MessageKind;
 
 #[derive(Debug)]
@@ -424,12 +425,6 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let val = exec_value(song, &val_tokens);
                 song.variables_insert(&var_key, val);
             },
-            TokenType::LetVar => {
-                let var_key = t.data[0].to_s();
-                let val_tokens = t.children.clone().unwrap_or(vec![]);
-                let val = exec_value(song, &val_tokens);
-                song.variables_insert(&var_key, val);
-            },
             TokenType::DefStr => {
                 let var_key = t.data[0].to_s();
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
@@ -439,8 +434,15 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::DefArray => {
                 let var_ley = t.data[0].to_s();
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
+                // println!("@@@DefArray={:?}", val_tokens);
                 let vals = exec_args(song, &val_tokens);
                 song.variables_insert(&var_ley, SValue::Array(vals));
+            },
+            TokenType::LetVar => {
+                let var_key = t.data[0].to_s();
+                let val_tokens = t.children.clone().unwrap_or(vec![]);
+                let val = exec_value(song, &val_tokens);
+                song.variables_insert(&var_key, val);
             },
             TokenType::PlayFromHere => song.play_from = trk!(song).timepos,
             TokenType::SongVelocityAdd => song.v_add = exec_value_int_by_token(song, t),
@@ -617,9 +619,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 // t.value_type ... 値の種類 tokens::VALUE_XXXX
                 // check is variable?
                 let val = match t.value_type {
-                    token::VALUE_CONST_INT => t.data[0].clone(),
-                    token::VALUE_CONST_STR => t.data[0].clone(),
-                    token::VALUE_VARIABLE => var_extract(&t.data[0], song),
+                    TokenValueType::INT => t.data[0].clone(),
+                    TokenValueType::STR => t.data[0].clone(),
+                    TokenValueType::VARIABLE => var_extract(&t.data[0], song),
                     _ => {
                         if t.tag == 0 && t.data.len() > 0 {
                             // exec value
@@ -1751,6 +1753,15 @@ mod tests {
             exec_easy("STR A={ddd} PRINT(A)").get_logs_str(),
             "[PRINT](0) ddd"
         );
+    }
+   #[test]
+    fn test_def_var() {
+        // define variable
+        let song = exec_easy("INT N=333;PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 333");
+        // define variable
+        let song = exec_easy("INT N; N=333; PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 333");
     }
     #[test]
     fn test_exec_harmony() {

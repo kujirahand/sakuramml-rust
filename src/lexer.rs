@@ -7,7 +7,7 @@ use crate::runner::calc_length;
 use crate::sakura_message::MessageKind;
 use crate::song::{Song, SFunction};
 use crate::svalue::SValue;
-use crate::token::{self, zen2han, Token, TokenType};
+use crate::token::{zen2han, Token, TokenType, TokenValueType};
 
 const LEX_MAX_ERROR: usize = 30;
 
@@ -476,7 +476,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                 let num = cur.get_int(0);
                 let mut tok_num = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_i(num)]);
                 tok_num.tag = 0;
-                tok_num.value_type = token::VALUE_CONST_INT;
+                tok_num.value_type = TokenValueType::INT;
                 tokens.push(tok_num);
                 if !read_calc_can_continue(cur, paren_level) { break; }
             },
@@ -518,7 +518,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                     } else {
                         // ref variable
                         tok.data.push(SValue::from_s(varname_flag));
-                        tok.value_type = token::VALUE_VARIABLE;
+                        tok.value_type = TokenValueType::VARIABLE;
                         tokens.push(tok);
                     }
                 }
@@ -534,7 +534,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
             '{' => {
                 let str_s = cur.get_token_nest('{', '}');
                 let mut tok = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_s(str_s)]);
-                tok.value_type = token::VALUE_CONST_STR;
+                tok.value_type = TokenValueType::STR;
                 tokens.push(tok);
                 if !read_calc_can_continue(cur, paren_level) { break; }
             },
@@ -606,7 +606,7 @@ fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
                     // val is const
                     let mut tok_num = Token::new(TokenType::Value, LEX_VALUE, vec![val]);
                     tok_num.tag = 0;
-                    tok_num.value_type = token::VALUE_CONST_INT;
+                    tok_num.value_type = TokenValueType::INT;
                     tokens.push(tok_num);
                     if !read_calc_can_continue(cur, paren_level) { break; }
                 }
@@ -1179,11 +1179,17 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new_empty("Failed to def INT", cur.line);
     }
     cur.skip_space();
+    // 初期値に整数0をセット
+    let mut t = Token::new_value(TokenType::Value, 0);
+    t.value_type = TokenValueType::INT;
+    t.data = vec![SValue::from_i(0)];
+    let mut val_tokens = vec![t];
     if cur.eq_char('=') {
-        cur.next();
+        // 代入文がある場合
+        cur.next(); // skip '='
+        // get line
+        val_tokens = read_calc(cur, song);
     }
-    // get line
-    let val_tokens = read_calc(cur, song);
     // token
     let tok = Token::new_data_tokens(
         TokenType::DefInt,
@@ -1244,8 +1250,8 @@ fn read_sysex(cur: &mut TokenCursor, _song: &mut Song) -> Token {
                 cur.get_int(0)
             };
             calc_vec.push(v as u8);
-            let mut t = Token::new(TokenType::Value, token::VALUE_CONST_INT, vec![SValue::from_i(v)]);
-            t.value_type = token::VALUE_CONST_INT;
+            let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_i(v)]);
+            t.value_type = TokenValueType::INT;
             t.lineno = lineno;
             data_vec.push(t);
             checksum += v;
@@ -1262,7 +1268,7 @@ fn read_sysex(cur: &mut TokenCursor, _song: &mut Song) -> Token {
                 flag_calc_checksum = false;
                 let checksum_v = 128 - checksum % 128;
                 let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_i(checksum_v)]);
-                t.value_type = token::VALUE_CONST_INT;
+                t.value_type = TokenValueType::INT;
                 t.lineno = lineno;
                 data_vec.push(t);
                 // 続きのデータがあるか？
@@ -1283,7 +1289,7 @@ fn read_sysex(cur: &mut TokenCursor, _song: &mut Song) -> Token {
         if hex_mode {
             let hex = cur.get_hex(0, true);
             let mut v = Token::new(TokenType::Value, 0, vec![SValue::from_i(hex)]);
-            v.value_type = token::VALUE_CONST_INT;
+            v.value_type = TokenValueType::INT;
             v.lineno = lineno;
             data_vec.push(v);
         } else {
@@ -1292,14 +1298,14 @@ fn read_sysex(cur: &mut TokenCursor, _song: &mut Song) -> Token {
                 '0'..='9' | '$' => {
                     let v = cur.get_int(0);
                     let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_i(v)]);
-                    t.value_type = token::VALUE_CONST_INT;
+                    t.value_type = TokenValueType::INT;
                     t.lineno = lineno;
                     data_vec.push(t);
                 }
                 'A'..='Z' | '_' | '#' | 'a'..='z' => {
                     let var_name = cur.get_word();
                     let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_s(format!("={}", var_name))]);
-                    t.value_type = token::VALUE_VARIABLE;
+                    t.value_type = TokenValueType::VARIABLE;
                     t.lineno = lineno;
                     data_vec.push(t);
                 }

@@ -667,12 +667,12 @@ impl Song {
         false
     }
     pub fn variables_insert(&mut self, key: &str, val: SValue) {
-        let mut last = self.variables_stack.pop().unwrap();
-        last.insert(key.to_string(), val);
-        self.variables_stack.push(last);
+        let mut last = self.variables_stack.pop().unwrap(); // 現在のスコープを取得
+        last.insert(key.to_string(), val); // 現在のスコープに変数を追加
+        self.variables_stack.push(last); // スコープを戻す
     }
     pub fn variables_get(&self, key: &str) -> Option<&SValue> {
-        for vars in self.variables_stack.iter().rev() {
+        for vars in self.variables_stack.iter().rev() { // 全てのスコープを調べる
             match vars.get(key) {
                 None => continue,
                 Some(val) => return Some(val),
