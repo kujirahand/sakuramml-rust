@@ -22,6 +22,9 @@ impl TokenCursor {
     pub fn is_eos(&self) -> bool {
         self.src.len() <=  self.index
     }
+    pub fn has_next(&self) -> bool {
+        self.index < self.src.len()
+    }
     pub fn get_char(&mut self) -> char {
         if self.is_eos() { return '\0'; }
         let ch = self.src[self.index];
@@ -47,6 +50,7 @@ impl TokenCursor {
         let c = self.src[self.index];
         Some(c)
     }
+    /// peek [index+n] char
     pub fn peek_n(&self, n: usize) -> char {
         let idx = self.index + n;
         if self.src.len() <= idx { return '\0'; }
@@ -60,6 +64,11 @@ impl TokenCursor {
             s.push(self.src[idx]);
         }
         s
+    }
+    /// replace current char
+    pub fn replace_char(&mut self, ch: char) {
+        if self.is_eos() { return; }
+        self.src[self.index] = ch;
     }
     pub fn is_numeric(&self) -> bool {
         if self.is_eos() { return false; }

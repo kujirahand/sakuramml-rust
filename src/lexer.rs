@@ -1,7 +1,4 @@
 //! lexer
-
-use std::vec;
-
 use crate::cursor::TokenCursor;
 use crate::runner::calc_length;
 use crate::sakura_message::MessageKind;
@@ -12,6 +9,7 @@ use crate::token::{zen2han, Token, TokenType, TokenValueType};
 const LEX_MAX_ERROR: usize = 30;
 
 /// prerpcess 
+/// trim comment and check function name
 fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
     let tmp_lineno = cur.line;
     while !cur.is_eos() {
@@ -24,10 +22,8 @@ fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
             cur.get_token_ch('\n');
             continue;
         }
-        if cur.eq("##") || cur.eq("# ") || cur.eq("#-") { // なんか、みんながよく使っているのでコメントと見なす
-            cur.get_token_ch('\n');
-            continue;
-        }
+        // (memom) 上記以外に '#' から始まるコメント記号があるが、
+        //  #はマクロやシャープ記号と使っているので、ここでは判定できない
         // check upper case
         if cur.is_upper() {
             let word = cur.get_word();
@@ -56,9 +52,11 @@ fn lex_preprocess(song: &mut Song, cur: &mut TokenCursor) -> bool {
                 break;
             }
         }
+        // peek
         let ch = cur.get_char();
         if ch == '\n' {
             cur.line += 1;
+            continue;
         }
     }
     cur.index = 0;
@@ -111,15 +109,15 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                     result.push(Token::new_empty(&last_comment, cur.line));
                     continue;
                 }
-                result.push(read_upper_command(&mut cur, song))
+                result.push(read_upper_command(&mut cur, song));
             },
-            '#' => {
+            '#' => { // @ マクロ
                 cur.prev();
                 if cur.eq("##") || cur.eq("# ") || cur.eq("#-") { // なんかみんなが使っているので一行コメントと見なす
                     cur.get_token_ch('\n');
                     continue;
                 }
-                result.push(read_upper_command(&mut cur, song))
+                result.push(read_upper_command(&mut cur, song));
             },
             // flag
             '@' => result.push(read_voice(&mut cur, song)), // @ Voice select(音色の指定) range:1-128 (format) @(no),(Bank_LSB),(Bank_MSB)
@@ -239,9 +237,9 @@ fn read_upper_command(cur: &mut TokenCursor, song: &mut Song) -> Token {
                     TokenType::Div => return read_command_div(cur, song, false),
                     TokenType::Sub => return read_command_sub(cur, song),
                     TokenType::KeyFlag => return read_key_flag(cur, song),
-                    TokenType::DefInt => return read_def_int(cur, song),
-                    TokenType::DefStr => return read_def_str(cur, song),
-                    TokenType::DefArray => return read_def_array(cur, song),
+                    TokenType::DefInt => return read_def_var(cur, song, TokenValueType::INT),
+                    TokenType::DefStr => return read_def_var(cur, song, TokenValueType::STR),
+                    TokenType::DefArray => return read_def_var(cur, song, TokenValueType::ARRAY),
                     TokenType::Play => return read_play(cur, song),
                     TokenType::TimeBase => return read_timebase(cur, song),
                     TokenType::Include => return read_include(cur, song),
@@ -414,286 +412,225 @@ fn read_warning(cur: &mut TokenCursor, song: &mut Song, cmd: &str, reason: &str)
 
 // --- lex calc script ---
 const LEX_VALUE: isize = 1;
-// const LEX_NOT: isize = 2;
-const LEX_PAREN_L: isize = 3;
-const LEX_PAREN_R: isize = 4;
 const LEX_MUL_DIV: isize = 20;
 const LEX_PLUS_MINUS: isize = 30;
 const LEX_COMPARE: isize = 40;
 const LEX_OR_AND: isize = 50;
 
-fn is_operator(c: isize) -> bool {
-    match c {
-        LEX_COMPARE | LEX_MUL_DIV | LEX_PLUS_MINUS | LEX_OR_AND => true,
-        _ => false,
-    }
-}
-
-fn read_calc_can_continue(cur: &mut TokenCursor, parent_level: i32) -> bool {
-    if parent_level > 0 { return true; }
+fn read_value(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
     cur.skip_space();
     let ch = cur.peek_n(0);
     match ch {
+        '(' => {
+            cur.next();
+            let token = read_calc(cur, song);
+            cur.skip_space();
+            let ch = cur.peek_n(0);
+            if ch == ',' {
+                cur.next(); // is array
+                let mut array_tokens = vec![token.unwrap_or(Token::new_const0())];
+                while cur.has_next() {
+                    let token = match read_calc(cur, song) {
+                        Some(t) => t,
+                        None => break,
+                    };
+                    array_tokens.push(token);
+                    cur.skip_space();
+                    if cur.eq_char(',') {
+                        cur.next();
+                        continue;
+                    }
+                }
+                if cur.eq_char(')') {
+                    cur.next();
+                } else {
+                    let msg = song.get_message(MessageKind::MissingParenthesis);
+                    read_error(cur, song, msg);
+                }
+                return Some(Token::new_data_tokens(TokenType::MakeArray, 0, vec![], array_tokens));
+            }
+            if cur.eq_char(')') {
+                cur.next();
+            } else {
+                let msg = song.get_message(MessageKind::MissingParenthesis);
+                read_error(cur, song, msg);
+            }
+            // 値1つの場合はそのまま返す
+            return token;
+        },
+        '0'..='9' => {
+            let num = cur.get_int(0);
+            return Some(Token::new_const(TokenType::ConstInt, num, None, TokenValueType::INT));
+        },
+        '{' => {
+            let str = cur.get_token_nest('{', '}');
+            return Some(Token::new_const(TokenType::ConstStr, str.len() as isize, Some(str), TokenValueType::STR));
+        },
+        '"' => {
+            cur.next();
+            let str = cur.get_token_ch('"');
+            return Some(Token::new_const(TokenType::ConstStr, str.len() as isize, Some(str), TokenValueType::STR));
+        },
+        'A'..='Z' | '_' | '#' | 'a'..='z' => {
+            return Some(read_value_word(cur, song));
+        },
+        _ => {}
+    }
+    None
+}
+
+fn read_value_word(cur: &mut TokenCursor, song: &mut Song) -> Token {
+    let mut tok = Token::new(TokenType::Value, LEX_VALUE, vec![]);
+    let varname = cur.get_word();
+    // println!("read_value_word:{}", varname);
+    tok.tag = 0;
+    if cur.eq_char('(') {
+        // function call or array or macro_expand
+        let arg_lineno = cur.line;
+        let arg_str = cur.get_token_nest('(', ')');
+        // println!("read_calc_args={:?}", arg_str);
+        let arg_tokens = lex_calc(song, &arg_str, arg_lineno);
+        tok.children = Some(arg_tokens);
+        tok.tag = 1; // FUNCTION
+        tok.data.push(SValue::from_s(varname.clone()));
+        // is user function or array?
+        let func_val = song.variables_get(&varname);
+        if func_val.is_some() {
+            let func_id: SValue = func_val.unwrap_or(&SValue::from_i(0)).clone();
+            tok.ttype = TokenType::CallUserFunction;
+            tok.tag = func_id.to_i();
+        }
+        return tok;
+    } else {
+        // inc & dec
+        if cur.eq("++") {
+            cur.next_n(2);
+            tok.ttype = TokenType::ValueInc;
+            tok.value_i = 1;
+            tok.data.push(SValue::from_s(varname));
+            return tok;
+        } else if cur.eq("--") {
+            cur.next_n(2);
+            tok.ttype = TokenType::ValueInc;
+            tok.value_i = -1;
+            tok.data.push(SValue::from_s(varname));
+            return tok;
+        } else {
+            // get variable
+            let mut tok = Token::new_value(TokenType::GetVariable, 0);
+            tok.lineno = cur.line;
+            tok.value_type = TokenValueType::VARIABLE;
+            tok.value_s = Some(varname);
+            return tok;
+        }
+    }
+}
+
+fn is_operator_char(c: char) -> bool {
+    match c {
         '+' | '-' | '*' | '/' | '|' | '&' | '%' | '≠' | '=' | '>' | '<' | '≧' | '≦' | '!' => true,
         _ => false,
     }
 }
 
-fn read_calc_token(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    let lineno = cur.line;
-    let tokens = read_calc(cur, song);
-    Token::new_tokens_lineno(TokenType::Tokens, 0, tokens, lineno)
-}
-
-fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
-    let mut tokens = vec![];
-    let mut paren_level:i32 = 0;
-    let mut flag_top_token = true;
-    while !cur.is_eos() {
-        cur.skip_space();
-        let ch = zen2han(cur.peek().unwrap_or('\0'));
-        match ch {
-            // blank
-            '\t' => { cur.next(); }, // comment
-            // break chars
-            '\n' => { cur.line += 1; break; },
-            ';' => break,
-            ',' => break,
-            '(' => {
-                tokens.push(Token::new(TokenType::Calc, LEX_PAREN_L, vec![]));
-                paren_level += 1;
-                cur.next();
-            },
-            ')' => {
-                if paren_level == 0 { break; }
-                paren_level -=1;
-                tokens.push(Token::new(TokenType::Calc, LEX_PAREN_R, vec![]));
-                cur.next();
-                if !read_calc_can_continue(cur, paren_level) { break; }
-            },
-            // value
-            '0'..='9' => {
-                let num = cur.get_int(0);
-                let mut tok_num = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_i(num)]);
-                tok_num.tag = 0;
-                tok_num.value_type = TokenValueType::INT;
-                tokens.push(tok_num);
-                if !read_calc_can_continue(cur, paren_level) { break; }
-            },
-            'A'..='Z' | '_' | '#' | 'a'..='z' => {
-                let mut tok = Token::new(TokenType::Value, LEX_VALUE, vec![]);
-                let varname = cur.get_word();
-                let varname_flag = format!("={}", varname);
-                // println!("read_calc:{}", varname);
-                tok.tag = 0;
-                if cur.eq_char('(') {
-                    // function call or array
-                    let arg_lineno = cur.line;
-                    let arg_str = cur.get_token_nest('(', ')');
-                    // println!("read_calc_args={:?}", arg_str);
-                    let arg_tokens = lex_calc(song, &arg_str, arg_lineno);
-                    tok.children = Some(arg_tokens);
-                    tok.tag = 1; // FUNCTION
-                    tok.data.push(SValue::from_s(varname.clone()));
-                    // is user function or array?
-                    let func_val = song.variables_get(&varname);
-                    if func_val.is_some() {
-                        let func_id: SValue = func_val.unwrap_or(&SValue::from_i(0)).clone();
-                        tok.ttype = TokenType::CallUserFunction;
-                        tok.tag = func_id.to_i();
-                    }
-                    tokens.push(tok);
-                } else {
-                    // inc & dec
-                    if cur.eq("++") {
-                        tok.ttype = TokenType::ValueInc;
-                        tok.value = 1;
-                        tok.data.push(SValue::from_s(varname));
-                        tokens.push(tok);
-                    } else if cur.eq("--") {
-                        tok.ttype = TokenType::ValueInc;
-                        tok.value = -1;
-                        tok.data.push(SValue::from_s(varname));
-                        tokens.push(tok);
-                    } else {
-                        // ref variable
-                        tok.data.push(SValue::from_s(varname_flag));
-                        tok.value_type = TokenValueType::VARIABLE;
-                        tokens.push(tok);
-                    }
-                }
-                if !read_calc_can_continue(cur, paren_level) { break; }
-            },
-            '"' => {
-                cur.next(); // skip "
-                let str_s = cur.get_token_to_double_quote();
-                let tok = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_s(str_s)]);
-                tokens.push(tok);
-                if !read_calc_can_continue(cur, paren_level) { break; }
-            },
-            '{' => {
-                let str_s = cur.get_token_nest('{', '}');
-                let mut tok = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_s(str_s)]);
-                tok.value_type = TokenValueType::STR;
-                tokens.push(tok);
-                if !read_calc_can_continue(cur, paren_level) { break; }
-            },
-            // value or operator
-            '-' => {
-                cur.next(); // skip '-'
-                let ch2 = cur.peek().unwrap_or('\0');
-                if flag_top_token && (ch2 >= '0' && ch2 <= '9') {
-                    let num = cur.get_int(0) * -1;
-                    tokens.push(Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_i(num)]));
-                    if !read_calc_can_continue(cur, paren_level) { break; }
-                } else {
-                    tokens.push(Token::new_value_tag(TokenType::Calc, LEX_PLUS_MINUS, ch as isize));
-                }
-            },
-            // operator
-            '/' => {
-                if cur.eq("//") { break; }
-                if cur.eq("/*") {
-                    cur.get_token_s("*/");
-                    continue;
-                }
-                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_MUL_DIV, ch as isize));
-                cur.next();
-            },
-            '*' | '%' => {
-                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_MUL_DIV, ch as isize));
-                cur.next();
-            },
-            '+' => {
-                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_PLUS_MINUS, ch as isize));
-                cur.next();
-            },
-            '|' => {
-                if cur.eq("||") {
-                    tokens.push(Token::new_value_tag(TokenType::Calc, LEX_OR_AND, ch as isize));
-                }
-                cur.next();
-            },
-            '&' => {
-                cur.next_n(if cur.eq("&&") { 2 } else { 1 });
-                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_OR_AND, ch as isize));
-            },
-            '≠' => {
-                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '≠' as isize));
-                cur.next();
-            }
-            '≧' => {
-                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '≧' as isize));
-                cur.next();
-            }
-            '≦' => {
-                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '≦' as isize));
-                cur.next();
-            }
-            '=' => {
-                cur.next_n(if cur.eq("==") { 2 } else { 1 });
-                tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, ch as isize));
-            },
-            '!' => {
-                if cur.eq("!=") {
-                    cur.next_n(2);
-                    tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '≠' as isize));
-                } else {
-                    // timebase length
-                    cur.next(); // skip !
-                    let len_str = cur.get_note_length();
-                    let val = SValue::from_i(calc_length(&len_str, song.timebase, song.timebase));
-                    // val is const
-                    let mut tok_num = Token::new(TokenType::Value, LEX_VALUE, vec![val]);
-                    tok_num.tag = 0;
-                    tok_num.value_type = TokenValueType::INT;
-                    tokens.push(tok_num);
-                    if !read_calc_can_continue(cur, paren_level) { break; }
-                }
-            },
-            '>' | '<' => {
-                if cur.eq("<>") | cur.eq("><") {
-                    cur.next_n(2);
-                    tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '≠' as isize));
-                }
-                else if cur.eq(">=") {
-                    cur.next_n(2);
-                    tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '≧' as isize));
-                }
-                else if cur.eq("<=") {
-                    cur.next_n(2);
-                    tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '≦' as isize));
-                }
-                else if cur.eq("<") {
-                    cur.next();
-                    tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '<' as isize));
-                }
-                else if cur.eq(">") {
-                    cur.next();
-                    tokens.push(Token::new_value_tag(TokenType::Calc, LEX_COMPARE, '>' as isize));
-                }
-            },
-            _ => {
-                // 計算時に使えない文字列があれば抜ける
-                // let msg = format!("{}", ch);
-                // lex_error(cur, song, &msg);
-                break;
-            }
-        }
-        flag_top_token = false;
+fn read_operator(cur: &mut TokenCursor) -> Option<(char, isize)> {
+    cur.skip_space();
+    let mut ch = cur.peek_n(0);
+    if !is_operator_char(ch) { return None; }
+    if cur.eq(">=") {
+        cur.next_n(2);
+        ch = '≧';
     }
-    // convert to postfix
-    infix_to_postfix(cur, song, tokens)
+    else if cur.eq("<=") {
+        cur.next_n(2);
+        ch = '≦';
+    }
+    else if cur.eq("<>") || cur.eq("!=") {
+        cur.next_n(2);
+        ch = '≠';
+    }
+    else if cur.eq("==") {
+        cur.next_n(2);
+        ch = '=';
+    }
+    else {
+        cur.next();
+    }
+    let priority = match ch {
+        '+' => LEX_PLUS_MINUS,
+        '-' => LEX_PLUS_MINUS,
+        '*' => LEX_MUL_DIV,
+        '/' => LEX_MUL_DIV,
+        '|' => LEX_OR_AND,
+        '&' => LEX_OR_AND,
+        '%' => LEX_MUL_DIV,
+        '≠' => LEX_COMPARE,
+        '=' => LEX_COMPARE,
+        '>' => LEX_COMPARE,
+        '<' => LEX_COMPARE,
+        '≧' => LEX_COMPARE,
+        '≦' => LEX_COMPARE,
+        '!' => LEX_COMPARE,
+        _ => { 0 }
+    };
+    Some((ch, priority))
 }
 
-fn infix_to_postfix(cur: &mut TokenCursor, song: &mut Song, tokens: Vec<Token>) -> Vec<Token> {
-    let mut result = vec![];
-    let mut stack:Vec<Token> = vec![];
-    for token in tokens.into_iter() {
-        if token.value == LEX_VALUE {
-            result.push(token);
+fn read_calc_tokens(cur: &mut TokenCursor, song: &mut Song) -> Option<Vec<Token>> {
+    match read_calc(cur, song) {
+        Some(tok) => { Some(vec![tok]) },
+        None => None,
+    }
+}
+
+fn read_calc(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
+    // read left value
+    let mut left_val = match read_value(cur, song) {
+        Some(res) => res,
+        None => return None,
+    };
+    // read operator and right value
+    while cur.has_next() {
+        let (operator_ch, operator_priority) = match read_operator(cur) {
+            Some(res) => res,
+            None => break,
+        };
+        let right_val_o = read_calc(cur, song);
+        if right_val_o.is_none() {
+            let msg = song.get_message(MessageKind::ErrorMissingValue);
+            read_error(cur, song, msg);
+        }
+        let right_val = right_val_o.unwrap_or(Token::new_empty("ERROR", cur.line));
+        // replace left_val to CalcTree
+        if left_val.ttype != TokenType::CalcTree {
+            left_val = Token::new_tokens(TokenType::CalcTree, operator_priority, vec![left_val, right_val]);
+            left_val.tag =  operator_ch as isize;
             continue;
         }
-        if is_operator(token.value) {
-            while let Some(top) = stack.last().cloned() {
-                if top.value == LEX_PAREN_L || top.value > token.value {
-                    break;
-                }
-                result.push(stack.pop().unwrap());
-            }
-            stack.push(token);
-            continue;
-        }
-        else if token.value == LEX_PAREN_L {
-            stack.push(token);
-            continue;
-        }
-        else if token.value == LEX_PAREN_R {
-            while let Some(top) = stack.last().cloned() {
-                if top.value == LEX_PAREN_L {
-                    break;
-                }
-                result.push(stack.pop().unwrap());
-            }
-            stack.pop();
-            continue;
+        // check priority
+        if left_val.value_i < operator_priority {
+            // (examle) 1 + 2 * 3 => [left] (1 + 2) [operator] * [right] 3
+            // => ((2 * 3) + 1)
+            let mut left_val_children = left_val.children.unwrap_or(vec![]);
+            let left_operator = left_val.tag;
+            let left_priority = left_val.value_i;
+            let val2 = left_val_children.pop().unwrap_or(Token::new_const(TokenType::ConstInt, 0, None, TokenValueType::INT));
+            let val1 = left_val_children.pop().unwrap_or(Token::new_const(TokenType::ConstInt, 0, None, TokenValueType::INT));
+            let val3 = right_val;
+            let mut new_left = Token::new_tokens(TokenType::CalcTree, 0, vec![val2, val3]);
+            new_left.tag = operator_ch as isize;
+            new_left.value_i = operator_priority;
+            left_val = Token::new_tokens(TokenType::CalcTree, 0, vec![val1, new_left]);
+            left_val.tag = left_operator;
+            left_val.value_i = left_priority;
         } else {
-            let msg = format!("Invalid token type: {:?}", token.value);
-            lex_error(cur, song, &msg);
-            result.clear();
-            return vec![];
+            left_val = Token::new_tokens(TokenType::CalcTree, 0, vec![left_val, right_val]);
+            left_val.tag = operator_ch as isize;
+            left_val.value_i = operator_priority;
         }
     }
-    while let Some(op) = stack.pop() {
-        if op.value == LEX_PAREN_L {
-            let msg = format!("Unmatched parenthesis");
-            lex_error(cur, song, &msg);
-            result.clear();
-            return vec![];
-        }
-        result.push(op);
-    }
-    result
+    // println!("read_calc={:?}", left_val);
+    Some(left_val)
 }
 
 /// lex calc script
@@ -703,7 +640,7 @@ fn lex_calc(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
     let mut result = vec![];
     while !cur.is_eos() {
         let lastpos = cur.index;
-        let tokens = read_calc(&mut cur, song);
+        let tokens = read_calc_tokens(&mut cur, song).unwrap_or(vec![]);
         result.extend(tokens);
         if cur.peek().unwrap_or('\0') == ',' {
             cur.next();
@@ -770,7 +707,7 @@ fn read_for(cur: &mut TokenCursor, song: &mut Song) -> Token {
     };
     let init_tok = lex(song, &init_s, lineno);
     let cond_tok = lex_calc(song, &cond_s, lineno);
-    let inc_tok = lex_calc(song, &inc_s, lineno);
+    let inc_tok = lex(song, &inc_s, lineno);
     let body_tok = lex(song, &body_s, lineno);
     let for_tok = Token::new_tokens_lineno(TokenType::For, 0, vec![
         Token::new_tokens(TokenType::Tokens, 0, init_tok),
@@ -826,11 +763,11 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
     // increment variable?
     if cur.eq("++") {
         cur.next_n(2);
-        return Some(Token::new(TokenType::ValueInc, 1, vec![SValue::from_s(cmd)]));
+        return Some(Token::new_const(TokenType::ValueInc, 1, Some(cmd), TokenValueType::VARIABLE));
     }
     if cur.eq("--") {
         cur.next_n(2);
-        return Some(Token::new(TokenType::ValueInc, -1, vec![SValue::from_s(cmd)]));
+        return Some(Token::new_const(TokenType::ValueInc, -1, Some(cmd), TokenValueType::VARIABLE));
     }
     // let?
     cur.skip_space();
@@ -849,11 +786,11 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
             return Some(Token::new_empty("DefStr", cur.line));
         }
         // let calc
-        let body_tokens = read_calc(cur, song);
+        let body_tokens = read_calc_tokens(cur, song).unwrap_or(vec![]);
         let tok = Token::new_data_tokens(
             TokenType::LetVar, 0, 
             vec![SValue::from_str(&cmd)],
-            vec![Token::new_tokens(TokenType::Tokens, 0, body_tokens)]);
+            body_tokens);
         song.variables_insert(&cmd, SValue::None);
         return Some(tok);
     }
@@ -1006,7 +943,7 @@ fn read_args_tokens(cur: &mut TokenCursor, song: &mut Song) -> Vec<Token> {
     let mut tokens = vec![];
     loop {
         cur.skip_space();
-        let sub_tokens = read_calc(cur, song);
+        let sub_tokens = read_calc_tokens(cur, song).unwrap_or(vec![]);
         tokens.push(Token::new_tokens(TokenType::Tokens, 0, sub_tokens));
         
         // has next value?
@@ -1162,12 +1099,12 @@ fn read_key_flag(cur: &mut TokenCursor, _song: &mut Song) -> Token {
     tok
 }
 
-fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
+fn read_def_var(cur: &mut TokenCursor, song: &mut Song, value_type: TokenValueType) -> Token {
     cur.skip_space();
     let var_name = cur.get_word();
     if var_name == "" {
         song.add_log(format!(
-            "[ERROR]({}): INT command should use Upper case like \"Test\".",
+            "[ERROR]({}): Variable's name should be Upper case like \"Test\".",
             cur.line
         ));
         return Token::new_empty("Failed to def INT", cur.line);
@@ -1179,24 +1116,59 @@ fn read_def_int(cur: &mut TokenCursor, song: &mut Song) -> Token {
         return Token::new_empty("Failed to def INT", cur.line);
     }
     cur.skip_space();
-    // 初期値に整数0をセット
-    let mut t = Token::new_value(TokenType::Value, 0);
-    t.value_type = TokenValueType::INT;
-    t.data = vec![SValue::from_i(0)];
-    let mut val_tokens = vec![t];
-    if cur.eq_char('=') {
-        // 代入文がある場合
-        cur.next(); // skip '='
-        // get line
-        val_tokens = read_calc(cur, song);
-    }
-    // token
-    let tok = Token::new_data_tokens(
-        TokenType::DefInt,
-        0,
-        vec![SValue::from_s(var_name)],
-        val_tokens,
-    );
+    // 値を得る
+    let tok = match value_type {
+        TokenValueType::INT => {
+            let mut val_tokens = None;
+            if cur.eq_char('=') { // 代入文がある場合
+                cur.next(); // skip '='
+                val_tokens = read_calc_tokens(cur, song);
+            }
+            // register variable
+            song.variables_insert(&var_name, SValue::from_i(0));
+            // token
+            Token::new_variable(
+                TokenType::DefInt,
+                var_name,
+                val_tokens,
+            )
+        },
+        TokenValueType::STR => {
+            // 初期値に空をセット
+            let mut val_tokens = None;
+            if cur.eq_char('=') { // 代入文がある場合
+                cur.next(); // skip '='
+                val_tokens = read_calc_tokens(cur, song);
+            }
+            // register variable
+            song.variables_insert(&var_name, SValue::from_str(""));
+            // token
+            Token::new_variable(
+                TokenType::DefStr,
+                var_name,
+                val_tokens,
+            )
+        },
+        TokenValueType::ARRAY => {
+            let mut val_tokens = None;
+            if cur.eq_char('=') { // 代入文がある場合
+                cur.next(); // skip '='
+                val_tokens = read_calc_tokens(cur, song);
+            }
+            // register variable
+            song.variables_insert(&var_name, SValue::Array(vec![]));
+            // token
+            Token::new_variable(
+                TokenType::DefArray,
+                var_name,
+                val_tokens,
+            )
+        },
+        _ => {
+            song.add_log(format!("[ERROR]({}): Invalid value type.", cur.line));
+            return Token::new_empty("Failed to def INT", cur.line);
+        },
+    };
     tok
 }
 
@@ -1323,79 +1295,6 @@ fn read_sysex(cur: &mut TokenCursor, _song: &mut Song) -> Token {
     let mut t = Token::new_tokens(TokenType::SysEx, 0, data_vec);
     t.lineno = lineno;
     t
-}
-
-
-fn read_def_str(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    cur.skip_space();
-    let var_name = cur.get_word();
-    if var_name == "" {
-        song.add_log(format!(
-            "[ERROR]({}): STR command should use Upper case like \"Test\"",
-            cur.line
-        ));
-        return Token::new_empty("Failed to def STR", cur.line);
-    }
-    // check reserved words
-    if song.reserved_words.contains_key(&var_name) {
-        let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), var_name);
-        read_error(cur, song, &msg);
-        return Token::new_empty("Failed to def STR", cur.line);
-    }
-    cur.skip_space();
-    let line_no = cur.line;
-    let mut init_value_tokens = vec![];
-    let mut data_str = "".to_string();
-    if cur.eq_char('=') {
-        cur.next();
-        cur.skip_space();
-        let ch = cur.peek().unwrap_or('\0');
-        if ch == '"' && ch == '{' {
-            // get normal string
-            data_str = if ch == '{' { cur.get_token_nest('{', '}') } else { cur.next(); cur.get_token_ch(ch) };
-            data_str = format!("{}{}{}", '{', data_str, '}');
-            init_value_tokens = lex_calc(song, &data_str, line_no);
-        } else {
-            // get calc
-            let tok = read_calc_token(cur, song);
-            init_value_tokens = vec![tok];
-        }
-    }
-    let var_value = SValue::from_str_and_tag(&data_str, line_no);
-    let mut tok = Token::new_tokens(TokenType::DefStr, 0, init_value_tokens);
-    tok.data = vec![SValue::from_s(var_name.clone())];
-    song.variables_insert(&var_name, var_value);
-    tok
-}
-
-fn read_def_array(cur: &mut TokenCursor, song: &mut Song) -> Token {
-    cur.skip_space();
-    let var_name = cur.get_word();
-    if var_name == "" {
-        song.add_log(format!(
-            "[ERROR]({}): Array variable's name should be Upper case like \"Test\"",
-            cur.line
-        ));
-        return Token::new_empty("Failed to def STR", cur.line);
-    }
-    // check reserved words
-    if song.reserved_words.contains_key(&var_name) {
-        let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), var_name);
-        read_error(cur, song, &msg);
-        return Token::new_empty("Failed to def STR", cur.line);
-    }
-    cur.skip_space();
-    let mut init_value_tokens = vec![];
-    if cur.eq_char('=') { // 代入文が存在する場合
-        cur.next(); // skip '='
-        cur.skip_space();
-        init_value_tokens = read_args_tokens(cur, song);
-        // println!("init_value_tokens: {:?}", init_value_tokens);
-    }
-    let mut tok = Token::new_tokens(TokenType::DefArray, 0, init_value_tokens);
-    tok.data = vec![SValue::from_s(var_name.clone())];
-    song.variables_insert(&var_name, SValue::None);
-    tok
 }
 
 fn read_command_sub(cur: &mut TokenCursor, song: &mut Song) -> Token {

@@ -190,9 +190,23 @@ impl SValue {
         }
         false
     }
+    pub fn is_i(&self) -> bool {
+        match self {
+            Self::Int(_) => true,
+            _ => false,
+        }
+    }
     pub fn is_s(&self) -> bool {
         match self {
             Self::Str(_, _) => true,
+            _ => false,
+        }
+    }
+    pub fn is_array(&self) -> bool {
+        match self {
+            Self::Array(_) => true,
+            Self::IntArray(_) => true,
+            Self::StrArray(_) => true,
             _ => false,
         }
     }

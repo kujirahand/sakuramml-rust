@@ -1,5 +1,4 @@
 //! runner from tokens
-
 use crate::mml_def::TieMode;
 use crate::token::TokenValueType;
 use super::cursor::TokenCursor;
@@ -79,7 +78,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
         if song.flags.break_flag != 0 { break; }
         let t = &tokens[pos];
         if song.debug {
-            println!("- exec({:03})(line:{}) {:?} {}", pos, song.lineno, t.ttype, t.to_debug_str());
+            println!("- exec({:03})(line:{}) {}", pos, song.lineno, t.to_debug_str());
         }
         match t.ttype {
             TokenType::Unimplemented => {},
@@ -182,24 +181,24 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Octave => {
                 trk!(song).o_on_note = None;
-                trk!(song).octave = value_range(0, t.value, 10);
+                trk!(song).octave = value_range(0, t.value_i, 10);
             },
             TokenType::OctaveRel => {
-                trk!(song).octave = value_range(0, trk!(song).octave + t.value, 10);
+                trk!(song).octave = value_range(0, trk!(song).octave + t.value_i, 10);
             },
             TokenType::VelocityRel => {
-                trk!(song).velocity = value_range(0, trk!(song).velocity + (song.v_add * t.value), 127);
+                trk!(song).velocity = value_range(0, trk!(song).velocity + (song.v_add * t.value_i), 127);
             },
             TokenType::QLenRel => {
-                trk!(song).qlen = trk!(song).qlen + (song.q_add * t.value);
+                trk!(song).qlen = trk!(song).qlen + (song.q_add * t.value_i);
             },
             TokenType::OctaveOnce => {
-                trk!(song).octave = value_range(0, trk!(song).octave + t.value, 10);
-                song.flags.octave_once += t.value;
+                trk!(song).octave = value_range(0, trk!(song).octave + t.value_i, 10);
+                song.flags.octave_once += t.value_i;
             },
             TokenType::QLen => {
                 trk!(song).q_on_note = None;
-                trk!(song).qlen = value_range(0, t.value, 100);
+                trk!(song).qlen = value_range(0, t.value_i, 100);
                 trk!(song).q_on_note = None;
             },
             TokenType::Velocity => {
@@ -210,20 +209,20 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     while trk!(song).v_sub.len() >= ino as usize {
                         trk!(song).v_sub.push(0);
                     }
-                    trk!(song).v_sub[ino as usize] = value_range(0, t.value, 127);
+                    trk!(song).v_sub[ino as usize] = value_range(0, t.value_i, 127);
                 } else {
-                    trk!(song).velocity = value_range(0, t.value, 127);
+                    trk!(song).velocity = value_range(0, t.value_i, 127);
                 }
                 trk!(song).v_on_time = None;
                 trk!(song).v_on_note = None;
             },
             TokenType::Timing => {
                 trk!(song).t_on_note = None;
-                trk!(song).timing = t.value;
+                trk!(song).timing = t.value_i;
                 trk!(song).t_on_note = None;
             },
             TokenType::CtrlChange => {
-                let no = t.value;
+                let no = t.value_i;
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
                 let val_v = exec_value(song, &val_tokens);
                 let val = val_v.to_i();
@@ -236,7 +235,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::NRPNCommand => exec_cc_rpn_nrpn(song, t, 99, 98, 0),
             TokenType::PitchBend => {
                 let val = var_extract(&t.data[0], song).to_i();
-                let val = if t.value == 0 { val * 128 } else { val + 8192 };
+                let val = if t.value_i == 0 { val * 128 } else { val + 8192 };
                 song.add_event(Event::pitch_bend(
                     trk!(song).timepos,
                     trk!(song).channel,
@@ -273,7 +272,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let e = Event::meta(
                     trk!(song).timepos,
                     0xFF,
-                    t.value,
+                    t.value_i,
                     txt.len() as isize,
                     txt.into_bytes(),
                 );
@@ -334,7 +333,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::SysexReset => {
                 let time = trk!(song).timepos;
                 let dev = song.device_number as u8;
-                match t.value {
+                match t.value_i {
                     0 => { // GM
                         song.add_event(Event::sysex_raw(time, vec![0x7E, 0x7F, 0x9, 0x1, 0xF7]));
                     }
@@ -352,7 +351,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let dev = song.device_number as u8;
                 let mut event: Option<Event> = Option::None;
                 let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
-                match &t.value {
+                match &t.value_i {
                     0x00 => { // basic
                         let num = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
                         let val = if data.len() >= 2 { data[1].to_i() as u8 } else { 0 };
@@ -391,7 +390,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     }
                     // custom GS effect
                     0x30 ..= 0x40 => {
-                        let num = (&t.value % 256) as u8;
+                        let num = (&t.value_i % 256) as u8;
                         let val = data[0].to_i() as u8;
                         event = Some(Event::sysex_raw(
                             time,
@@ -420,23 +419,50 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::KeyShift => song.key_shift = exec_value_int_by_token(song, t),
             TokenType::TrackKey => trk!(song).track_key = exec_value_int_by_token(song, t),
             TokenType::DefInt => {
-                let var_key = t.data[0].to_s();
-                let val_tokens = t.children.clone().unwrap_or(vec![]);
-                let val = exec_value(song, &val_tokens);
-                song.variables_insert(&var_key, val);
+                match &t.value_s {
+                    None => { runtime_error(song, "[SYSTEM ERROR][DefInt] variable name is empty"); continue; },
+                    Some(var_name) => {
+                        let val = exec_value(song, &t.children.clone().unwrap_or(vec![]));
+                        if val.is_array() {
+                            let msg = format!("{}: {}",
+                                song.get_message(MessageKind::ErrorTypeMismatch),
+                                var_name);
+                            runtime_error(song, &msg);
+                        }
+                        song.variables_insert(var_name, val);
+                    }
+                }
             },
             TokenType::DefStr => {
-                let var_key = t.data[0].to_s();
-                let val_tokens = t.children.clone().unwrap_or(vec![]);
-                let val = exec_value(song, &val_tokens);
-                song.variables_insert(&var_key, val);
+                match &t.value_s {
+                    None => { runtime_error(song, "[SYSTEM ERROR][DefStr] variable name is empty"); continue; },
+                    Some(var_name) => {
+                        let val = exec_value(song, &t.children.clone().unwrap_or(vec![]));
+                        song.variables_insert(var_name, val);
+                    }
+                }
             },
             TokenType::DefArray => {
-                let var_ley = t.data[0].to_s();
-                let val_tokens = t.children.clone().unwrap_or(vec![]);
-                // println!("@@@DefArray={:?}", val_tokens);
-                let vals = exec_args(song, &val_tokens);
-                song.variables_insert(&var_ley, SValue::Array(vals));
+                match &t.value_s {
+                    None => { runtime_error(song, "[SYSTEM ERROR][DefArray] variable name is empty"); continue; },
+                    Some(var_name) => {
+                        let val = exec_value(song, &t.children.clone().unwrap_or(vec![]));
+                        song.variables_insert(var_name, val);
+                    }
+                }
+            },
+            TokenType::GetVariable => {
+                match &t.value_s {
+                    None => {
+                        runtime_error(song, "[SYSTEM ERROR][GetVariable] variable name is empty");
+                        continue;
+                    },
+                    Some(var_name) => {
+                        let vals = song.variables_get(&var_name).clone().unwrap_or(&SValue::None);
+                        // println!("GetVariable: {}={:?}", var_name, vals);
+                        song.stack.push(vals.clone());
+                    }
+                }
             },
             TokenType::LetVar => {
                 let var_key = t.data[0].to_s();
@@ -517,11 +543,11 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).l_on_note_is_cycle = true;
             },
             TokenType::CConTime => {
-                trk!(song).remove_cc_on_note_wave(t.value);
-                trk!(song).write_cc_on_time(t.value, t.data[0].to_int_array());
+                trk!(song).remove_cc_on_note_wave(t.value_i);
+                trk!(song).write_cc_on_time(t.value_i, t.data[0].to_int_array());
             },
             TokenType::CConNoteWave => {
-                let no = t.value;
+                let no = t.value_i;
                 let ia = t.data[0].to_int_array();
                 // println!("CConNoteWave={}", no);
                 trk!(song).set_cc_on_note_wave(no, ia);
@@ -533,7 +559,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 exec_decres(song, t);
             },
             TokenType::PBonTime => {
-                trk!(song).write_pb_on_time(t.value, t.data[0].to_int_array(), song.timebase);
+                trk!(song).write_pb_on_time(t.value_i, t.data[0].to_int_array(), song.timebase);
             },
             TokenType::MeasureShift => song.flags.measure_shift = exec_value_int_by_token(song, t),
             TokenType::TrackSync => song.track_sync(),
@@ -547,7 +573,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 }
             },
             TokenType::UseKeyShift => {
-                song.use_key_shift = t.value != 0;
+                song.use_key_shift = t.value_i != 0;
             },
             TokenType::If => {
                 exec_if(song, t);
@@ -577,6 +603,57 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::DefUserFunction => {
                 // nop
             },
+            TokenType::CalcTree => {
+                // tag == 0
+                if t.tag == 0 { // dummy calc
+                    match &t.children {
+                        Some(tokens) => {
+                            exec(song, tokens);
+                        },
+                        None => {},
+                    }
+                    pos += 1;
+                    continue;
+                }
+                // get flag char
+                let flag = std::char::from_u32(t.tag as u32).unwrap_or('😔');
+                let values = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
+                // only 1 value
+                if flag == '!' { // flag "!(val)"
+                    let v = if values.len() >= 1 { values[0].to_b() } else { false };
+                    song.stack.push(SValue::from_b(!v));
+                    pos += 1;
+                    continue;
+                }
+                // 2 values
+                // println!("[calc_tree]{}({:?})", flag, values);
+                let a = if values.len() >= 1 { values[0].clone() } else { SValue::None };
+                let b = if values.len() >= 2 { values[1].clone() } else { SValue::None };
+                let mut c = SValue::None;
+                match flag {
+                    '&' => c = SValue::from_b(a.to_b() && b.to_b()), // and
+                    '|' => c = SValue::from_b(a.to_b() || b.to_b()), // or
+                    '=' => c = SValue::from_b(a.eq(b)),
+                    '≠' => c = SValue::from_b(a.ne(b)), // !=
+                    '>' => c = SValue::from_b(a.gt(b)),
+                    '≧' => c = SValue::from_b(a.gteq(b)),
+                    '<' => c = SValue::from_b(a.lt(b)),
+                    '≦' => c = SValue::from_b(a.lteq(b)),
+                    '+' => c = a.add(b),
+                    '-' => c = SValue::from_i(a.to_i() - b.to_i()),
+                    '*' => c = SValue::from_i(a.to_i() * b.to_i()),
+                    '/' => c = a.div(b),
+                    '%' => c = SValue::from_i(a.to_i() % b.to_i()),
+                    _ => {
+                        song.add_log(String::from("[Calc] unknown flag"));
+                    }
+                }
+                if song.debug {
+                    println!("[calc_tree] {} {}", flag, c.to_s());
+                }
+                song.stack.push(c);
+            },
+            /*
             TokenType::Calc => {
                 // get flag char
                 let flag = std::char::from_u32(t.tag as u32).unwrap_or('😔');
@@ -611,16 +688,21 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 }
                 song.stack.push(c);
             },
+            */
+            TokenType::ConstInt => {
+                song.stack.push(SValue::from_i(t.value_i));
+            },
+            TokenType::ConstStr => {
+                song.stack.push(SValue::from_s(t.value_s.clone().unwrap_or(String::new())));
+            },
             TokenType::Value => {
                 // extract value
-                // t.value ... (ex) LEX_VALUE (lexer.rs) 計算の時に使う
+                // t.value_i ... (ex) LEX_VALUE (lexer.rs) 計算の時に使う
                 // t.data ... (ex) [SValue::S("=A")]
                 // t.tag ... 関数管理に使う (0: 値 / 1以上: 関数)
                 // t.value_type ... 値の種類 tokens::VALUE_XXXX
                 // check is variable?
                 let val = match t.value_type {
-                    TokenValueType::INT => t.data[0].clone(),
-                    TokenValueType::STR => t.data[0].clone(),
                     TokenValueType::VARIABLE => var_extract(&t.data[0], song),
                     _ => {
                         if t.tag == 0 && t.data.len() > 0 {
@@ -643,10 +725,28 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 }
             },
             TokenType::ValueInc => {
-                let varname = t.data[0].to_s();
-                let val_inc = t.value;
+                let varname = t.value_s.clone().unwrap_or(String::new());
+                let val_inc = t.value_i;
                 let val = song.variables_get(&varname).unwrap_or(&SValue::Int(0));
                 song.variables_insert(&varname, SValue::from_i(val.to_i() + val_inc));
+                // let val = song.variables_get(&varname).unwrap_or(&SValue::Int(0));
+                // println!("inc={}={}", varname, val.to_i());
+            },
+            TokenType::MakeArray => {
+                match &t.children {
+                    None => {
+                        song.stack.push(SValue::Array(vec![]));
+                        continue;
+                    },
+                    Some(tokens) => {
+                        let mut a: Vec<SValue> = vec![];
+                        for tok in tokens {
+                            let v = exec_value(song, &vec![tok.clone()]);
+                            a.push(v);
+                        }
+                        song.stack.push(SValue::Array(a));
+                    }
+                }
             },
             TokenType::SetConfig => {
                 let key = t.data[0].to_s();
@@ -656,7 +756,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 }
             },
             TokenType::CallUserFunction => {
-                exec_call_user_function_or_array(song, t);
+                exec_userfunc_or_array_or_macro(song, t);
             },
             TokenType::Play => {
                 exec_play(song, t);
@@ -729,12 +829,13 @@ fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc2: isize, c
     song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val)); 
 }
 
-fn exec_call_user_function_or_array(song: &mut Song, t: &Token) -> bool {
+fn exec_userfunc_or_array_or_macro(song: &mut Song, t: &Token) -> bool {
     // check value is array?
     if t.data.len() > 0 {
         let name = t.data[0].to_s();
         let var = song.variables_get(&name).unwrap_or(&SValue::None).clone();
         match var {
+            // is Array
             SValue::Array(a) => {
                 // get arg
                 let args_tokens = t.children.clone().unwrap();
@@ -751,6 +852,24 @@ fn exec_call_user_function_or_array(song: &mut Song, t: &Token) -> bool {
                 let v = a[index].clone();
                 song.stack.push(v);
                 return true;
+            },
+            // is String macro >>> exec string
+            SValue::Str(src, _) => {
+                // get arg
+                let args_tokens = t.children.clone().unwrap();
+                let args: Vec<SValue> = exec_args(song, &args_tokens);
+                if args.len() == 0 {
+                    runtime_error(song, &format!("get String({}) element needs arguments", name));
+                    return false;
+                }
+                // replace string
+                let mut s = src.clone();
+                for (i, v) in args.iter().enumerate() {
+                    let varname = format!("#?{}", i + 1);
+                    s = s.replace(&varname, &v.to_s());
+                }
+                let tokens = lex(song, &s, t.lineno);
+                return exec(song, &tokens);
             },
             _ => {}
         }
@@ -796,7 +915,7 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
     let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
     match func_val {
         SValue::UserFunc(_func_id) => {
-            if exec_call_user_function_or_array(song, t) { return true; }
+            if exec_userfunc_or_array_or_macro(song, t) { return true; }
         },
         _ => {}, // maybe system function
     }
@@ -1119,7 +1238,7 @@ fn exec_sub(song: &mut Song, t: &Token) {
 
 fn exec_div(song: &mut Song, t: &Token) {
     let len_s = &t.data[0].to_s();
-    let cnt = t.value;
+    let cnt = t.value_i;
     let length_org: isize;
     let timepos_end: isize;
     {
@@ -1295,7 +1414,7 @@ fn get_note_info_from_token(t: &Token) -> NoteInfo {
             slur: 0,
         };
     }
-    let note_no = (t.value % 12) as isize;
+    let note_no = (t.value_i % 12) as isize;
     let data_note_flag = data[0].to_i();
     let data_note_natural = data[1].to_i();
     let data_note_len = data[2].to_s();
@@ -1650,7 +1769,7 @@ fn exec_rest(song: &mut Song, t: &Token) {
     let trk = &mut song.tracks[song.cur_track];
     let data_note_len = t.data[0].to_s();
     let notelen = calc_length(&data_note_len, song.timebase, trk.length);
-    trk.timepos += notelen * t.value;
+    trk.timepos += notelen * t.value_i;
 }
 
 fn exec_voice(song: &mut Song, t: &Token) {
@@ -1830,7 +1949,7 @@ mod tests {
         let song = exec_easy("INT N=(1+2)*3;PRINT(N)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 9");
         // 1>2 false(0)
-        let song = exec_easy("INT N=1>2;PRINT(N)");
+        let song = exec_easy("PRINT(1>2)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) FALSE");
         // 6/3
         let song = exec_easy("INT N=6/3;PRINT(N)");
@@ -1908,5 +2027,10 @@ mod tests {
         // SizeOf
         let song = exec_easy("ARRAY A=(1,2,3) PRINT(SizeOf(A))");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 3");
+        // combine
+        let song = exec_easy("ARRAY A=(1,1);ARRAY B=(2,2);ARRAY C=(3,3);PRINT((A,B,C))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) ((1,1),(2,2),(3,3))");
+        let song = exec_easy("ARRAY A=(1,);ARRAY B=(2,);ARRAY C=(3,);PRINT((A,B,C))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) ((1),(2),(3))");
     }
  }

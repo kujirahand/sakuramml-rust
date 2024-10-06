@@ -1,3 +1,5 @@
+use std::vec;
+
 use super::svalue::SValue;
 
 /// TokenType
@@ -82,7 +84,12 @@ pub enum TokenType {
     While,
     Break,
     Continue,
-    Calc,
+    // Calc,
+    CalcTree,
+    ConstInt,
+    ConstStr,
+    MakeArray,
+    GetVariable,
     Value,
     ValueInc,
     SetConfig,
@@ -125,7 +132,8 @@ pub enum TokenValueType {
 #[derive(Debug, Clone)]
 pub struct Token {
     pub ttype: TokenType,
-    pub value: isize,
+    pub value_i: isize,
+    pub value_s: Option<String>,
     pub value_type: TokenValueType,
     pub tag: isize,
     pub data: Vec<SValue>,
@@ -137,7 +145,8 @@ impl Token {
     pub fn new_lineno(lineno: isize) -> Self {
         Self {
             ttype: TokenType::LineNo,
-            value: 0,
+            value_i: 0,
+            value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
             data: vec![],
@@ -148,7 +157,8 @@ impl Token {
     pub fn new(ttype: TokenType, value: isize, data: Vec<SValue>) -> Self {
         Self {
             ttype,
-            value,
+            value_i: value,
+            value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
             data,
@@ -156,10 +166,47 @@ impl Token {
             lineno: 0,
         }
     }
+    pub fn new_const0() -> Self {
+        Self {
+            ttype: TokenType::ConstInt,
+            value_i: 0,
+            value_s: None,
+            value_type: TokenValueType::VOID,
+            tag: 0,
+            data: vec![],
+            children: None,
+            lineno: 0,
+        }
+    }
+    pub fn new_const(ttype: TokenType, value_i: isize, value_s: Option<String>, value_type: TokenValueType) -> Self {
+        Self {
+            ttype,
+            value_i,
+            value_s,
+            value_type,
+            tag: 0,
+            data: vec![],
+            children: None,
+            lineno: 0,
+        }
+    }
+    pub fn new_variable(ttype: TokenType, var_name: String, init_tokens: Option<Vec<Token>>) -> Self {
+        Self {
+            ttype,
+            value_i: 0,
+            value_s: Some(var_name),
+            value_type: TokenValueType::VOID,
+            tag: 0,
+            data: vec![],
+            children: init_tokens,
+            lineno: 0,
+        }
+    }
     pub fn new_value(ttype: TokenType, value: isize) -> Self {
         Self {
             ttype,
-            value,
+            value_i: value,
+            value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
             data: vec![],
@@ -170,7 +217,8 @@ impl Token {
     pub fn new_value_tag(ttype: TokenType, value: isize, tag: isize) -> Self {
         Self {
             ttype,
-            value,
+            value_i: value,
+            value_s: None,
             value_type: TokenValueType::VOID,
             tag,
             data: vec![],
@@ -178,10 +226,11 @@ impl Token {
             lineno: 0,
         }
     }
-    pub fn new_tokens(ttype: TokenType, value: isize, tokens: Vec<Token>) -> Self {
+    pub fn new_tokens(ttype: TokenType, value_i: isize, tokens: Vec<Token>) -> Self {
         Self {
             ttype,
-            value,
+            value_i,
+            value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
             data: vec![],
@@ -192,7 +241,8 @@ impl Token {
     pub fn new_tokens_lineno(ttype: TokenType, value: isize, tokens: Vec<Token>, lineno: isize) -> Self {
         Self {
             ttype,
-            value,
+            value_i: value,
+            value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
             data: vec![],
@@ -203,7 +253,8 @@ impl Token {
     pub fn new_data_tokens(ttype: TokenType, value: isize, data: Vec<SValue>, tokens: Vec<Token>) -> Self {
         Self {
             ttype,
-            value,
+            value_i: value,
+            value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
             data,
@@ -214,7 +265,8 @@ impl Token {
     pub fn new_empty(cmd: &str, lineno: isize) -> Self {
         Self {
             ttype: TokenType::Empty,
-            value: 0,
+            value_i: 0,
+            value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
             data: vec![SValue::from_s(cmd.to_string())],
@@ -237,7 +289,7 @@ impl Token {
         if self.ttype == TokenType::LineNo {
             return String::new();
         }
-        format!("[{:?},{}]", self.ttype, self.value)
+        format!("[{:?},{}]", self.ttype, self.value_i)
     }
 }
 

@@ -16,6 +16,8 @@ pub enum MessageKind {
     RuntimeError,
     ErrorDefineVariableIsReserved,
     ErrorWrongArguments,
+    ErrorTypeMismatch,
+    ErrorMissingValue,
 }
 
 /// Language
@@ -131,6 +133,18 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
                 MessageLang::EN => "Wrong number of arguments.",
                 MessageLang::JA => "引数の数が間違っています。",
             }
-        }
+        },
+        MessageKind::ErrorTypeMismatch => {
+            match lang {
+                MessageLang::EN => "Type mismatch",
+                MessageLang::JA => "変数型の間違い",
+            }
+        },
+        MessageKind::ErrorMissingValue => {
+            match lang {
+                MessageLang::EN => "Missing value after operator",
+                MessageLang::JA => "演算子の後に値がありません",
+            }
+        },
     }
 }
