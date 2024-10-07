@@ -78,12 +78,25 @@ impl SValue {
             _ => (String::new(), 0),
         }
     }
+    /// to int array (flatten)
     pub fn to_int_array(&self) -> Vec<isize> {
         match self {
+            // 配列をVec<isize>に変換
             Self::Array(a) => {
                 let mut res: Vec<isize> = vec![];
                 for v in a.iter() {
-                    res.push(v.to_i());
+                    // 配列の中に配列があれば再帰的に処理
+                    match v {
+                        SValue::Array(a2) => {
+                            for v2 in a2.iter() {
+                                let a3 = v2.to_int_array();
+                                res.extend(a3);
+                            }
+                        },
+                        _ => {
+                            res.push(v.to_i());
+                        }
+                    }
                 }
                 res
             },
@@ -245,5 +258,28 @@ mod tests {
         let a = SValue::from_i(100);
         let b = SValue::from_i(200);
         assert_eq!(a.lt(b), true);
+    }
+    #[test]
+    fn test_int_array() {
+        let a = SValue::Array(vec![
+            SValue::from_i(1),
+            SValue::from_i(2),
+            SValue::from_i(3),
+            SValue::Array(vec![
+                SValue::from_i(4),
+                SValue::from_i(5),
+                SValue::Array(vec![
+                    SValue::from_i(6),
+                    SValue::from_i(7)
+                ])
+            ]),
+        ]);
+        // to string
+        let sb = a.to_s();
+        assert_eq!(sb, "(1,2,3,(4,5,(6,7)))");
+        // to int array (flatten)
+        let b = a.to_int_array();
+        let sb = b.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(",");
+        assert_eq!(sb, "1,2,3,4,5,6,7");
     }
 }
