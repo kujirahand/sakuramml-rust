@@ -134,11 +134,22 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             */
             '/' => {
                 cur.prev();
-                if cur.eq("//") {
+                if cur.eq("///") {
+                    let line_comment = cur.get_token_ch('\n');
+                    let mut tok = Token::new_const(TokenType::Comment, 0, Some(line_comment), TokenValueType::VOID);
+                    tok.lineno = cur.line;
+                    result.push(tok);
+                    continue;
+                } else if cur.eq("//") {
                     cur.get_token_ch('\n');
                     continue;
+                } else if cur.eq("/**") {
+                    let range_comment = cur.get_token_s("*/");
+                    let mut tok = Token::new_const(TokenType::Comment, 0, Some(range_comment), TokenValueType::VOID);
+                    tok.lineno = cur.line;
+                    result.push(tok);
+                    continue;
                 } else if cur.eq("/*") {
-                    cur.next();
                     cur.get_token_s("*/");
                     continue;
                 }

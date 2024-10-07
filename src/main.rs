@@ -131,7 +131,12 @@ fn compile_to_midi(src: &str, midifile: &str, debug: bool) {
     let src = sakuramml::sutoton::convert(&src);
     // println!("{}", src);
     let tokens = lex(&mut song, &src, 0);
-    // println!("lex= {:?}", tokens); 
+    if debug {
+        let tokens_str = sakuramml::token::tokens_to_debug_str(&tokens, 0);
+        println!("[PARSER]\n{}", tokens_str);
+        println!("[RUNNER]");
+    }
+    // println!("lex= {:?}", tokens);
     exec(&mut song, &tokens);
     // println!("song= {:?}", song);
     save_to_file(&mut song, &midifile);

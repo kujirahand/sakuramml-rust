@@ -10,6 +10,7 @@ pub enum TokenType {
     Error,
     Empty,
     LineNo,
+    Comment,
     TimeBase,
     Print,
     Note,
@@ -84,7 +85,6 @@ pub enum TokenType {
     While,
     Break,
     Continue,
-    // Calc,
     CalcTree,
     ConstInt,
     ConstStr,
@@ -266,10 +266,10 @@ impl Token {
         Self {
             ttype: TokenType::Empty,
             value_i: 0,
-            value_s: None,
+            value_s: Some(String::from(cmd)),
             value_type: TokenValueType::VOID,
             tag: 0,
-            data: vec![SValue::from_s(cmd.to_string())],
+            data: vec![],
             children: None,
             lineno,
         }
@@ -297,6 +297,44 @@ pub fn tokens_to_str(tokens: &Vec<Token>) -> String {
     let mut s = String::new();
     for t in tokens.iter() {
         s.push_str(&t.to_debug_str());
+    }
+    s
+}
+
+fn indent_line(src: &str, level: isize) -> String {
+    let part0 = " │  ";
+    let part1 = " ├──";
+    let mut s = String::new();
+    for i in 0..level {
+        if i == level-1 {
+            s.push_str(part1);
+            continue;
+        }
+        s.push_str(part0);
+    }
+    s.push_str(src);
+    s
+}
+
+fn opt_str_short(s: &Option<String>, head: &str) -> String {
+    match s {
+        Some(s) => format!("{}{}", head, s),
+        None => String::from(""),
+    }
+}
+
+pub fn tokens_to_debug_str(tokens: &Vec<Token>, level: isize) -> String {
+    let mut lineno = 0;
+    let mut s = String::new();
+    for t in tokens.iter() {
+        if t.ttype == TokenType::LineNo {
+            lineno = t.lineno;
+        }
+        let line = format!("[{:?}](i:{}{},line:{})\n", t.ttype, t.value_i, opt_str_short(&t.value_s, ",s:"), lineno);
+        s.push_str(&indent_line(&line, level));
+        if let Some(children) = &t.children {
+            s.push_str(&tokens_to_debug_str(children, level+1));
+        }
     }
     s
 }

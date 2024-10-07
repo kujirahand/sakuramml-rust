@@ -83,6 +83,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
         match t.ttype {
             TokenType::Unimplemented => {},
             TokenType::Empty => {},
+            TokenType::Comment => {},
             TokenType::LineNo => {
                 song.lineno = t.lineno;
             },
@@ -648,47 +649,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                         song.add_log(String::from("[Calc] unknown flag"));
                     }
                 }
-                if song.debug {
-                    println!("[calc_tree] {} {}", flag, c.to_s());
-                }
                 song.stack.push(c);
             },
-            /*
-            TokenType::Calc => {
-                // get flag char
-                let flag = std::char::from_u32(t.tag as u32).unwrap_or('😔');
-                // only 1 value
-                if flag == '!' { // flag "!(val)"
-                    let v = song.stack.pop().unwrap_or(SValue::None);
-                    song.stack.push(SValue::from_b(!v.to_b()));
-                    pos += 1;
-                    continue;
-                }
-                // 2 values
-                let b = song.stack.pop().unwrap_or(SValue::None);
-                let a = song.stack.pop().unwrap_or(SValue::None);
-                let mut c = SValue::None;
-                match flag {
-                    '&' => c = SValue::from_b(a.to_b() && b.to_b()), // and
-                    '|' => c = SValue::from_b(a.to_b() || b.to_b()), // or
-                    '=' => c = SValue::from_b(a.eq(b)),
-                    '≠' => c = SValue::from_b(a.ne(b)), // !=
-                    '>' => c = SValue::from_b(a.gt(b)),
-                    '≧' => c = SValue::from_b(a.gteq(b)),
-                    '<' => c = SValue::from_b(a.lt(b)),
-                    '≦' => c = SValue::from_b(a.lteq(b)),
-                    '+' => c = a.add(b),
-                    '-' => c = SValue::from_i(a.to_i() - b.to_i()),
-                    '*' => c = SValue::from_i(a.to_i() * b.to_i()),
-                    '/' => c = a.div(b),
-                    '%' => c = SValue::from_i(a.to_i() % b.to_i()),
-                    _ => {
-                        song.add_log(String::from("[Calc] unknown flag"));
-                    }
-                }
-                song.stack.push(c);
-            },
-            */
             TokenType::ConstInt => {
                 song.stack.push(SValue::from_i(t.value_i));
             },
