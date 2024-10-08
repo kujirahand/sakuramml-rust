@@ -1,6 +1,6 @@
 [package]
 name = "sakuramml"
-version = "0.1.36"
+version = "0.1.37"
 edition = "2021"
 authors = ["kujirahand <web@kujirahand.com>"]
 description = "sakuramml is MML/ABC to MIDI Compiler"
