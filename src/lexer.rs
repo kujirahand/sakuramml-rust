@@ -127,6 +127,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             // comment
             /*
             "\/\*" ... "\*\/" => // @ range comment (範囲コメント)
+            "///" => // @ line comment for debug(デバッグ用一行コメント)
             "//" => // @ line comment (一行コメント)
             "##" => // @ line comment (一行コメント)
             "# " => // @ line comment (一行コメント)

@@ -111,10 +111,10 @@ Rhythm{
 
 ### How to specify tuplets
 
-The tuplets are written as "Div{...}", but "Div" can be omitted and written as "{ceg}".
+The tuplets are written as "DIV{...}", but "DIV" can be omitted and written as "{ceg}".
 
 ```
-l4 Div{cde} f Div{gab} >c<
+l4 DIV{cde} f DIV{gab} >c<
 l4 {cde} f {gab} >c<
 ```
 
@@ -147,14 +147,17 @@ v127 c ( c ( c (( c )) c ) c ) c
 ### Reservation notation
 
 - v.onTime(low, high, len, ...)　/ 省略形 v.T(low,high,len,...)
-- v.onNote(v1, v2, v3, ...)　/ 省略形 v.N(v1,v2,v3,...)
-- t.onNote(v1, v2, v3, ...)　/ 省略形 t.N(v1,v2,v3,...)
-- (ControllChange または PB または p).onTime(low, high, len, ...)
+  - The value that should be specified for `len` is the tick. When specifying the note length, it should be written as `!4`, for example.
+- v.onNote(v1, v2, v3, ...)　/ abbreviation: v.N(v1,v2,v3,...)
+- t.onNote(v1, v2, v3, ...)　/ abbreviation: t.N(v1,v2,v3,...)
+- (ControllChange or PB or p).onTime(low, high, len, ...)
 
 ```
-v.onTime(0,127,!1)l8cccccccc
+v.onTime(0,127,!1) l8cccccccc
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
+
+
 
 ## Macro
 
@@ -193,6 +196,23 @@ IF (A == B) { PRINT({A == B}) } ELSE { PRINT({A != B}) }
 FOR (INT N=1; N < 5; N++) {
   PRINT(N)
 }
+```
+
+## Variables
+
+ It can define variables of INT, STR, and ARRAY types.
+
+```
+// define variables
+INT I1=30
+STR S1={abcd}
+ARRAY A1=(1,2,3)
+
+// use variables
+PRINT(I1) // 30
+PRINT(S1) // abcd
+PRINT(A1) // (1,2,3)
+PRINT(A1(2)) // 3
 ```
 
 ## reference

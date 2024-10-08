@@ -17,12 +17,14 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | v | velocity - ベロシティ音量の指定 範囲:0-127 / v.Random=n |
 | t | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
 | y | Control change - コントロールチェンジの指定 (ex) y1,100) / range:0-127 / y1.onTime(low,high,len) |
+| # | マクロ |
 | @ | Voice select(音色の指定) range:1-128 (format) @(no),(Bank_LSB),(Bank_MSB) |
 | > | Octave up (音階を1つ上げる) |
 | < | Octave down (音階を1つ下げる) |
 | ) | velocity up - 音量をvAddの値だけ上げる |
 | ( | velocity down - 音量をvAddの値だけ下げる |
 | "\/\*" ... "\*\/" | range comment (範囲コメント) |
+| "///" | line comment for debug(デバッグ用一行コメント) |
 | "//" | line comment (一行コメント) |
 | "##" | line comment (一行コメント) |
 | "# " | line comment (一行コメント) |
@@ -63,7 +65,7 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | RHYTHM | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
 | R | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
 | Rythm | 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
-| RTTHM | 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| RYTHM | 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
 | Div | tuplet(連符) (ex) Div{ ceg } |
 | DIV | tuplet(連符) (ex) Div{ ceg } |
 | Sub | sub track / rewind time position (ex) Sub{ceg} egb |
@@ -193,6 +195,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | INT | define int variables (ex) INT A = 3 |
 | Str | define string variables (ex) Str A = {cde} |
 | STR | define string variables (ex) STR A = {cde} |
+| Array | define string variables (ex) Str A = {cde} |
+| ARRAY | define string variables (ex) STR A = {cde} |
 | Print | print value (ex) Print({hello}) |
 | PRINT | print value (ex) PRINT({hello}) |
 | System.Include | Unimplemented |
@@ -212,6 +216,7 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | Continue | exit from loop |
 | RETURN | return from function |
 | Return | return from function |
+| Result | set function's result |
 | RANDOM_SEED | set random seed |
 | RandomSeed | set random seed |
 | FUNCTION | define user function |
