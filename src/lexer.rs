@@ -471,6 +471,33 @@ fn read_value(cur: &mut TokenCursor, song: &mut Song) -> Option<Token> {
             // 値1つの場合はそのまま返す
             return token;
         },
+        '-' => {
+            // is negative number ?
+            cur.next();
+            if cur.is_numeric() {
+                let num = cur.get_int(0);
+                return Some(Token::new_const(TokenType::ConstInt, -1 * num, None, TokenValueType::INT));
+            }
+            // '-' * value
+            let token_opt = read_value(cur, song);
+            let token = match token_opt {
+                Some(token) => token,
+                None => {
+                    // error
+                    Token::new_const(TokenType::ConstInt, 0, None, TokenValueType::INT)
+                }
+            };
+            let mut token_tree = Token::new_data_tokens(
+                TokenType::CalcTree, 
+                0,
+                vec![],
+                vec![
+                    Token::new_const(TokenType::ConstInt, -1, None, TokenValueType::INT),
+                    token,
+                ]);
+            token_tree.tag = '*' as isize;
+            return Some(token_tree);
+        },
         '0'..='9' => {
             let num = cur.get_int(0);
             return Some(Token::new_const(TokenType::ConstInt, num, None, TokenValueType::INT));

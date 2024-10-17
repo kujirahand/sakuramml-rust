@@ -1995,4 +1995,13 @@ mod tests {
         let song = exec_easy("ARRAY A=(1,);ARRAY B=(2,);ARRAY C=(3,);PRINT((A,B,C))");
         assert_eq!(song.get_logs_str(), "[PRINT](0) ((1),(2),(3))");
     }
+   #[test]
+    fn test_lex_neg_number() {
+        let song = exec_easy("PRINT(-1)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) -1");
+        let song = exec_easy("PRINT(-50)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) -50");
+        let song = exec_easy("INT A=30; PRINT(-A)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) -30");
+    }
  }
