@@ -55,7 +55,7 @@ fn main() {
     let mut i = 1;
     while i < args.len() {
         let arg = &args[i];
-        if arg == "--help" || arg == "-h" {
+        if arg == "--help" || arg == "-h" || arg == "help" {
             usage();
             return;
         }
@@ -100,9 +100,9 @@ fn main() {
                 dump_midi(&buf, true);
                 return;
             },
-            Err(e) => {
+            Err(_e) => {
                 println!("[ERROR](0): File not found : {}", filename);
-                panic!("{:?}", e);
+                return;
             }
         }
     }
@@ -113,9 +113,9 @@ fn main() {
     } else {
         src = match read_to_string(filename.clone()) {
             Ok(s) => s,
-            Err(e) => {
+            Err(_e) => {
                 println!("[ERROR](0): File not found : {}", filename);
-                panic!("{:?}", e);
+                return;
             }
         };
     }
