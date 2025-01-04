@@ -315,57 +315,65 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     // check args
     song.variables_stack_push();
     let args_str = cur.get_token_nest('(', ')');
-     let args: Vec<&str> = args_str.split(",").collect();
-     let mut arg_types: Vec<char> = vec![];
-     let mut arg_names: Vec<String> = vec![];
-     let mut arg_def_values: Vec<SValue> = vec![];
-    for i in 0..args.len() {
-        let name = args[i].trim().to_string();
-        if name.len() == 0 { continue; }
-        let mut def_v: SValue = SValue::from_i(0);
-        // include space?
-        if name.contains(" ") {
-            // split string by " "
-            let splited: Vec<&str> = name.split(" ").collect();
-            let type_s = splited[0].trim();
-            let name_s = splited[1].trim();
-            // get type
-            let mut type_sf = 'I';
+    // args parameters
+    let mut arg_types: Vec<char> = vec![];
+    let mut arg_names: Vec<String> = vec![];
+    let mut arg_def_values: Vec<SValue> = vec![];
+    // check args_str
+    let mut acur = TokenCursor::from(&args_str);
+    while !acur.is_eos() {
+        acur.skip_space();
+        // get name
+        let mut type_sf = 'I';
+        let mut def_v = SValue::from_i(0);
+        let mut name = acur.get_word();
+        if name.len() == 0 { break; }
+        // get type
+        if acur.eq_char(' ') {
+            acur.skip_space(); // skip space
+            let type_s = name;
+            name = acur.get_word();
             if type_s == "Int" || type_s == "INT" || type_s == "I" {
                 type_sf = 'I';
             }
-            if type_s == "Str" || type_s == "STR" || type_s == "S" {
+            else if type_s == "Str" || type_s == "STR" || type_s == "S" {
                 type_sf = 'S';
                 def_v = SValue::from_str("");
             }
-            if type_s == "Array" || type_s == "ARRAY" || type_s == "A" {
+            else if type_s == "Array" || type_s == "ARRAY" || type_s == "A" {
                 type_sf = 'A';
                 def_v = SValue::from_int_array(vec![]);
             }
-            song.variables_insert(name_s, def_v.clone()); // add name to local variables
-            arg_types.push(type_sf);
-            arg_names.push(name_s.to_string());
-        } else {
-            // only name
-            song.variables_insert(&name, SValue::Int(0));
-            arg_types.push('i');
-            arg_names.push(name);
+            else {
+                let msg = format!("Invalid type: {}", type_s);
+                return read_error_cmd(cur, song, &msg);
+            }
         }
-        // check def value
-        cur.skip_space();
-        if cur.eq_char('=') {
-            cur.next();
-            def_v = read_arg_value(cur, song);
-            // check var type
-            match &def_v {
-                SValue::Int(_) => arg_types[i] = 'I',
-                SValue::Str(_, _) => arg_types[i] = 'S',
-                SValue::IntArray(_) => arg_types[i] = 'A',
+        // get def value
+        acur.skip_space();
+        if acur.eq_char('=') {
+            acur.next();
+            def_v = read_arg_value(&mut acur, song);
+            // check def type
+            match def_v {
+                SValue::Int(_) => type_sf = 'I',
+                SValue::Str(_,_) => type_sf = 'S',
+                SValue::Array(_) => type_sf = 'A',
                 _ => {}
             }
         }
-        arg_def_values.push(def_v);
+        arg_names.push(name.clone());
+        arg_types.push(type_sf);
+        arg_def_values.push(def_v.clone());
+        song.variables_insert(&name, def_v); // add name to local variables
+        acur.skip_space();
+        if acur.eq_char(',') {
+            acur.next();
+            continue;
+        }
+        break;
     }
+
     // get body
     cur.skip_space_ret();
     if !cur.eq_char('{') {
@@ -863,10 +871,8 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
         return Some(tok);
     }
     // variables?
-    println!("@@@check_variables:{}", cmd);
     match song.variables_get(&cmd) {
         Some(sval) => {
-            println!("@@@:{:?}", sval);
             // get variable
             return Some(read_variables(cur, song, &cmd, sval.clone()));
         }

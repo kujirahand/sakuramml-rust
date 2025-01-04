@@ -842,17 +842,20 @@ fn exec_userfunc_or_array_or_macro(song: &mut Song, t: &Token) -> bool {
         runtime_error(song, &format!("broken func_id={} in exec_call_user_function", func_id));
         return false;
     }
-    // println!("call_user_function={}", song.functions[func_id].name);
+    // println!("call_user_function={}::{:?}", song.functions[func_id].name, song.functions[func_id].arg_def_values);
     song.variables_stack_push();
     // eval args
     let args_tokens = t.children.clone().unwrap();
     let args: Vec<SValue> = exec_args(song, &args_tokens);
     // set local variables
-    let arg_names = song.functions[func_id].arg_names.clone();
-    for (i, v) in args.iter().enumerate() {
-        if i >= arg_names.len() { break; }
-        let varname: &str = &arg_names[i];
-        song.variables_insert(varname, v.clone());
+    for i in 0..song.functions[func_id].arg_names.len() {
+        let varname = &song.functions[func_id].arg_names[i].clone();
+        let mut v: SValue = if i < args.len() { args[i].clone() } else { SValue::None };
+        v = match v {
+            SValue::None => song.functions[func_id].arg_def_values[i].clone(),
+            _ => v,
+        };
+        song.variables_insert(varname, v);
     }
     // eval function
     let tokens = song.functions[func_id].tokens.clone();
@@ -1995,7 +1998,7 @@ mod tests {
         let song = exec_easy("ARRAY A=(1,);ARRAY B=(2,);ARRAY C=(3,);PRINT((A,B,C))");
         assert_eq!(song.get_logs_str(), "[PRINT](0) ((1),(2),(3))");
     }
-   #[test]
+    #[test]
     fn test_lex_neg_number() {
         let song = exec_easy("PRINT(-1)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) -1");
@@ -2004,9 +2007,15 @@ mod tests {
         let song = exec_easy("INT A=30; PRINT(-A)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) -30");
     }
-   #[test]
+    #[test]
     fn extract_function_args() { // 関数の引数で与えた文字列を関数の中で展開できない #27
         let song = exec_easy("Function EXT_MML(STR AA){ AA }; EXT_MML{ l4cdeg } ");
+        let pos = song.tracks[0].timepos;
+        assert_eq!(pos, song.timebase * 4);
+    }
+    #[test]
+    fn func_def_value() { // 関数の引数に省略値が指定できないでエラーになる #37
+        let song = exec_easy("Function EXT_MML(STR AA={l4cdef}){ AA }; EXT_MML ");
         let pos = song.tracks[0].timepos;
         assert_eq!(pos, song.timebase * 4);
     }
