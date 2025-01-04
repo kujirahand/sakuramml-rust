@@ -19,10 +19,11 @@ Additionally, more than 100 songs are compatible with `sakuramml-rust`.
 
 - [mmlbbs6](https://sakuramml.com/mmlbbs6/index.php?action=pico) --- Many songs are posted on mmlbbs6.
 
-# Web Version
+# Tutorial
 
-- [PicoSakura](https://sakuramml.com/picosakura/)
-  - [sakuramml.com(Web)](https://sakuramml.com)
+An online tutorial is available. You can learn the commands while listening to the music.
+
+- [Tutorial](https://sakuramml.com/index.php?%E7%B0%A1%E5%8D%98%E3%81%AA%E4%BD%BF%E3%81%84%E6%96%B9)
 
 # Install
 
@@ -30,14 +31,19 @@ Additionally, more than 100 songs are compatible with `sakuramml-rust`.
 
 - [Command line binary(win/mac)](https://github.com/kujirahand/sakuramml-rust/releases/)
 
+## Web Assembly - Web Player
+
+- [PicoSakura](https://sakuramml.com/picosakura/)
+  - [sakuramml.com(Web)](https://sakuramml.com)
+
 ## Compile with Rust
 
 Please install [Rust compier](https://www.rust-lang.org/tools/install).
 
-```
-$ git clone https://github.com/kujirahand/sakuramml-rust.git
-$ cd sakuramml-rust
-$ cargo build --release
+```sh
+git clone https://github.com/kujirahand/sakuramml-rust.git
+cd sakuramml-rust
+cargo build --release
 ```
 
 `target/release/sakuramml` is compiler.
