@@ -23,7 +23,7 @@ Additionally, more than 100 songs are compatible with `sakuramml-rust`.
 
 An online tutorial is available. You can learn the commands while listening to the music.
 
-- [Tutorial](https://sakuramml.com/index.php?%E7%B0%A1%E5%8D%98%E3%81%AA%E4%BD%BF%E3%81%84%E6%96%B9)
+- [Tutorial](https://sakuramml.com/index.php?Tutorial)
 
 # Install
 
@@ -53,8 +53,8 @@ cargo build --release
 
 Please make text file "test.mml". 　Execute the following command to generate a MIDI file.
 
-```
-$ sakuramml test.mml
+```sh
+sakuramml test.mml
 ```
 
 ## Basic
