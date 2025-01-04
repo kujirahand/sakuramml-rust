@@ -12,31 +12,31 @@ It was recognized as an award-winning entry in the "Online Software Grand Prize 
 
 - [README(日本語)](https://github.com/kujirahand/sakuramml-rust/blob/main/README_ja.md)
 
-# Samples
+## Samples
 
 Many users have composed music using `sakuramml`, and over 2,000 songs have been posted on this forum.
 Additionally, more than 100 songs are compatible with `sakuramml-rust`.
 
 - [mmlbbs6](https://sakuramml.com/mmlbbs6/index.php?action=pico) --- Many songs are posted on mmlbbs6.
 
-# Tutorial
+## Tutorial
 
 An online tutorial is available. You can learn the commands while listening to the music.
 
 - [Tutorial](https://sakuramml.com/index.php?Tutorial)
 
-# Install
+## Install
 
-## Binary - command line tool
+### Binary - command line tool
 
 - [Command line binary(win/mac)](https://github.com/kujirahand/sakuramml-rust/releases/)
 
-## Web Assembly - Web Player
+### Web Assembly - Web Player
 
 - [PicoSakura](https://sakuramml.com/picosakura/)
   - [sakuramml.com(Web)](https://sakuramml.com)
 
-## Compile with Rust
+### Compile with Rust
 
 Please install [Rust compier](https://www.rust-lang.org/tools/install).
 
@@ -49,7 +49,7 @@ cargo build --release
 `target/release/sakuramml` is compiler.
 
 
-# Sakura MML
+## Basic Usage
 
 Please make text file "test.mml". 　Execute the following command to generate a MIDI file.
 
@@ -57,7 +57,9 @@ Please make text file "test.mml". 　Execute the following command to generate a
 sakuramml test.mml
 ```
 
-## Basic
+### MML Basic
+
+You can play the following text as a music.
 
 ```
 o4 cdefgab>c<bagfedc
@@ -74,7 +76,6 @@ l4 `ceg` `dfa`8 `egb`8 `ceg`
 ```
 
 ## Set TIME Pointer
-
 
 ```
 // top
@@ -147,7 +148,6 @@ v127 c ( c ( c (( c )) c ) c ) c
 
 ### Harmony
 
-
 ```
 `ceg` `dfa` `egb` `ceg`
 ```
@@ -165,7 +165,7 @@ v.onTime(0,127,!1) l8cccccccc
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
 
-## Macro
+### Macro
 
 It can define Macro.
 
@@ -188,7 +188,7 @@ It replaces `#?1` `#?2` `#?3` ...
 #Unison{cde},7
 ```
 
-## Script
+### Script
 
 It can use IF/FOR/WHILE/FUNCTION script.
 
@@ -204,7 +204,7 @@ FOR (INT N=1; N < 5; N++) {
 }
 ```
 
-## Variables
+### Variables
 
  It can define variables of INT, STR, and ARRAY types.
 
@@ -226,7 +226,7 @@ PRINT(A1(2)) // 3
 - Command List(ja) --- [command.md](command.md)
 - Voice List - [voice.md](voice.md)
 
-## Related Repository
+### Related Repository
 
 - [GitHub/sakuramml-rust](https://github.com/kujirahand/sakuramml-rust)
 - [crate.io/sakuramml](https://crates.io/crates/sakuramml)
