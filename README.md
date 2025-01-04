@@ -1,34 +1,36 @@
 # sakuramml-rust
 
-"sakruamml" is a MML/ABC to MIDI compier.
+`sakruamml` is a MML/ABC to MIDI compier.
 
-- [README(日本語)](README_ja.md)
-
-This compiler that converts the text of "cde" into MIDI files. 
+This compiler that converts the MML/ABC into MIDI files. 
+MML is a notation system that represents sheet music using text such as `cde`.
 It is a tool that allows you to easily create music.
 It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAssembly).
 
-# Repository
+`sakuramml` is a historic music production tool developed around the year 2000.
+It was recognized as an award-winning entry in the "Online Software Grand Prize 2001" in Japan, and was even featured in high school IT textbooks.
 
-- [GitHub/sakuramml-rust](https://github.com/kujirahand/sakuramml-rust)
-- [crate.io/sakuramml](https://crates.io/crates/sakuramml)
-- [npm/sakuramml](https://www.npmjs.com/package/sakuramml)
-- Related repository
-  - [GitHub/picosakura](https://github.com/kujirahand/picosakura) ... web player
-  - [GitHub/picosakura-rust](https://github.com/kujirahand/picosakura-rust) ... local player
+- [README(日本語)](https://github.com/kujirahand/sakuramml-rust/blob/main/README_ja.md)
 
-# Web Version (WASM)
+# Samples
 
-- [Pico-Sakura](https://sakuramml.com/index.php?pico-sakura) --- WebAssembly version
-  - [Sakura's Web](https://sakuramml.com)
+Many users have composed music using `sakuramml`, and over 2,000 songs have been posted on this forum.
+Additionally, more than 100 songs are compatible with `sakuramml-rust`.
+
+- [mmlbbs6](https://sakuramml.com/mmlbbs6/index.php?action=pico) --- Many songs are posted on mmlbbs6.
+
+# Web Version
+
+- [PicoSakura](https://sakuramml.com/picosakura/)
+  - [sakuramml.com(Web)](https://sakuramml.com)
 
 # Install
 
-## Binary - command line
+## Binary - command line tool
 
 - [Command line binary(win/mac)](https://github.com/kujirahand/sakuramml-rust/releases/)
 
-## Compile
+## Compile with Rust
 
 Please install [Rust compier](https://www.rust-lang.org/tools/install).
 
@@ -157,8 +159,6 @@ v.onTime(0,127,!1) l8cccccccc
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
 
-
-
 ## Macro
 
 It can define Macro.
@@ -219,3 +219,12 @@ PRINT(A1(2)) // 3
 
 - Command List(ja) --- [command.md](command.md)
 - Voice List - [voice.md](voice.md)
+
+## Related Repository
+
+- [GitHub/sakuramml-rust](https://github.com/kujirahand/sakuramml-rust)
+- [crate.io/sakuramml](https://crates.io/crates/sakuramml)
+- [npm/sakuramml](https://www.npmjs.com/package/sakuramml)
+- Player
+  - [GitHub/picosakura](https://github.com/kujirahand/picosakura) ... web player
+  - [GitHub/picosakura-rust](https://github.com/kujirahand/picosakura-rust) ... local player

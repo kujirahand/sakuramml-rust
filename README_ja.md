@@ -1,19 +1,23 @@
 # テキスト音楽サクラ(Rust版) / ピコサクラ
 
-「ドレミ」や「cde」のテキストをMIDIファイルに変換するコンパイラです。手軽に音楽を作成できるツールです。
+サクラはMML(Music Macro Language)からMIDIファイルに変換するコンパイラです。
+「ドレミ」や「cde」のテキストをMIDIファイルに変換するコンパイラです。
 Rustで作られておりマルチプラットフォーム(macOS/Windows/Linux/WebAssembly)で動作します。
 
-# リポジトリ
+サクラは2000年以前に開発された歴史ある音楽制作ツールです。
+MMLとは、「cde」のようなテキストで楽譜を表す記法です。
+簡単に音楽を作れるツールです。Rustで作られており、macOS、Windows、Linux、WebAssemblyで動きます。
+「オンラインソフト大賞2001」で入賞し、高校の情報の教科書にも載りました。
 
-- [GitHub](https://github.com/kujirahand/sakuramml-rust)
-- [crate.io](https://crates.io/crates/sakuramml)
-- [npm/sakuramml](https://www.npmjs.com/package/sakuramml)
+# サンプル一覧
 
-## どこまで作ったか
+- [mmlbbs6](https://sakuramml.com/mmlbbs6/index.php?action=pico) --- サクラ曲掲示板6にたくさんの曲が投稿されています。
 
-- ブラウザで手軽に音楽を再生できる[ピコサクラ](https://sakuramml.com/go.php?15)を実装しました。
-- サクラv2と比べると機能は少ないですが、使えるコマンドの一覧が[こちら](src/command.md)にあります。
-- 内部構造についての説明が[こちら](dev_memo.md)にあります。
+# チュートリアル
+
+オンラインチュートリアルを用意しています。ブラウザ上で音を聞きながらコマンドを覚えられます。
+
+- [チュートリアル](https://sakuramml.com/index.php?%E7%B0%A1%E5%8D%98%E3%81%AA%E4%BD%BF%E3%81%84%E6%96%B9)
 
 # ピコサクラ - インストールについて
 
@@ -203,3 +207,9 @@ P1
 - サクラ(Rust版)のコマンド一覧 --- [command.md](command.md)
   - サクラ(v2版)のコマンド一覧 --- https://sakuramml.com/doc/command/index.htm
 - 音色一覧 --- [voice.md](voice.md)
+
+# リポジトリ
+
+- [GitHub](https://github.com/kujirahand/sakuramml-rust)
+- [crate.io](https://crates.io/crates/sakuramml)
+- [npm/sakuramml](https://www.npmjs.com/package/sakuramml)
