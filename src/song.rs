@@ -500,6 +500,7 @@ pub struct SFunction {
     pub func_id: usize,
     pub arg_names: Vec<String>,
     pub arg_types: Vec<char>, // S: string, I: int, A: array
+    pub arg_def_values: Vec<SValue>,
 }
 
 impl SFunction {
@@ -511,6 +512,7 @@ impl SFunction {
             func_id,
             arg_names: vec![],
             arg_types: vec![],
+            arg_def_values: vec![],
         }
     }
 }

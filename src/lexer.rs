@@ -318,9 +318,11 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
      let args: Vec<&str> = args_str.split(",").collect();
      let mut arg_types: Vec<char> = vec![];
      let mut arg_names: Vec<String> = vec![];
+     let mut arg_def_values: Vec<SValue> = vec![];
     for i in 0..args.len() {
         let name = args[i].trim().to_string();
         if name.len() == 0 { continue; }
+        let mut def_v: SValue = SValue::from_i(0);
         // include space?
         if name.contains(" ") {
             // split string by " "
@@ -329,10 +331,18 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
             let name_s = splited[1].trim();
             // get type
             let mut type_sf = 'I';
-            if type_s == "Str" || type_s == "STR" || type_s == "S" { type_sf = 'S'; }
-            if type_s == "Int" || type_s == "INT" || type_s == "I" { type_sf = 'I'; }
-            if type_s == "Array" || type_s == "ARRAY" || type_s == "A" { type_sf = 'A'; }
-            song.variables_insert(name_s, SValue::new());
+            if type_s == "Int" || type_s == "INT" || type_s == "I" {
+                type_sf = 'I';
+            }
+            if type_s == "Str" || type_s == "STR" || type_s == "S" {
+                type_sf = 'S';
+                def_v = SValue::from_str("");
+            }
+            if type_s == "Array" || type_s == "ARRAY" || type_s == "A" {
+                type_sf = 'A';
+                def_v = SValue::from_int_array(vec![]);
+            }
+            song.variables_insert(name_s, def_v.clone()); // add name to local variables
             arg_types.push(type_sf);
             arg_names.push(name_s.to_string());
         } else {
@@ -341,6 +351,20 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
             arg_types.push('i');
             arg_names.push(name);
         }
+        // check def value
+        cur.skip_space();
+        if cur.eq_char('=') {
+            cur.next();
+            def_v = read_arg_value(cur, song);
+            // check var type
+            match &def_v {
+                SValue::Int(_) => arg_types[i] = 'I',
+                SValue::Str(_, _) => arg_types[i] = 'S',
+                SValue::IntArray(_) => arg_types[i] = 'A',
+                _ => {}
+            }
+        }
+        arg_def_values.push(def_v);
     }
     // get body
     cur.skip_space_ret();
@@ -365,6 +389,7 @@ fn read_def_user_function(cur: &mut TokenCursor, song: &mut Song) -> Token {
     let mut func_obj = SFunction::new(&func_name, body_tok, func_id, lineno);
     func_obj.arg_names = arg_names;
     func_obj.arg_types = arg_types;
+    func_obj.arg_def_values = arg_def_values;
     song.functions[func_id] = func_obj;
     Token::new_empty(&format!("DefineFunction::{}", func_name), lineno)
 }
@@ -838,9 +863,11 @@ fn check_variables(cur: &mut TokenCursor, song: &mut Song, cmd: String) -> Optio
         return Some(tok);
     }
     // variables?
+    println!("@@@check_variables:{}", cmd);
     match song.variables_get(&cmd) {
         Some(sval) => {
-           // get variable
+            println!("@@@:{:?}", sval);
+            // get variable
             return Some(read_variables(cur, song, &cmd, sval.clone()));
         }
         None => {}

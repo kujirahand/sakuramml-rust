@@ -2004,4 +2004,10 @@ mod tests {
         let song = exec_easy("INT A=30; PRINT(-A)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) -30");
     }
+   #[test]
+    fn extract_function_args() { // 関数の引数で与えた文字列を関数の中で展開できない #27
+        let song = exec_easy("Function EXT_MML(STR AA){ AA }; EXT_MML{ l4cdeg } ");
+        let pos = song.tracks[0].timepos;
+        assert_eq!(pos, song.timebase * 4);
+    }
  }

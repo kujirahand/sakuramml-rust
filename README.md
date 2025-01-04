@@ -51,10 +51,18 @@ cargo build --release
 
 ## Basic Usage
 
-Please make text file "test.mml". 　Execute the following command to generate a MIDI file.
+Please make text file `test.mml`. And execute the following command to generate a MIDI file `test.mid`.
 
 ```sh
-sakuramml test.mml
+./sakuramml test.mml test.mid
+```
+
+### Check MIDI file
+
+You can check MIDI file with `--dump` option.
+
+```sh
+./sakuramml --dump test.mid
 ```
 
 ### MML Basic
