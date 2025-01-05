@@ -33,7 +33,7 @@ macro_rules! trk {
     };
 }
 
-/// run tokens and get arguments(=Vec<Token>)
+/// run tokens and get arguments(=`Vec<Token>`)
 pub fn exec_args(song: &mut Song, tokens: &Vec<Token>) -> Vec<SValue> {
     let mut args: Vec<SValue> = vec![];
     let tmp_needs_return_values = song.flags.function_needs_return_value;
