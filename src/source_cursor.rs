@@ -1,7 +1,7 @@
 //! Source reader
 
 #[derive(Debug)]
-pub struct TokenCursor {
+pub struct SourceCursor {
     /// position
     pub index: usize,
     src: Vec<char>,
@@ -9,7 +9,7 @@ pub struct TokenCursor {
     pub line: isize,
 }
 
-impl TokenCursor {
+impl SourceCursor {
     /// cursor from source
     pub fn from(source: &str) -> Self {
         Self {
@@ -354,7 +354,7 @@ mod tests {
     #[test]
     fn test_basic() {
         // 
-        let mut cur = TokenCursor::from("l16cde");
+        let mut cur = SourceCursor::from("l16cde");
         assert_eq!(cur.is_eos(), false);
         assert_eq!(cur.get_char(), 'l');
         assert_eq!(cur.get_char(), '1');
@@ -365,13 +365,13 @@ mod tests {
         assert_eq!(cur.get_char(), '\0');
         assert_eq!(cur.get_char(), '\0');
         //
-        let mut cur = TokenCursor::from("l16cde");
+        let mut cur = SourceCursor::from("l16cde");
         assert_eq!(cur.get_char(), 'l');
         assert_eq!(cur.eq("16"), true);
     }
     #[test]
     fn test_basic2() {
-        let mut cur = TokenCursor::from("l16cde");
+        let mut cur = SourceCursor::from("l16cde");
         assert_eq!(cur.get_char(), 'l');
         assert_eq!(cur.is_numeric(), true);
         assert_eq!(cur.eq("16"), true);
@@ -380,25 +380,25 @@ mod tests {
     }
     #[test]
     fn test_skip() {
-        let mut cur = TokenCursor::from("   cde");
+        let mut cur = SourceCursor::from("   cde");
         cur.skip_space();
         assert_eq!(cur.cur2end(), String::from("cde"));
     }
     #[test]
     fn test_get_token_ch() {
         //
-        let mut cur = TokenCursor::from("123,456,789");
+        let mut cur = SourceCursor::from("123,456,789");
         assert_eq!(cur.get_token_ch(','), String::from("123"));
         assert_eq!(cur.get_token_ch(','), String::from("456"));
         assert_eq!(cur.get_token_ch(','), String::from("789"));
         //
-        let mut cur = TokenCursor::from("123,456,789");
+        let mut cur = SourceCursor::from("123,456,789");
         assert_eq!(cur.get_token_ch('*'), String::from("123,456,789"));
     }
     #[test]
     fn test_get_token_s() {
         //
-        let mut cur = TokenCursor::from("123::456::789");
+        let mut cur = SourceCursor::from("123::456::789");
         assert_eq!(cur.get_token_s("::"), String::from("123"));
         assert_eq!(cur.get_token_s("::"), String::from("456"));
         assert_eq!(cur.get_token_s("::"), String::from("789"));
@@ -406,82 +406,82 @@ mod tests {
     #[test]
     fn test_get_token_nest() {
         //
-        let mut cur = TokenCursor::from("{abc}");
+        let mut cur = SourceCursor::from("{abc}");
         assert_eq!(cur.get_token_nest('{', '}'), String::from("abc"));
         //
-        let mut cur = TokenCursor::from("{aaa{bbb}ccc}");
+        let mut cur = SourceCursor::from("{aaa{bbb}ccc}");
         assert_eq!(cur.get_token_nest('{', '}'), String::from("aaa{bbb}ccc"));
         //
-        let mut cur = TokenCursor::from("(abc(ddd))aaa");
+        let mut cur = SourceCursor::from("(abc(ddd))aaa");
         assert_eq!(cur.get_token_nest('(', ')'), String::from("abc(ddd)"));
         //
-        let mut cur = TokenCursor::from("(abc(ddd)e)aaa");
+        let mut cur = SourceCursor::from("(abc(ddd)e)aaa");
         assert_eq!(cur.get_token_nest('(', ')'), String::from("abc(ddd)e"));
     }
     #[test]
     fn test_get_int() {
-        let mut cur = TokenCursor::from("345");
+        let mut cur = SourceCursor::from("345");
         assert_eq!(cur.get_int(-1), 345);
         //
-        let mut cur = TokenCursor::from("l8");
+        let mut cur = SourceCursor::from("l8");
         cur.next();
         assert_eq!(cur.get_int(-1), 8);
         //
-        let mut cur = TokenCursor::from("0xFF");
+        let mut cur = SourceCursor::from("0xFF");
         assert_eq!(cur.get_int(-1), 0xFF);
         //
-        let mut cur = TokenCursor::from("0x");
+        let mut cur = SourceCursor::from("0x");
         assert_eq!(cur.get_int(-1), -1);
         //
-        let mut cur = TokenCursor::from("0xff");
+        let mut cur = SourceCursor::from("0xff");
         assert_eq!(cur.get_int(-1), 0xff);
         //
-        let mut cur = TokenCursor::from("0x123");
+        let mut cur = SourceCursor::from("0x123");
         assert_eq!(cur.get_int(-1), 0x123);
         //
-        let mut cur = TokenCursor::from("a");
+        let mut cur = SourceCursor::from("a");
         assert_eq!(cur.get_int(-1), -1);
         //
-        let mut cur = TokenCursor::from("1234");
+        let mut cur = SourceCursor::from("1234");
         assert_eq!(cur.get_int(-1), 1234);
         //
-        let mut cur = TokenCursor::from("0o777");
+        let mut cur = SourceCursor::from("0o777");
         assert_eq!(cur.get_int(-1), 0o777);
         //
-        let mut cur = TokenCursor::from("-111");
+        let mut cur = SourceCursor::from("-111");
         assert_eq!(cur.get_int(0), -111);
         //
-        let mut cur = TokenCursor::from("-0xFF");
+        let mut cur = SourceCursor::from("-0xFF");
         assert_eq!(cur.get_int(0), -0xFF);
         //
-        let mut cur = TokenCursor::from("$FF");
+        let mut cur = SourceCursor::from("$FF");
         assert_eq!(cur.get_int(0), 0xFF);
         //
-        let mut cur = TokenCursor::from("-$FF");
+        let mut cur = SourceCursor::from("-$FF");
         assert_eq!(cur.get_int(0), -0xFF);
     }
     #[test]
     fn test_get_word() {
-        let mut cur = TokenCursor::from("ABC");
+        let mut cur = SourceCursor::from("ABC");
         assert_eq!(&cur.get_word(), "ABC");
-        let mut cur = TokenCursor::from("_ABC");
+        let mut cur = SourceCursor::from("_ABC");
         assert_eq!(&cur.get_word(), "_ABC");
-        let mut cur = TokenCursor::from("Abc");
+        let mut cur = SourceCursor::from("Abc");
         assert_eq!(&cur.get_word(), "Abc");
-        let mut cur = TokenCursor::from("A123");
+        let mut cur = SourceCursor::from("A123");
         assert_eq!(&cur.get_word(), "A123");
-        let mut cur = TokenCursor::from("#abc#def");
+        let mut cur = SourceCursor::from("#abc#def");
         assert_eq!(&cur.get_word(), "#abc");
-        let mut cur = TokenCursor::from("#abc(30)");
+        let mut cur = SourceCursor::from("#abc(30)");
         assert_eq!(&cur.get_word(), "#abc");
     }
     #[test]
     fn test_peek_str_n() {
-        let cur = TokenCursor::from("abcdefg");
+        let cur = SourceCursor::from("abcdefg");
         assert_eq!(cur.peek_str_n(1), "a".to_string());
         assert_eq!(cur.peek_str_n(3), "abc".to_string());
         assert_eq!(cur.peek_str_n(5), "abcde".to_string());
-        let cur = TokenCursor::from("ドレミ");
+        let cur = SourceCursor::from("ドレミ");
         assert_eq!(cur.peek_str_n(1), "ド".to_string());
         assert_eq!(cur.peek_str_n(3), "ドレミ".to_string());
         assert_eq!(cur.peek_str_n(5), "ドレミ".to_string());
@@ -489,15 +489,15 @@ mod tests {
     #[test]
     fn test_get_token_to_dq() {
         // simple
-        let mut cur = TokenCursor::from("\"abc\"");
+        let mut cur = SourceCursor::from("\"abc\"");
         cur.next(); // skip '"'
         assert_eq!(cur.get_token_to_double_quote(), "abc".to_string());
         // multi line
-        let mut cur = TokenCursor::from("\"abc\ndef\"");
+        let mut cur = SourceCursor::from("\"abc\ndef\"");
         cur.next(); // skip '"'
         assert_eq!(cur.get_token_to_double_quote(), "abc\ndef".to_string());
         // escape char
-        let mut cur = TokenCursor::from("\"abc\\\"def\"");
+        let mut cur = SourceCursor::from("\"abc\\\"def\"");
         cur.next(); // skip '"'
         assert_eq!(cur.get_token_to_double_quote(), "abc\"def".to_string());
     }

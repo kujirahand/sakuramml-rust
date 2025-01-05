@@ -1,7 +1,7 @@
 //! runner from tokens
 use crate::mml_def::TieMode;
 use crate::token::TokenValueType;
-use super::source_cursor::TokenCursor;
+use super::source_cursor::SourceCursor;
 use super::lexer::lex;
 use super::song::{Event, NoteInfo, Song};
 use super::svalue::SValue;
@@ -1293,7 +1293,7 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
     if len_str == "" {
         return def_len;
     }
-    let mut cur = TokenCursor::from(len_str);
+    let mut cur = SourceCursor::from(len_str);
     let mut step_mode = false;
     if cur.eq_char('%') {
         cur.next();

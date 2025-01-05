@@ -1,5 +1,5 @@
 /// Sutoton Mode Converter
-use super::source_cursor::TokenCursor;
+use super::source_cursor::SourceCursor;
 use super::token::zen2han;
 
 /// Sutoton Item for converter
@@ -164,7 +164,7 @@ fn init_items() -> SutotonList {
 pub fn convert(src: &str) -> String {
     let mut items = init_items();
     let mut res = String::new();
-    let mut cur = TokenCursor::from(src);
+    let mut cur = SourceCursor::from(src);
     while !cur.is_eos() {
         let ch = zen2han(cur.peek_n(0));
         // string ?
