@@ -4,7 +4,7 @@
 
 pub mod sakura_version;
 pub mod sakura_message;
-pub mod cursor;
+pub mod source_cursor;
 pub mod token;
 pub mod lexer;
 pub mod song;

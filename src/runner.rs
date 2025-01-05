@@ -1,7 +1,7 @@
 //! runner from tokens
 use crate::mml_def::TieMode;
 use crate::token::TokenValueType;
-use super::cursor::TokenCursor;
+use super::source_cursor::TokenCursor;
 use super::lexer::lex;
 use super::song::{Event, NoteInfo, Song};
 use super::svalue::SValue;

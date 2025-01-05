@@ -1,5 +1,5 @@
 /// Sutoton Mode Converter
-use super::cursor::TokenCursor;
+use super::source_cursor::TokenCursor;
 use super::token::zen2han;
 
 /// Sutoton Item for converter
