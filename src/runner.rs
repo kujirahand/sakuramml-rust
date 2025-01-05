@@ -2009,14 +2009,24 @@ mod tests {
     }
     #[test]
     fn extract_function_args() { // 関数の引数で与えた文字列を関数の中で展開できない #27
-        let song = exec_easy("Function EXT_MML(STR AA){ AA }; EXT_MML{ l4cdeg } ");
+        let song = exec_easy("Function EXT_MML(STR AA){ AA }; EXT_MML{ l4cdeg }");
+        let pos = song.tracks[0].timepos;
+        assert_eq!(pos, song.timebase * 4);
+        //
+        let song = exec_easy("Function EXT_MML(STR AA){ AA }; EXT_MML{ l8 [8c] }");
         let pos = song.tracks[0].timepos;
         assert_eq!(pos, song.timebase * 4);
     }
     #[test]
     fn func_def_value() { // 関数の引数に省略値が指定できないでエラーになる #37
-        let song = exec_easy("Function EXT_MML(STR AA={l4cdef}){ AA }; EXT_MML ");
+        let song = exec_easy("Function EXT_MML(STR AA={l4cdef}){ AA }; EXT_MML");
         let pos = song.tracks[0].timepos;
         assert_eq!(pos, song.timebase * 4);
+        //
+        let song = exec_easy("Function EXT_MML(STR AA={cdef}){ PRINT(AA) }; EXT_MML ");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) cdef");
+        //
+        let song = exec_easy("Function DEF_TEST(AA=1){ PRINT(AA) }; DEF_TEST ");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
     }
  }
