@@ -17,7 +17,7 @@ It was recognized as an award-winning entry in the "Online Software Grand Prize 
 Many users have composed music using `sakuramml`, and over 2,000 songs have been posted on this forum.
 Additionally, more than 100 songs are compatible with `sakuramml-rust`.
 
-- [mmlbbs6](https://sakuramml.com/mmlbbs6/index.php?action=pico) --- Many songs are posted on mmlbbs6.
+- [mmlbbs6](https://sakuramml.com/mmlbbs6/index.php?action=pico)
 
 ## Tutorial
 
@@ -46,18 +46,24 @@ cd sakuramml-rust
 cargo build --release
 ```
 
-`target/release/sakuramml` is compiler.
+When compiled, the executable file will be saved in `target/release/sakuramml`.
 
-
-## Basic Usage
+## CLI Usage
 
 Please make text file `test.mml`. And execute the following command to generate a MIDI file `test.mid`.
 
 ```sh
+# Compile MML file to MIDI file
 ./sakuramml test.mml test.mid
+# Compile MML file to MIDI file, can omit output file
+./sakuramml test.mml
 ```
 
-### Check MIDI file
+You can test MML command easily with `--eval` option.
+
+```sh
+./sakuramml --eval "o4l4 cege c1"
+```
 
 You can check MIDI file with `--dump` option.
 
@@ -65,7 +71,7 @@ You can check MIDI file with `--dump` option.
 ./sakuramml --dump test.mid
 ```
 
-### MML Basic
+## MML Basic
 
 You can play the following text as a music.
 
@@ -73,17 +79,24 @@ You can play the following text as a music.
 o4 cdefgab>c<bagfedc
 ```
 
+You can specify tracks(`TR`) and channels(`CH`), Voice(`@`).
+
 ```
-TR=1 CH=1 l1 ceg^
+TR(1) CH(1) @1 l1 ceg^
+TR(2) CH(2) @1 l1 egb^
 ```
 
 ## Harmony
+
+You can play chords.
 
 ```
 l4 `ceg` `dfa`8 `egb`8 `ceg`
 ```
 
-## Set TIME Pointer
+## Time Pointer
+
+You can specify the writing position using a time pointer(`TIME`).
 
 ```
 // top
@@ -148,24 +161,24 @@ l1 { c d {efe} d } c
 
 ### Velocity
 
+Using the `v` command, you can specify the velocity. It can be set within the range of 0 to 127.
+
+```
+l8 v127 cdef v64 cdef v127 c^^^
+```
+
 "(" decreases the velocity by 8, and ")" increases the velocity by 8.
 
 ```
 v127 c ( c ( c (( c )) c ) c ) c  
 ```
 
-### Harmony
-
-```
-`ceg` `dfa` `egb` `ceg`
-```
-
 ### Reservation notation
 
-- v.onTime(low, high, len, ...)　/ 省略形 v.T(low,high,len,...)
+- v.onTime(low, high, len, ...)　OR v.T(low,high,len,...)
   - The value that should be specified for `len` is the tick. When specifying the note length, it should be written as `!4`, for example.
-- v.onNote(v1, v2, v3, ...)　/ abbreviation: v.N(v1,v2,v3,...)
-- t.onNote(v1, v2, v3, ...)　/ abbreviation: t.N(v1,v2,v3,...)
+- v.onNote(v1, v2, v3, ...)　OR v.N(v1,v2,v3,...)
+- t.onNote(v1, v2, v3, ...)　OR t.N(v1,v2,v3,...)
 - (ControllChange or PB or p).onTime(low, high, len, ...)
 
 ```

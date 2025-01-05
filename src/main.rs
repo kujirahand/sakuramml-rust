@@ -34,7 +34,7 @@ fn usage() {
         "  sakuramml (mmlfile) (midifile)\n",
         "OPTIONS:\n",
         "  -d, --debug    Debug mode\n",
-        "  -e, --exec     Compile (MML)\n",
+        "  -e, --eval     Compile (MML)\n",
         "  -h, --help     Show help\n",
         "  -v, --version  Show version\n",
         "  -m, --dump,    Dump midi file\n",
