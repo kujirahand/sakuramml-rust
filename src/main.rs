@@ -28,8 +28,9 @@ fn time_to_u64() -> u64 {
 
 /// show usage
 fn usage() {
-    println!("=== sakuramml ver.{} ===\n{}{}{}{}{}{}{}{}",
+    println!("=== sakuramml ver.{} (build:{}) ===\n{}{}{}{}{}{}{}{}",
         SAKURA_VERSION,
+        env!("BUILD_NUMBER"),
         "USAGE:\n",
         "  sakuramml (mmlfile) (midifile)\n",
         "OPTIONS:\n",

@@ -356,7 +356,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     0x00 => { // basic
                         let num = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
                         let val = if data.len() >= 2 { data[1].to_i() as u8 } else { 0 };
-                        event = Some(Event::sysex_raw(
+                        event = Some(Event::sysex_raw_checksum(
                             time,
                             vec![0xF0, 0x41, dev, 0x42, 0x12, 0x40, 0x01, num, val, 0xf7],
                         ));
@@ -368,7 +368,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                                 a.push(v.to_i() as u8);
                             }
                             for ic in 0x11..=0x1F {
-                                let e = Event::sysex_raw(
+                                let e = Event::sysex_raw_checksum(
                                     time,
                                     vec![
                                         0xF0, 0x41, dev, 0x42, 0x12, 0x40, ic, 0x40,
@@ -381,10 +381,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                         }
                     },
                     0x15 => { // change to the rhytm part
-                        let val = if data.len() >= 1 { data[1].to_i() as u8 } else { 0 };
+                        let val = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
                         let ch = trk!(song).channel;
                         let sys_ch = if ch == 9 { 0 } else { if ch <= 9 { ch + 1 } else { ch } } as u8;
-                        event = Some(Event::sysex_raw(
+                        event = Some(Event::sysex_raw_checksum(
                             time,
                             vec![0xF0, 0x41, dev, 0x42, 0x12, 0x40, sys_ch, 0x15, val, 0xf7],
                         ));
@@ -393,7 +393,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     0x30 ..= 0x40 => {
                         let num = (&t.value_i % 256) as u8;
                         let val = data[0].to_i() as u8;
-                        event = Some(Event::sysex_raw(
+                        event = Some(Event::sysex_raw_checksum(
                             time,
                             vec![0xF0, 0x41, song.device_number as u8, 0x42, 0x12, 0x40, 0x01, num, val, 0xf7],
                         ));
@@ -889,14 +889,15 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
     //
     // 参照できるシステム関数
     if func_name == "Random" || func_name == "RANDOM" || func_name == "RandomInt" || func_name == "RND" || func_name == "Rnd" {
+        // song.add_log(format!("[Random]({}) {:?}", t.lineno, arg_count, args));
         if arg_count >= 2 {
             let min = args[0].to_i();
             let max = args[1].to_i();
-            let rnd = song.rand() as isize % (max - min + 1) + min;
+            let rnd = (song.rand() & 0x7FFFFFFF) as isize % (max - min + 1) + min;
             song.stack.push(SValue::from_i(rnd));
         } else if arg_count == 1 {
             let m = args[0].to_i();
-            let v = (song.rand() as isize) % m;
+            let v = ((song.rand() & 0x7FFFFFFF) as isize) % m;
             song.stack.push(SValue::from_i(v));
         } else if arg_count == 0 {
             let v = song.rand() as isize;

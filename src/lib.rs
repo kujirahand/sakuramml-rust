@@ -32,6 +32,11 @@ pub fn get_version() -> String {
     sakura_version::SAKURA_VERSION.to_string()
 }
 
+#[wasm_bindgen]
+pub fn get_build_number() -> String {
+    env!("BUILD_NUMBER").to_string()
+}
+
 /// SakuraCompiler Object
 #[wasm_bindgen]
 pub struct SakuraCompiler {

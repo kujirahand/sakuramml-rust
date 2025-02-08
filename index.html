@@ -5,13 +5,13 @@
 <script type="module">
   // WebAssemblyを読み込む
   import init, {
-    get_version, compile_to_midi, SakuraCompiler, 
-  } from './pkg/sakuramml.js';
+    get_version, get_build_number, compile_to_midi, SakuraCompiler, 
+  } from './pkg/sakuramml.js?v=2';
   // Promiseの仕組みでライブラリを読み込む
   init().then(() => {
     console.log('load::ok')
     document.getElementById('player').style.display = 'block'
-    document.getElementById('sakura_version').innerHTML = 'ver.' + get_version()
+    document.getElementById('sakura_version').innerHTML = `ver.${get_version()} (build: ${get_build_number()})`
     const test_mml = 'Str A = {ド}; Str B = {ミ}; A; B'
     console.log('[TEST]', compile_to_midi(test_mml, 1))
   }).catch(err => {

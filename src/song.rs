@@ -56,6 +56,38 @@ impl Event {
     pub fn sysex_raw(time: isize, data_v: Vec<u8>) -> Self {
         Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) }
     }
+    /// create SysEx and add Checksum
+    pub fn sysex_raw_checksum(time: isize, mut data_v: Vec<u8>) -> Self {
+        let mut raw: Vec<u8> = vec![];
+        if data_v.len() > 6 {
+            // check last byte
+            if data_v[data_v.len()-1] != 0xF7 {
+                data_v.push(0xF7);
+            }
+            let mut sum: usize = 0;
+            for i in 0..data_v.len() {
+                let v = data_v[i];
+                if i <= 5 {
+                    raw.push(v);
+                    continue;
+                }
+                if v == 0xF7 {
+                    let mask = (sum & 0x7f) as u8; // 7bit
+                    let sum_v = (0x80 - mask) & 0x7f;
+                    println!("@@@SysEx: Checksum: {:02x}:{}", sum_v, sum_v);
+                    raw.push(sum_v);
+                    raw.push(0xF7);
+                    break;
+                }
+                sum += v as usize;
+                raw.push(v);
+            }
+            println!("@@@SysEx.raw={:?}", raw);
+            return Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(raw) };
+        }
+        // error?
+        Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) }
+    }
     pub fn cc(time: isize, channel: isize, no: isize, value: isize) -> Self {
         Self { etype: EventType::ControllChange, time, channel, v1: no, v2: value, v3:0, data: None }
     }
