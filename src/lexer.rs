@@ -535,6 +535,10 @@ fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
             let num = cur.get_int(0);
             return Some(Token::new_const(TokenType::ConstInt, num, None, TokenValueType::INT));
         },
+        '$' => { // v2 compatible hex number
+            let num = cur.get_int(0);
+            return Some(Token::new_const(TokenType::ConstInt, num, None, TokenValueType::INT));
+        },
         '{' => {
             let str = cur.get_token_nest('{', '}');
             return Some(Token::new_const(TokenType::ConstStr, str.len() as isize, Some(str), TokenValueType::STR));
@@ -1461,7 +1465,8 @@ fn read_command_rhythm(cur: &mut SourceCursor, song: &mut Song) -> Token {
 }
 
 fn read_def_rhythm_macro(cur: &mut SourceCursor, song: &mut Song) {
-    let ch = cur.get_char(); // macro char
+    let ch = cur.get_char(); // get macro char
+    println!("macro={}", ch);
     cur.skip_space();
     if cur.eq_char('=') {
         cur.next();

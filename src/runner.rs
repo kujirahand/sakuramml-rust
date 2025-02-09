@@ -2030,4 +2030,11 @@ mod tests {
         let song = exec_easy("Function DEF_TEST(AA=1){ PRINT(AA) }; DEF_TEST ");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
     }
+   #[test]
+    fn test_read_value_hex() { // v1互換の16進数を読めない問題 #48
+        let song = exec_easy("INT A=$10; PRINT(A)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 16");
+        let song = exec_easy("INT A=0x10; PRINT(A)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 16");
+    }
  }
