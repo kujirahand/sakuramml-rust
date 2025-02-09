@@ -56,34 +56,42 @@ impl Event {
     pub fn sysex_raw(time: isize, data_v: Vec<u8>) -> Self {
         Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) }
     }
+
+    /// calc checksum for SysEx（Roland方式: 7bit sum）
+    fn calc_checksum(data: &[u8]) -> u8 {
+        let sum: u8 = data.iter().fold(0u8, |acc, &x| acc.wrapping_add(x));
+        (128 - (sum & 0x7F)) & 0x7F // 7bit補正
+    }
+
     /// create SysEx and add Checksum
-    pub fn sysex_raw_checksum(time: isize, mut data_v: Vec<u8>) -> Self {
-        let mut raw: Vec<u8> = vec![];
+    pub fn sysex_add_checksum(time: isize, mut data_v: Vec<u8>) -> Self {
         if data_v.len() > 6 {
-            // check last byte
-            if data_v[data_v.len()-1] != 0xF7 {
-                data_v.push(0xF7);
-            }
-            let mut sum: usize = 0;
-            for i in 0..data_v.len() {
-                let v = data_v[i];
-                if i <= 5 {
-                    raw.push(v);
-                    continue;
+            // add checksum
+            let mut header: Vec<u8> = vec![];
+            let mut address_data: Vec<u8> = vec![];
+            for (i, v) in data_v.iter().enumerate() {
+                match i {
+                    0..=4 => header.push(*v),
+                    5..=8 => address_data.push(*v),
+                    _ => {},
                 }
-                if v == 0xF7 {
-                    let mask = (sum & 0x7f) as u8; // 7bit
-                    let sum_v = (0x80 - mask) & 0x7f;
-                    println!("@@@SysEx: Checksum: {:02x}:{}", sum_v, sum_v);
-                    raw.push(sum_v);
-                    raw.push(0xF7);
-                    break;
-                }
-                sum += v as usize;
-                raw.push(v);
             }
-            println!("@@@SysEx.raw={:?}", raw);
-            return Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(raw) };
+            let checksum = Self::calc_checksum(&address_data);
+            // clear data_v
+            data_v.clear();
+            // add header
+            for v in header.iter() {
+                data_v.push(*v);
+            }
+            // add address data
+            for v in address_data.iter() {
+                data_v.push(*v);
+            }
+            // add checksum
+            data_v.push(checksum);
+            // add end
+            data_v.push(0xF7);
+            return Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) };
         }
         // error?
         Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) }
