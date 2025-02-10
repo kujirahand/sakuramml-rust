@@ -148,6 +148,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | ResetGM | ResetGM |
 | ResetGS | ResetGS |
 | ResetXG | ResetXG |
+| MasterVolume | master volume (range: 0-127) (ex) MasterVolume(100) |
+| MasterBalance | master ballance (range: -8192 to 8191(ex) MasterBallance(0) |
 | Tempo | set tempo (ex) Tempo(120) |
 | TEMPO | set tempo (ex) TEMPO(120) |
 | T | set tempo (ex) T(120) |
