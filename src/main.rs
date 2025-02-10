@@ -154,3 +154,56 @@ fn save_to_file(song: &mut Song, path: &str) {
     file.write(buf.as_ref()).unwrap();
     file.flush().unwrap();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mml_dump(mml: &str) -> String {
+        // mml to midi
+        let mut song = Song::new();
+        let tokens = lex(&mut song, mml, 0);
+        exec(&mut song, &tokens);
+        let buf = generate(&mut song);
+        // midi to dump
+        dump_midi(&buf, true)
+    }
+
+    #[test]
+    fn test_tone() {
+        // tone
+        let log = mml_dump("v100 o4 c");
+        assert!(log.contains("NoteOn"));
+        assert!(log.contains("NoteOff"));
+        assert!(log.contains("90 30 64"));
+    }
+    #[test]
+    fn test_meta() {
+        // Tempo
+        let log = mml_dump("Tempo=120");
+        assert!(log.contains("Tempo=120"));
+    }
+    #[test]
+    fn test_sysex() {
+        // SysEx normal
+        let log = mml_dump("SysEx$=F0,43,10,4C,00,00,00,30,F0,60,F7;");
+        assert!(log.contains("SysEx$=F0,/*len:0A*/43,10,4C,00,00,00,30,F0,60,F7;"));
+        // SysEx with Checksum
+        let log = mml_dump("SysEx=$f0,$43,$10,$4c,$00,{$00,$00,$30,$f0},$f7;");
+        assert!(log.contains("SysEx$=F0,/*len:0A*/43,10,4C,00,00,00,30,F0,60,F7;"));
+        let log = mml_dump("SysEx$=f0,43,10,4c,00,{00,00,30,f0},f7;");
+        assert!(log.contains("SysEx$=F0,/*len:0A*/43,10,4C,00,00,00,30,F0,60,F7;"));
+    }
+    #[test]
+    fn test_sysex_gseffect() {
+        // GSEffect
+        let log = mml_dump("GSEffect(0x30, 0);");
+        assert!(log.contains("SysEx$=F0,/*len:0A*/41,10,42,12,40,01,30,00,0F,F7;"));
+        // GSEffect GSReverbMacro
+        let log = mml_dump("GSReverbMacro(0);");
+        assert!(log.contains("SysEx$=F0,/*len:0A*/41,10,42,12,40,01,30,00,0F,F7;"));
+        // GSScaleTuning
+        let log = mml_dump("GSScaleTuning(0,1,2,3,4,5,6,7,8,9,10,11);");
+        assert!(log.contains("SysEx$=F0,/*len:15*/41,10,42,12,40,11,40,00,01,02,03,04,05,06,07,08,09,0A,0B,2D,F7;"));
+    }
+}

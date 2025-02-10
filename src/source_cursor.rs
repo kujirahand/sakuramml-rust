@@ -501,4 +501,21 @@ mod tests {
         cur.next(); // skip '"'
         assert_eq!(cur.get_token_to_double_quote(), "abc\"def".to_string());
     }
+    #[test]
+    fn test_get_hex() {
+        // read one
+        let mut cur = SourceCursor::from("$FF$FF");
+        let v = cur.get_hex(-1, true);
+        assert_eq!(v, 0xFF);
+        // read two hex
+        let mut cur = SourceCursor::from("$FF$FF");
+        let v = cur.get_hex(-1, true);
+        assert_eq!(v, 0xFF);
+        let v = cur.get_hex(-1, true);
+        assert_eq!(v, 0xFF);
+        // read minus
+        let mut cur = SourceCursor::from("-0xFF");
+        let v = cur.get_hex(-1, true);
+        assert_eq!(v, -0xFF);
+    }
 }

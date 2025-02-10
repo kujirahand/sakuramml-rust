@@ -326,9 +326,8 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.add_event(e);
             },
             TokenType::SysEx => {
-                // auto calc check sum (#28)
-                let args: Vec<SValue> = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
-                let e = Event::sysex(trk!(song).timepos, &args);
+                let args: Vec<SValue> = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                let e = Event::sysex(trk!(song).timepos, &args, t.value_i == 1);
                 song.add_event(e);
             },
             TokenType::SysexReset => {
@@ -347,35 +346,103 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     _ => {},
                 }
             },
+            TokenType::SysExCommand => { // Universal SysEx
+                let time = trk!(song).timepos;
+                let mut event: Option<Event> = Option::None;
+                let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                let sub_id = t.value_i as u8 & 0x7F;
+                match sub_id {
+                    0x01 => { // Master Volume (0x01) 7bit
+                        let val = if data.len() >= 1 { data[1].to_i() as u8 & 0x7F } else { 0 };
+                        event = Some(Event::sysex(
+                            time, &vec![
+                                SValue::from_i(0xF0),
+                                SValue::from_i(0x7F), // Universal SysEx
+                                SValue::from_i(0x7F), // Braodcast
+                                SValue::from_i(0x04), // Sub ID#1 (Device Control Messages) 
+                                SValue::from_i(0x01), // Sub ID#2 (Master Volume)
+                                SValue::from_i(0x00), // must be 0
+                                SValue::from_i(val as isize),  // value
+                                SValue::from_i(0xf7), // end of SysEx
+                            ], false));
+                    },
+                    0x02 => { // Master Balance (0x02) 14bit
+                        let mut val = if data.len() >= 1 { data[1].to_i() } else { 0 };
+                        val += 8192;
+                        let val_lsb = (val & 0x7F) as isize;
+                        let val_msb = ((val >> 7) & 0x7F) as isize;
+                        event = Some(Event::sysex(
+                            time, &vec![
+                                SValue::from_i(0xF0),
+                                SValue::from_i(0x7F), // Universal SysEx
+                                SValue::from_i(0x7F), // Braodcast
+                                SValue::from_i(0x04), // Sub ID#1 (Device Control Messages) 
+                                SValue::from_i(0x02), // Sub ID#2 (Master balance)
+                                SValue::from_i(val_lsb), // value ll
+                                SValue::from_i(val_msb),  // value mm
+                                SValue::from_i(0xf7), // end of SysEx
+                            ], false));
+                    },
+                    _ => {},
+                }
+                if let Some(e) = event {
+                    song.add_event(e);
+                }
+            },
             TokenType::GSEffect => {
                 let time = trk!(song).timepos;
-                let dev = song.device_number as u8;
+                let dev = song.device_number;
                 let mut event: Option<Event> = Option::None;
                 let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
                 match &t.value_i {
                     0x00 => { // basic
                         let num = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
                         let val = if data.len() >= 2 { data[1].to_i() as u8 } else { 0 };
-                        event = Some(Event::sysex_add_checksum(
+                        event = Some(Event::sysex(
                             time,
-                            vec![0xF0, 0x41, dev, 0x42, 0x12, 0x40, 0x01, num, val, 0xf7],
-                        ));
+                            &vec![
+                                SValue::from_i(0xF0), 
+                                SValue::from_i(0x41),
+                                SValue::from_i(dev as isize), 
+                                SValue::from_i(0x42),
+                                SValue::from_i(0x12),
+                                SValue::from_i(-1), // checksum start
+                                SValue::from_i(0x40),
+                                SValue::from_i(0x01),
+                                SValue::from_i(num as isize),
+                                SValue::from_i(val as isize),
+                                SValue::from_i(-2), // checksum end
+                                SValue::from_i(0xf7)
+                            ],
+                            true));
                     },
                     0x11 => { // GSScaleTuning
                         if data.len() >= 12 {
                             let mut a = vec![];
                             for v in data.iter() {
-                                a.push(v.to_i() as u8);
+                                a.push(v.to_i() as isize);
                             }
                             for ic in 0x11..=0x1F {
-                                let e = Event::sysex_add_checksum(
+                                let e = Event::sysex(
                                     time,
-                                    vec![
-                                        0xF0, 0x41, dev, 0x42, 0x12, 0x40, ic, 0x40,
-                                        a[0], a[1], a[2], a[3], a[4], a[5],
-                                        a[6], a[7], a[8], a[9], a[10], a[11],
-                                        0xf7
-                                    ]);
+                                    &vec![
+                                        SValue::from_i(0xF0), 
+                                        SValue::from_i(0x41),
+                                        SValue::from_i(dev as isize), 
+                                        SValue::from_i(0x42),
+                                        SValue::from_i(0x12),
+                                        SValue::from_i(-1), // checksum start
+                                        SValue::from_i(0x40),
+                                        SValue::from_i(ic as isize),
+                                        SValue::from_i(0x40),
+                                        SValue::from_i(a[0]), SValue::from_i(a[1]), SValue::from_i(a[2]),
+                                        SValue::from_i(a[3]), SValue::from_i(a[4]), SValue::from_i(a[5]),
+                                        SValue::from_i(a[6]), SValue::from_i(a[7]), SValue::from_i(a[8]),
+                                        SValue::from_i(a[9]), SValue::from_i(a[10]), SValue::from_i(a[11]),
+                                        SValue::from_i(-2), // checksum end
+                                        SValue::from_i(0xf7)
+                                    ],
+                                    true);
                                 song.add_event(e);
                             }
                         }
@@ -384,19 +451,45 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                         let val = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
                         let ch = trk!(song).channel;
                         let sys_ch = if ch == 9 { 0 } else { if ch <= 9 { ch + 1 } else { ch } } as u8;
-                        event = Some(Event::sysex_add_checksum(
+                        event = Some(Event::sysex(
                             time,
-                            vec![0xF0, 0x41, dev, 0x42, 0x12, 0x40, sys_ch, 0x15, val, 0xf7],
-                        ));
+                            &vec![
+                                SValue::from_i(0xF0), 
+                                SValue::from_i(0x41),
+                                SValue::from_i(dev as isize), 
+                                SValue::from_i(0x42),
+                                SValue::from_i(0x12),
+                                SValue::from_i(-1), // checksum start
+                                SValue::from_i(0x40),
+                                SValue::from_i(sys_ch as isize),
+                                SValue::from_i(0x15),
+                                SValue::from_i(val as isize),
+                                SValue::from_i(-2), // checksum end
+                                SValue::from_i(0xf7)
+                            ],
+                            true));
                     }
                     // custom GS effect
                     0x30 ..= 0x40 => {
                         let num = (&t.value_i % 256) as u8;
                         let val = data[0].to_i() as u8;
-                        event = Some(Event::sysex_add_checksum(
+                        event = Some(Event::sysex(
                             time,
-                            vec![0xF0, 0x41, song.device_number as u8, 0x42, 0x12, 0x40, 0x01, num, val, 0xf7],
-                        ));
+                            &vec![
+                                SValue::from_i(0xF0), 
+                                SValue::from_i(0x41),
+                                SValue::from_i(dev as isize), 
+                                SValue::from_i(0x42),
+                                SValue::from_i(0x12),
+                                SValue::from_i(-1), // checksum start
+                                SValue::from_i(0x40),
+                                SValue::from_i(0x01),
+                                SValue::from_i(num as isize),
+                                SValue::from_i(val as isize),
+                                SValue::from_i(-2), // checksum end
+                                SValue::from_i(0xf7)
+                            ],
+                            true));
                     },
                     _ => {},
                 }

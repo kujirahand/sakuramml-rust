@@ -479,6 +479,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "ResetGM", TokenType::SysexReset, 'I', 0); // ResetGM
     sysfunc_cc_add!(sf, "ResetGS", TokenType::SysexReset, 'I', 1); // ResetGS
     sysfunc_cc_add!(sf, "ResetXG", TokenType::SysexReset, 'I', 2); // ResetXG
+    sysfunc_cc_add!(sf, "MasterVolume", TokenType::SysExCommand, 'I', 1); // master volume (range: 0-127) (ex) MasterVolume(100)
+    sysfunc_cc_add!(sf, "MasterBalance", TokenType::SysExCommand, 'I', 2); // master ballance (range: -8192 to 8191(ex) MasterBallance(0)
     sysfunc_add!(sf, "Tempo", TokenType::Tempo, 'I'); // set tempo (ex) Tempo(120)
     sysfunc_add!(sf, "TEMPO", TokenType::Tempo, 'I'); // set tempo (ex) TEMPO(120)
     sysfunc_add!(sf, "T", TokenType::Tempo, 'I'); // set tempo (ex) T(120)

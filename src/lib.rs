@@ -87,6 +87,10 @@ impl SakuraCompiler {
     pub fn set_debug_level(&mut self, level: u32) {
         self.debug_level = level;
     }
+    /// dump midi
+    pub fn dump_midi(&self, bin: Vec<u8>) -> String {
+        midi::dump_midi(&bin, false)
+    }
 }
 
 /// compile source to MIDI data

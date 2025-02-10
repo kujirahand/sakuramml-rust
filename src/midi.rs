@@ -99,11 +99,7 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 let delta_time = e.time - timepos;
                 array_push_delta(&mut res, delta_time);
                 timepos = e.time;
-                let mut size = data.len();
-                let last_byte = data[data.len()-1];
-                if last_byte != 0xF7 {
-                    size += 1;
-                }
+                let size = data.len() - 1;
                 // 1st byte must be 0xF0
                 res.push(0xF0); // SysEx Event
                 // 2nd byte must be length
@@ -112,10 +108,6 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 for (i, b) in data.iter().enumerate() {
                     if i == 0 && *b == 0xF0 { continue; }
                     res.push(*b);
-                }
-                // last byte must be 0xF7
-                if data[data.len()-1] != 0xF7 {
-                    res.push(0xF7);
                 }
             },
             EventType::PitchBend => {
@@ -287,12 +279,12 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
         0xF0 => { // SysEx = 0xF0 ... 0xF7
             let mut m = String::new();
             let mut index = 0;
-            loop {
+            while *pos < bin.len() {
                 let b = bin[*pos];
-                if index == 1 {
-                    m.push_str(&format!("/*{:02x}*/", b));
+                if index == 1 { // SysExの2バイト目はSysExの長さを表す
+                    m.push_str(&format!("/*len:{:02X}*/", b));
                 } else {
-                    m.push_str(&format!("{:02x}", b));
+                    m.push_str(&format!("{:02X}", b));
                     if b != 0xf7 {
                         m.push(',');
                     }
@@ -304,7 +296,7 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
                 *pos += 1;
                 index += 1;
             }
-            format!("SysEx={};", m)
+            format!("SysEx$={};", m)
         },
         _ => {
             format!("[ERROR] Unknown meta event...={:02x}", meta_type)

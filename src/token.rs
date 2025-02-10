@@ -110,6 +110,7 @@ pub enum TokenType {
     FadeIO,
     Cresc,
     SysexReset,
+    SysExCommand,
     SetRandomSeed,
 }
 

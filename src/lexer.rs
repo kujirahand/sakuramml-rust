@@ -1283,64 +1283,21 @@ fn read_use_key_shift(cur: &mut SourceCursor, song: &mut Song) -> Token {
 fn read_sysex(cur: &mut SourceCursor, _song: &mut Song) -> Token {
     // read sysex
     let lineno = cur.line;
-    let hex_mode = if cur.eq_char('$') {
-        cur.next();
-        true
-    } else { false };
+    let hex_mode = if cur.eq_char('$') { cur.next(); true} else { false };
     if cur.eq_char('=') { cur.next(); } // skip '='
     let mut data_vec: Vec<Token> = vec![];
-    let mut calc_vec: Vec<u8> = vec![];
-    let mut flag_calc_checksum = false;
-    let mut checksum = 0;
+    let mut flag_calc_checksum = 0; // 0:none, 1:check_sum_mode
     loop {
         cur.skip_space();
-        // sysex checksum mode
-        if flag_calc_checksum {
-            let v = if hex_mode {
-                cur.get_hex(0, true)
-            } else {
-                cur.get_int(0)
-            };
-            calc_vec.push(v as u8);
-            let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_i(v)]);
-            t.value_type = TokenValueType::INT;
-            t.lineno = lineno;
-            data_vec.push(t);
-            checksum += v;
-            cur.skip_space();
-            if cur.eq_char(',') {
-                cur.next(); // skip ','
-                cur.skip_space();
-                continue;
-            }
-            if cur.eq_char('}') {
-                cur.next(); // skip '}'
-                // TODO: 現状、変数を含んだSysExで自動計算は非対応とする！!
-                // calc checksum
-                flag_calc_checksum = false;
-                let checksum_v = 128 - checksum % 128;
-                let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_i(checksum_v)]);
-                t.value_type = TokenValueType::INT;
-                t.lineno = lineno;
-                data_vec.push(t);
-                // 続きのデータがあるか？
-                cur.skip_space();
-                if cur.eq_char(',') {
-                    cur.next();
-                    continue;
-                } else {
-                    break;
-                }
-            }
-        }
         if cur.eq_char('{') {
             cur.next(); // skip '{'
-            flag_calc_checksum = true;
-            continue;
+            flag_calc_checksum = 1;
+            let t = Token::new(TokenType::ConstInt, -1, vec![]); // start checksum
+            data_vec.push(t);
         }
         if hex_mode {
             let hex = cur.get_hex(0, true);
-            let mut v = Token::new(TokenType::Value, 0, vec![SValue::from_i(hex)]);
+            let mut v = Token::new(TokenType::ConstInt, hex, vec![]);
             v.value_type = TokenValueType::INT;
             v.lineno = lineno;
             data_vec.push(v);
@@ -1349,12 +1306,12 @@ fn read_sysex(cur: &mut SourceCursor, _song: &mut Song) -> Token {
             match c {
                 '0'..='9' | '$' => {
                     let v = cur.get_int(0);
-                    let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_i(v)]);
+                    let mut t = Token::new(TokenType::ConstInt, v, vec![]);
                     t.value_type = TokenValueType::INT;
                     t.lineno = lineno;
                     data_vec.push(t);
                 }
-                'A'..='Z' | '_' | '#' | 'a'..='z' => {
+                'A'..='Z' | '_' => {
                     let var_name = cur.get_word();
                     let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_s(format!("={}", var_name))]);
                     t.value_type = TokenValueType::VARIABLE;
@@ -1365,6 +1322,11 @@ fn read_sysex(cur: &mut SourceCursor, _song: &mut Song) -> Token {
             }
         }
         cur.skip_space();
+        if cur.eq_char('}') { // 数値の後に'}'がある場合を考慮
+            cur.next(); // skip '}'
+            let t = Token::new(TokenType::ConstInt, -2, vec![]); // end checksum
+            data_vec.push(t);
+        }
         // 続きのデータがあるか？
         if cur.eq_char(',') {
             cur.next();
@@ -1372,7 +1334,7 @@ fn read_sysex(cur: &mut SourceCursor, _song: &mut Song) -> Token {
             break;
         }
     }
-    let mut t = Token::new_tokens(TokenType::SysEx, 0, data_vec);
+    let mut t = Token::new_tokens(TokenType::SysEx, flag_calc_checksum, data_vec);
     t.lineno = lineno;
     t
 }

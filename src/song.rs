@@ -46,56 +46,44 @@ impl Event {
     pub fn meta(time: isize, v1: isize, v2: isize, v3: isize, data_v: Vec<u8>) -> Self {
         Self { etype: EventType::Meta, time, channel: 0, v1, v2, v3, data: Some(data_v) }
     }
-    pub fn sysex(time: isize, data_v: &Vec<SValue>) -> Self {
+    pub fn sysex(time: isize, data_v: &Vec<SValue>, checksum_mode: bool) -> Self {
+        // convert to u8 withaout checksum
+        if checksum_mode == false {
+            let mut a: Vec<u8> = vec![];
+            for v in data_v.iter() {
+                a.push(v.to_i() as u8);
+            }
+            return Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(a) };
+        }
+        // calc checksum
         let mut a: Vec<u8> = vec![];
+        let mut checksum: isize = 0;
+        let mut flag_checksum = false;
         for v in data_v.iter() {
-            a.push(v.to_i() as u8);
+            let n = v.to_i();
+            if flag_checksum {
+                if n == -2 {
+                    flag_checksum = false;
+                    let checksum_v = ((128 - (checksum & 0x7F)) & 0x7F) as u8; // 7bit補正
+                    a.push(checksum_v);
+                    continue;
+                } else {
+                    checksum += n;
+                }
+            }
+            if n == -1 {
+                flag_checksum = true;
+                continue;
+            }
+            a.push(n as u8);
         }
         Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(a) }
     }
+    
     pub fn sysex_raw(time: isize, data_v: Vec<u8>) -> Self {
         Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) }
     }
-
-    /// calc checksum for SysEx（Roland方式: 7bit sum）
-    fn calc_checksum(data: &[u8]) -> u8 {
-        let sum: u8 = data.iter().fold(0u8, |acc, &x| acc.wrapping_add(x));
-        (128 - (sum & 0x7F)) & 0x7F // 7bit補正
-    }
-
-    /// create SysEx and add Checksum
-    pub fn sysex_add_checksum(time: isize, mut data_v: Vec<u8>) -> Self {
-        if data_v.len() > 6 {
-            // add checksum
-            let mut header: Vec<u8> = vec![];
-            let mut address_data: Vec<u8> = vec![];
-            for (i, v) in data_v.iter().enumerate() {
-                match i {
-                    0..=4 => header.push(*v),
-                    5..=8 => address_data.push(*v),
-                    _ => {},
-                }
-            }
-            let checksum = Self::calc_checksum(&address_data);
-            // clear data_v
-            data_v.clear();
-            // add header
-            for v in header.iter() {
-                data_v.push(*v);
-            }
-            // add address data
-            for v in address_data.iter() {
-                data_v.push(*v);
-            }
-            // add checksum
-            data_v.push(checksum);
-            // add end
-            data_v.push(0xF7);
-            return Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) };
-        }
-        // error?
-        Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) }
-    }
+    /// ControllChange
     pub fn cc(time: isize, channel: isize, no: isize, value: isize) -> Self {
         Self { etype: EventType::ControllChange, time, channel, v1: no, v2: value, v3:0, data: None }
     }
@@ -105,6 +93,19 @@ impl Event {
     }
     pub fn pitch_bend_range(time: isize, channel: isize, value: isize) -> Self {
         Self { etype: EventType::PitchBendRange, time, channel, v1: value, v2: 0, v3: 0, data: None }
+    }
+    /// dump data
+    pub fn dump_data_to_hexstr(&self) -> String {
+        let mut r = vec![];
+        match &self.data {
+            None => return "".to_string(),
+            Some(data) => {
+                for v in data.iter() {
+                    r.push(format!("{:02X}", v));
+                }
+            }
+        }
+        r.join(",")
     }
 }
 
