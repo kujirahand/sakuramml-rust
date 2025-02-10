@@ -3,6 +3,7 @@
 use std::fs::{self, File, read_to_string};
 use std::io::{Write, Read};
 
+use sakuramml::get_build_number;
 use sakuramml::sakura_version::SAKURA_VERSION;
 use sakuramml::lexer::lex;
 use sakuramml::song::{Song, SAKURA_DEFAULT_RANDOM_SEED};
@@ -30,7 +31,7 @@ fn time_to_u64() -> u64 {
 fn usage() {
     println!("=== sakuramml ver.{} (build:{}) ===\n{}{}{}{}{}{}{}{}",
         SAKURA_VERSION,
-        env!("BUILD_NUMBER"),
+        get_build_number(),
         "USAGE:\n",
         "  sakuramml (mmlfile) (midifile)\n",
         "OPTIONS:\n",
