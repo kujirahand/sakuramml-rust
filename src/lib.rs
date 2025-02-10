@@ -34,7 +34,7 @@ pub fn get_version() -> String {
 
 #[wasm_bindgen]
 pub fn get_build_number() -> String {
-    env!("BUILD_NUMBER").to_string()
+    std::env::var("BUILD_NUMBER").unwrap_or_else(|_| "0".to_string())
 }
 
 /// SakuraCompiler Object
