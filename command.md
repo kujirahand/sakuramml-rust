@@ -7,17 +7,17 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | Command | Description |
 |---------|--------|
 | SPACE TAB CR LF ; CHR(0x7C) | space - 空白文字 / ';'や'|'も読み飛ばす |
-| c   d   e   f   g   a   b | note - ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階) |
-| n | note no - 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング) |
+| c   d   e   f   g   a   b | note - ドレミファソラシ c(l),(q),(v),(t),(o) |
+| n | note no - 番号を指定して発音 n(no),(l),(q),(v),(t) - (ex) n60 |
 | r | rest - 休符 |
-| l | length - 音長の指定(例 l4) |
-| o | octave - 音階の指定(例 o5) 範囲:0-10 |
-| p | pitch bend - ピッチベンドの指定 範囲:0-127 (63が中央) / (ref) PB(n) は -8192~0~8191 |
-| q | gate - ゲートの指定 (例 q90) 範囲:0-100 |
-| v | velocity - ベロシティ音量の指定 範囲:0-127 / v.Random=n |
+| l | length - 音長の指定 (ex) l4 c |
+| o | octave - 音階の指定 range:0-10 (ex) o6 c |
+| p | pitch bend - ピッチベンドの指定 range:0-127 (center:63) (ex) p63 / (ref) PB(n) は -8192~0~8191 |
+| q | gate rate - ゲートの指定 range:0-100 (ex) q90 |
+| v | velocity - ベロシティ音量の指定 range:0-127 (ex) v100 / v.Random=n |
 | t | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
-| y | Control change - コントロールチェンジの指定 (ex) y1,100) / range:0-127 / y1.onTime(low,high,len) |
-| # | マクロ |
+| y | Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len) |
+| # | Macro - マクロ定義 (ex) #A={cdefg} |
 | @ | Voice select(音色の指定) range:1-128 (format) @(no),(Bank_LSB),(Bank_MSB) |
 | > | Octave up (音階を1つ上げる) |
 | < | Octave down (音階を1つ下げる) |
@@ -33,12 +33,12 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | : | break of loop - ループ最終回に脱出 (ex)　[4 cde:g]e |
 | ] | end of loop - ループ終了 |
 | \ | harmony - 和音 (ex) 'ceg' (format) 'ceg'(音長),(ゲート) |
-| $ | define rhythm macro - リズムマクロ定義 (format) $char{ defined } |
-| { | 連符 (例 {ceg}4) {c^d}(音長) |
+| $ | define rhythm macro - リズムマクロ定義 $(char){ defined } (ex) $c{n60,} |
+| { | tuplet - 連符 {note}(len) (ex) {ceg}4 {c^d} |
 | ` | Octave up once - 一度だけ音階を+1する |
 | " | Octave down once - 一度だけ音階を-1する |
 | ? | play from here - ここから演奏する (=PlayFromHere) |
-| & | tie and slur - タイ・スラー(Slurコマンドで動作が変更できる) |
+| & | tie, slur - タイ・スラー(Slurコマンドで動作が変更できる) |
 
 
 ## Multiple-character command
