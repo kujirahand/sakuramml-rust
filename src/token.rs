@@ -28,8 +28,9 @@ pub enum TokenType {
     Velocity,
     VelocityRel,
     Timing,
-    CtrlChange,
+    ControlChange,
     CConTime,
+    CConNote,
     CConNoteWave,
     CConTimeFreq,
     Decresc,
@@ -102,7 +103,7 @@ pub enum TokenType {
     SongQAdd,
     SoundType,
     DeviceNumber,
-    ControllChangeCommand,
+    ControlChangeCommand,
     RPN,
     RPNCommand,
     NRPN,
@@ -112,6 +113,9 @@ pub enum TokenType {
     SysexReset,
     SysExCommand,
     SetRandomSeed,
+    DirectSMF,
+    NoteOn,
+    NoteOff,
 }
 
 /// Token.value_type

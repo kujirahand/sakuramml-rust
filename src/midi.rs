@@ -141,7 +141,18 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 res.push(0xB0 + e.channel as u8);
                 res.push(MIDI_DATA_ENTRY_MSB);
                 res.push(range);
-            }
+            },
+            EventType::DirectSMF => {
+                let data = e.data.clone().unwrap();
+                if data.len() == 0 { continue; }
+                let delta_time = e.time - timepos;
+                array_push_delta(&mut res, delta_time);
+                timepos = e.time;
+                // write data
+                for b in data.iter() {
+                    res.push(*b);
+                }
+            },
         }
     }
     // end of track
@@ -330,32 +341,32 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
     let event_type = bin[p] & 0xF0;
     match event_type {
         0x80 => { // note on
-            let msg = format!("NoteOff   {:02x} {:02x} {:02x} : {}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
+            let msg = format!("NoteOff(${:02x},${:02x}) // {}", bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
             *pos += 3;
             msg
         },
         0x90 => { // note off
-            let msg = format!("NoteOn    {:02x} {:02x} {:02x} : {},,{}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]), bin[p+2]);
+            let msg = format!("NoteOn(${:02x},${:02x})  // {},,{}", bin[p+1], bin[p+2], note_no_dec(bin[p+1]), bin[p+2]);
             *pos += 3;
             msg
         },
         0xA0 => {
-            let msg = format!("PolyATouc {:02x} {:02x} {:02x}", bin[p], bin[p+1], bin[p+2]);
+            let msg = format!("DirectSMF(${:02x},${:02x},${:02x})", bin[p], bin[p+1], bin[p+2]);
             *pos += 3;
             msg
         },
         0xB0 => { // CC
-            let msg = format!("CtrlChg   {:02x} {:02x} {:02x}", bin[p], bin[p+1], bin[p+2]);
+            let msg = format!("CC(${:02x},${:02x})", bin[p+1], bin[p+2]);
             *pos += 3;
             msg
         },
-        0xC0 => { // CC
-            let msg = format!("ProgChg   {:02x} {:02x}", bin[p], bin[p+1]);
+        0xC0 => { // Voice
+            let msg = format!("Voice({})", bin[p+1]);
             *pos += 2;
             msg
         },
         0xD0 => { // Channel after touch
-            let msg = format!("ProgChg   {:02x} {:02x}", bin[p], bin[p+1]);
+            let msg = format!("DirectSMF(${:02x},${:02x}) // Channel after touch", bin[p], bin[p+1]);
             *pos += 2;
             msg
         },
@@ -363,7 +374,7 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
             // PichBend is Little Endian!!
             let vv: isize = ((bin[p+2] as isize) << 7) | bin[p+1] as isize;
             let pb: isize = vv - 8192;
-            let msg = format!("PitchBend {:02x} {:02x} {:02x} : PB({})", bin[p], bin[p+1], bin[p+2], pb);
+            let msg = format!("PitchBend({}) /*p{}*/", vv, pb);
             *pos += 3;
             msg
         },

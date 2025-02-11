@@ -222,7 +222,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).timing = t.value_i;
                 trk!(song).t_on_note = None;
             },
-            TokenType::CtrlChange => {
+            TokenType::ControlChange => {
                 let no = t.value_i;
                 let val_tokens = t.children.clone().unwrap_or(vec![]);
                 let val_v = exec_value(song, &val_tokens);
@@ -637,13 +637,19 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 trk!(song).l_on_note_is_cycle = true;
             },
             TokenType::CConTime => {
-                trk!(song).remove_cc_on_note_wave(t.value_i);
-                trk!(song).write_cc_on_time(t.value_i, t.data[0].to_int_array());
+                let no = t.value_i;
+                let ia = t.data[0].to_int_array();
+                trk!(song).remove_cc_on(no);
+                trk!(song).write_cc_on_time(no, ia);
+            },
+            TokenType::CConNote => {
+                let no = t.value_i;
+                let ia = t.data[0].to_int_array();
+                trk!(song).set_cc_on_note(no, ia);
             },
             TokenType::CConNoteWave => {
                 let no = t.value_i;
                 let ia = t.data[0].to_int_array();
-                // println!("CConNoteWave={}", no);
                 trk!(song).set_cc_on_note_wave(no, ia);
             },
             TokenType::CConTimeFreq => {
@@ -817,10 +823,36 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 exec_play(song, t);
             },
             TokenType::Rhythm => {},
-            TokenType::ControllChangeCommand => {},
+            TokenType::ControlChangeCommand => {},
             TokenType::FadeIO => {}, // replaced CConTime 
             TokenType::Cresc => {}, // replaced CConTime
             TokenType::SetRandomSeed => {}, // replace SetConfig
+            TokenType::DirectSMF => {
+                let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                if args.len() >= 1 {
+                    let timepos = trk!(song).timepos;
+                    let args_u8 = args.iter().map(|v| v.to_i() as u8).collect();
+                    trk!(song).events.push(Event::direct_smf(timepos, args_u8));
+                }
+            },
+            TokenType::NoteOn => {
+                let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                if args.len() >= 2 {
+                    let timepos = trk!(song).timepos;
+                    let mut args_u8: Vec<u8> = args.iter().map(|v| v.to_i() as u8).collect();
+                    args_u8.insert(0, 0x90 | trk!(song).channel as u8);
+                    trk!(song).events.push(Event::direct_smf(timepos, args_u8));
+                }
+            },
+            TokenType::NoteOff => {
+                let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                if args.len() >= 2 {
+                    let timepos = trk!(song).timepos;
+                    let mut args_u8: Vec<u8> = args.iter().map(|v| v.to_i() as u8).collect();
+                    args_u8.insert(0, 0x80 | trk!(song).channel as u8);
+                    trk!(song).events.push(Event::direct_smf(timepos, args_u8));
+                }
+            },
         }
         pos += 1;
     }
@@ -1599,6 +1631,8 @@ fn exec_note(song: &mut Song, t: &Token) {
         check_tie_notes(song);
         return;
     }
+    // onNote event
+    trk!(song).write_cc_on_note(start_pos);
     // onNoteWave event
     trk!(song).write_cc_on_note_wave(start_pos);
     // write note event

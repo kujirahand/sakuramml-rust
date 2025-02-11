@@ -98,7 +98,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             'q' => result.push(read_qlen(&mut cur, song)), // @ gate rate - ゲートの指定 range:0-100 (ex) q90
             'v' => result.push(read_velocity(&mut cur, song)), // @ velocity - ベロシティ音量の指定 range:0-127 (ex) v100 / v.Random=n
             't' => result.push(read_timing(&mut cur, song)), // @ timing - 発音タイミングの指定 (例 t-1) / t.Random=n
-            'y' => result.push(read_cc(&mut cur, song)), // @ Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len)
+            'y' => result.push(read_cc(&mut cur, song, ch)), // @ Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len)
             // Upper command
             'A'..='Z' | '_' => {
                 cur.prev();
@@ -181,6 +181,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
     normalize_tokens(result)
 }
 
+/// append error log for lex
 fn lex_error(cur: &mut SourceCursor, song: &mut Song, msg: &str) {
     // make error log
     let near = cur.peek_str_n(8).replace('\n', "↵");
@@ -256,7 +257,8 @@ fn read_upper_command(cur: &mut SourceCursor, song: &mut Song) -> Token {
                     TokenType::Play => return read_play(cur, song),
                     TokenType::TimeBase => return read_timebase(cur, song),
                     TokenType::Include => return read_include(cur, song),
-                    TokenType::ControllChangeCommand => return read_command_cc(cur, tag1, song),
+                    TokenType::ControlChange => return read_cc(cur, song, 'C'),
+                    TokenType::ControlChangeCommand => return read_command_cc(cur, tag1, song),
                     TokenType::PitchBend => return read_command_pitch_bend_big(cur, song),
                     TokenType::RPNCommand => return read_rpn_command(cur, tag1, tag2, song),
                     TokenType::NRPNCommand => return read_nrpn_command(cur, tag1, tag2, song),
@@ -952,7 +954,7 @@ fn read_arg_value(cur: &mut SourceCursor, song: &mut Song) -> SValue {
             let len_str = cur.get_note_length();
             SValue::from_i(calc_length(&len_str, song.timebase, song.timebase))
         }
-        '-' | '0'..='9' => {
+        '-' | '0'..='9' | '$' => {
             let v = cur.get_int(0);
             SValue::from_i(v)
         }
@@ -1478,6 +1480,7 @@ fn read_decres(cur: &mut SourceCursor, song: &mut Song, dir: isize) -> Token {
     ]);
 }
 
+/// read command CC
 fn read_command_cc(cur: &mut SourceCursor, no: isize, song: &mut Song) -> Token {
     if cur.eq_char('.') {
         cur.next(); // skip '.'
@@ -1485,6 +1488,9 @@ fn read_command_cc(cur: &mut SourceCursor, no: isize, song: &mut Song) -> Token 
         if cmd == "onTime" || cmd == "T" {
             let ia = read_arg_int_array(cur, song);
             return Token::new(TokenType::CConTime, no, vec![ia]);
+        } else if cmd == "onNote" || cmd == "N" {
+            let ia = read_arg_int_array(cur, song);
+            return Token::new(TokenType::CConNote, no, vec![ia]);
         } else if cmd == "Frequency" {
             let a = read_arg_value(cur, song);
             return Token::new(TokenType::CConTimeFreq, 0, vec![a]);
@@ -1496,16 +1502,40 @@ fn read_command_cc(cur: &mut SourceCursor, no: isize, song: &mut Song) -> Token 
             let _ = read_arg_int_array(cur, song);
             song.add_log(format!("[WARN]({}) not supported : onNoteWaveEx", cur.line));
             return Token::new_empty("not supported : onNoteWave", cur.line);
+        } else if cmd == "onNoteWaveR" || cmd == "WR"{ // (命令).onNoteWaveR(low,high,len...) // ノートオンしている間、low,higi,len...を繰り返す
+            // TODO: not supported
+            let _ = read_arg_int_array(cur, song);
+            song.add_log(format!("[WARN]({}) not supported : onNoteWaveR", cur.line));
+            return Token::new_empty("not supported : onNoteWaveR", cur.line);
         } else if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported
             let _ = read_arg_int_array(cur, song);
             song.add_log(format!("[WARN]({}) not supported : onCycle", cur.line));
             return Token::new_empty("not supported : onCycle", cur.line);
+        } else if cmd == "Sine" { // .Sine(type,low,high,len,times) // type=0:sine/1:up sine/2:down sine
+            // TODO: not supported
+            let _ = read_arg_int_array(cur, song);
+            song.add_log(format!("[WARN]({}) not supported : Sine", cur.line));
+            return Token::new_empty("not supported : Sine", cur.line);
+        } else if cmd == "onNoteSine" { // .onNoteSine(type,low,high,len,times) // type=0:sine/1:up sine/2:down sine
+            // TODO: not supported
+            let _ = read_arg_int_array(cur, song);
+            song.add_log(format!("[WARN]({}) not supported : onNoteSine", cur.line));
+            return Token::new_empty("not supported : onNoteSine", cur.line);
         }
+        /*
+        https://sakuramml.com/doc/reference/cc-option.htm
+        Delay	先行指定の効果の遅延時間
+        Repeat	予約指定で.onNoteなどで繰り返すかどうか
+        Random	書き込まれる値に、vのランダムな値を足す
+        Range	書き込まれる値に、上限と下限を設定する
+        Frequency	コントロールチェンジの書き込み頻度を指定する
+        */
     }
     if cur.eq_char('=') { cur.next(); }
     let value_tokens = read_args_tokens(cur, song);
-    return Token::new_tokens(TokenType::CtrlChange, no, value_tokens);
+    
+    return Token::new_tokens(TokenType::ControlChange, no, value_tokens);
 }
 
 fn read_rpn_command(cur: &mut SourceCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
@@ -1723,44 +1753,46 @@ fn read_pitch_bend_small(cur: &mut SourceCursor, song: &mut Song) -> Token {
     Token::new(TokenType::PitchBend, 0, vec![value])
 }
 
-fn read_cc(cur: &mut SourceCursor, song: &mut Song) -> Token {
+fn read_cc(cur: &mut SourceCursor, song: &mut Song, ch: char) -> Token {
     // red CC no
-    let no = read_arg_value(cur, song);
-
+    cur.skip_space();
+    let mut no = 0;
+    if ch == 'C' {
+        if cur.eq_char('(') {
+            cur.next(); // skip '('
+            no = cur.get_int(0);
+        }
+    } else {
+        no = cur.get_int(0);
+    }
     // .onTime
     if cur.eq_char('.') {
-        cur.next();
-        let cmd = cur.get_word();
-        if cmd == "onTime" || cmd == "T" {
-            let ia = read_arg_int_array(cur, song);
-            return Token::new(TokenType::CConTime, no.to_i(), vec![ia]);
-        }
-        if cmd == "onNoteWave" || cmd == "W" {
-            let ia = read_arg_int_array(cur, song);
-            return Token::new(TokenType::CConNoteWave, no.to_i(), vec![ia]);
-        }
-        if cmd == "onCycle" || cmd == "C" {
-            let _ia = read_arg_int_array(cur, song);
-            return Token::new_empty("NOT SUPPORTED", cur.line);
-        }
+        return read_command_cc(cur, no, song);
     }
-
     cur.skip_space();
     if !cur.eq_char(',') && !cur.eq_char('(') {
         return Token::new(
             TokenType::Error,
             0,
             vec![SValue::from_s(format!(
-                "[ERROR]({}): Faild to set Controll Change",
-                cur.line + 1
+                "[ERROR]({}): Faild to set ControlChange[{}] ",
+                cur.line + 1,
+                ch
             ))],
         );
     }
-    cur.next(); // skip ','
-    let val_tokens = read_args_tokens(cur, song);
-    Token::new_tokens(TokenType::CtrlChange, no.to_i(), vec![
-        Token::new_tokens(TokenType::Value, 0, val_tokens),
-    ])
+    if cur.eq_char(',') {
+        cur.next(); // skip ','
+    }
+    let val_token = read_calc(cur, song).unwrap();
+    let cc_token = Token::new_tokens(TokenType::ControlChange, no, vec![val_token]);
+    if ch == 'C' {
+        cur.skip_space();
+        if cur.eq_char(')') {
+            cur.next(); // skip ')'
+        }
+    }
+    cc_token
 }
 
 fn read_loop(cur: &mut SourceCursor, song: &mut Song) -> Token {
@@ -2029,7 +2061,7 @@ mod tests {
     #[test]
     fn test_lex_cc() {
         let mut song = Song::new();
-        assert_eq!(&tokens_to_str(&lex(&mut song, "P(10)", 0)), "[CtrlChange,10]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "M(10)", 0)), "[CtrlChange,1]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "P(10)", 0)), "[ControlChange,10]");
+        assert_eq!(&tokens_to_str(&lex(&mut song, "M(10)", 0)), "[ControlChange,1]");
     }
 }

@@ -411,8 +411,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "Play", TokenType::Play, '*'); // play multi track (ex) Play(AA,BB,CC)
     sysfunc_add!(sf, "PLAY", TokenType::Play, '*'); // play multi track (ex) Play(AA,BB,CC)
     sysfunc_add!(sf, "SysEx", TokenType::SysEx, '*'); // System Exclusive (ex) SysEx$=f0,43,10,4c,00,{00,00,30,f0},f7
-    sysfunc_add!(sf, "PlayFrom.SysEx", TokenType::SysEx, '*'); // Unimplemented
-    sysfunc_add!(sf, "PlayFrom.CtrlChg", TokenType::Unimplemented, 'A'); // Unimplemented
+    sysfunc_add!(sf, "PlayFrom.SysEx", TokenType::SysEx, '*'); // =SysEx
+    sysfunc_add!(sf, "PlayFrom.CtrlChg", TokenType::ControlChange, 'A'); // =CONTROL_CHANGE
     sysfunc_add!(sf, "PlayFrom", TokenType::PlayFrom, 'A'); // play from time position (ex) PlayFrom(5:1:0)
     sysfunc_add!(sf, "PLAY_FROM", TokenType::PlayFrom, 'A'); // play from time position (ex) PLAY_FROM(5:1:0)
     sysfunc_add!(sf, "PlayFromHere", TokenType::PlayFromHere, '_'); // play from current time pos (ex) PlayFromHere
@@ -435,24 +435,27 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     //@ Controll Change / Voice Change / RPN/NRPN / PitchBend
     sysfunc_add!(sf, "Voice", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
     sysfunc_add!(sf, "VOICE", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
-    sysfunc_cc_add!(sf, "M", TokenType::ControllChangeCommand, '*', 1); // CC#1 Modulation (ex) M(10)
-    sysfunc_cc_add!(sf, "Modulation", TokenType::ControllChangeCommand, '*', 1); // CC#1 Modulation range:0-127 (ex) M(10)
-    sysfunc_cc_add!(sf, "PT", TokenType::ControllChangeCommand, '*', 5); // CC#5 Portamento Time range:0-127 (ex) PT(10)
-    sysfunc_cc_add!(sf, "PortamentoTime", TokenType::ControllChangeCommand, '*', 5); // CC#5 Portamento Time range:0-127 (ex) PT(10)
-    sysfunc_cc_add!(sf, "V", TokenType::ControllChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
-    sysfunc_cc_add!(sf, "MainVolume", TokenType::ControllChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
-    sysfunc_cc_add!(sf, "P", TokenType::ControllChangeCommand, '*', 10); // CC#10 Panpot range:0-63-127 (ex) P(63)
-    sysfunc_cc_add!(sf, "Panpot", TokenType::ControllChangeCommand, '*', 10); // CC#10 Panpot range:0-63-127 (ex) Panpot(63)
-    sysfunc_cc_add!(sf, "EP", TokenType::ControllChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
-    sysfunc_cc_add!(sf, "Expression", TokenType::ControllChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
-    sysfunc_cc_add!(sf, "PS", TokenType::ControllChangeCommand, '*', 65); // CC#65 Portament switch range:0-127 (ex) PS(1)
-    sysfunc_cc_add!(sf, "PortamentoSwitch", TokenType::ControllChangeCommand, '*', 65); // CC#65 Portament switch range:0-127 (ex) PS(1)
-    sysfunc_cc_add!(sf, "REV", TokenType::ControllChangeCommand, '*', 91); // CC#91 Reverb range:0-127 (ex) REV(100)
-    sysfunc_cc_add!(sf, "Reverb", TokenType::ControllChangeCommand, '*', 91); // CC#91 Reverb range:0-127 (ex) REV(100)
-    sysfunc_cc_add!(sf, "CHO", TokenType::ControllChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) CHO(100)
-    sysfunc_cc_add!(sf, "Chorus", TokenType::ControllChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) Chorus(100)
-    sysfunc_cc_add!(sf, "VAR", TokenType::ControllChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) VAR(100)
-    sysfunc_cc_add!(sf, "Variation", TokenType::ControllChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) Variation(100)
+    sysfunc_add!(sf, "CONTROL_CHANGE", TokenType::ControlChange, '*'); // write Control Change (ex) CC(1,100)
+    sysfunc_add!(sf, "ControlChange", TokenType::ControlChange, '*'); // write Control Change (ex) CC(1,100)
+    sysfunc_add!(sf, "CC", TokenType::ControlChange, '*'); // write Control Change (ex) CC(1,100)
+    sysfunc_cc_add!(sf, "M", TokenType::ControlChangeCommand, '*', 1); // CC#1 Modulation (ex) M(10)
+    sysfunc_cc_add!(sf, "Modulation", TokenType::ControlChangeCommand, '*', 1); // CC#1 Modulation range:0-127 (ex) M(10)
+    sysfunc_cc_add!(sf, "PT", TokenType::ControlChangeCommand, '*', 5); // CC#5 Portamento Time range:0-127 (ex) PT(10)
+    sysfunc_cc_add!(sf, "PortamentoTime", TokenType::ControlChangeCommand, '*', 5); // CC#5 Portamento Time range:0-127 (ex) PT(10)
+    sysfunc_cc_add!(sf, "V", TokenType::ControlChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
+    sysfunc_cc_add!(sf, "MainVolume", TokenType::ControlChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
+    sysfunc_cc_add!(sf, "P", TokenType::ControlChangeCommand, '*', 10); // CC#10 Panpot range:0-63-127 (ex) P(63)
+    sysfunc_cc_add!(sf, "Panpot", TokenType::ControlChangeCommand, '*', 10); // CC#10 Panpot range:0-63-127 (ex) Panpot(63)
+    sysfunc_cc_add!(sf, "EP", TokenType::ControlChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
+    sysfunc_cc_add!(sf, "Expression", TokenType::ControlChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
+    sysfunc_cc_add!(sf, "PS", TokenType::ControlChangeCommand, '*', 65); // CC#65 Portament switch range:0-127 (ex) PS(1)
+    sysfunc_cc_add!(sf, "PortamentoSwitch", TokenType::ControlChangeCommand, '*', 65); // CC#65 Portament switch range:0-127 (ex) PS(1)
+    sysfunc_cc_add!(sf, "REV", TokenType::ControlChangeCommand, '*', 91); // CC#91 Reverb range:0-127 (ex) REV(100)
+    sysfunc_cc_add!(sf, "Reverb", TokenType::ControlChangeCommand, '*', 91); // CC#91 Reverb range:0-127 (ex) REV(100)
+    sysfunc_cc_add!(sf, "CHO", TokenType::ControlChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) CHO(100)
+    sysfunc_cc_add!(sf, "Chorus", TokenType::ControlChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) Chorus(100)
+    sysfunc_cc_add!(sf, "VAR", TokenType::ControlChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) VAR(100)
+    sysfunc_cc_add!(sf, "Variation", TokenType::ControlChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) Variation(100)
     sysfunc_add!(sf, "PitchBend", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~63~127
     sysfunc_add!(sf, "PB", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PB(10)
     sysfunc_rpn_add!(sf, "PitchBendSensitivity", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10)
@@ -559,6 +562,10 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "RandomSeed", TokenType::SetRandomSeed, '*'); // set random seed
     sysfunc_add!(sf, "FUNCTION", TokenType::DefUserFunction, '*'); // define user function
     sysfunc_add!(sf, "Function", TokenType::DefUserFunction, '*'); // define user function
+    //@ MIDI command
+    sysfunc_add!(sf, "DirectSMF", TokenType::DirectSMF, 'A'); // direct smf event / DirectSMF(b1, b2, b3, ...)
+    sysfunc_add!(sf, "NoteOn", TokenType::NoteOn, 'A'); // note no / NoteOn(noteno, velocity)
+    sysfunc_add!(sf, "NoteOff", TokenType::NoteOff, 'A'); // note off / NoteOn(noteno, velocity)
     //</SYSTEM_FUNCTION>
     sf
 }

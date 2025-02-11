@@ -160,6 +160,7 @@ fn save_to_file(song: &mut Song, path: &str) {
 mod tests {
     use super::*;
 
+    /// mml -> midi -> dump
     fn mml_dump(mml: &str) -> String {
         // mml to midi
         let mut song = Song::new();
@@ -174,9 +175,8 @@ mod tests {
     fn test_tone() {
         // tone
         let log = mml_dump("v100 o4 c");
-        assert!(log.contains("NoteOn"));
-        assert!(log.contains("NoteOff"));
-        assert!(log.contains("90 30 64"));
+        assert!(log.contains("NoteOn($30,$64)"));
+        assert!(log.contains("NoteOff($30,$64)"));
         // harmony
         let log = mml_dump("v100 o4 'c>c'");
         assert!(log.contains("o4c"));
@@ -186,10 +186,26 @@ mod tests {
     fn test_tone2() {
         // tone
         let log = mml_dump("v100 o4 'c>c'");
-        assert!(log.contains("NoteOn"));
-        assert!(log.contains("NoteOff"));
-        assert!(log.contains("90 30 64"));
-        assert!(log.contains("90 30 64"));
+        assert!(log.contains("NoteOn($30,$64)"));
+        assert!(log.contains("NoteOff($30,$64)"));
+        assert!(log.contains("NoteOn($3c,$64)"));
+        assert!(log.contains("NoteOff($3c,$64)"));
+    }
+    #[test]
+    fn test_cc() {
+        // CC
+        assert!(mml_dump("y1,$64").contains("CC($01,$64)"));
+        assert!(mml_dump("CC($01,$64").contains("CC($01,$64)"));
+        assert!(mml_dump("M($64)").contains("CC($01,$64)"));
+        assert!(mml_dump("M=$64").contains("CC($01,$64)"));
+        assert!(mml_dump("P($64)").contains("CC($0a,$64)"));
+    }
+    #[test]
+    fn test_cc_on_note() {
+        // CC.onTime
+        let log = mml_dump("M.onNote($70,$50)cc");
+        assert!(log.contains("CC($01,$70)"));
+        assert!(log.contains("CC($01,$50)"));
     }
     #[test]
     fn test_meta() {

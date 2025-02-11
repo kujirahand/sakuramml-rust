@@ -244,7 +244,7 @@ PRINT(A1(2)) // 3
 
 ## reference
 
-- Command List(ja) --- [command.md](command.md)
+- Command List --- [command.md](command.md)
 - Voice List - [voice.md](voice.md)
 
 ### Related Repository
@@ -255,3 +255,6 @@ PRINT(A1(2)) // 3
 - Player
   - [GitHub/picosakura](https://github.com/kujirahand/picosakura) ... web player
   - [GitHub/picosakura-rust](https://github.com/kujirahand/picosakura-rust) ... local player
+- Sakura v2
+  - [GitHub/sakura2](https://github.com/kujirahand/sakuramml)
+  - [Command List](https://sakuramml.com/doc/command/index2.htm) / [Sorted](https://sakuramml.com/doc/command/index.htm)

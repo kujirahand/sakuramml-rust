@@ -23,6 +23,7 @@ pub enum EventType {
     Voice,
     Meta,
     SysEx,
+    DirectSMF,
 }
 
 /// Event
@@ -45,6 +46,10 @@ impl Event {
     }
     pub fn meta(time: isize, v1: isize, v2: isize, v3: isize, data_v: Vec<u8>) -> Self {
         Self { etype: EventType::Meta, time, channel: 0, v1, v2, v3, data: Some(data_v) }
+    }
+    /// generate SMF event type
+    pub fn direct_smf(time: isize, data_v: Vec<u8>) -> Self {
+        Self { etype: EventType::DirectSMF, time, channel:0, v1: 0 , v2: 0, v3: 0, data: Some(data_v) }
     }
     pub fn sysex(time: isize, data_v: &Vec<SValue>, checksum_mode: bool) -> Self {
         // convert to u8 withaout checksum
@@ -125,9 +130,10 @@ pub struct NoteInfo {
 
 
 #[derive(Debug, Clone)]
-pub struct ControllChangeOnNoteWave {
+pub struct ControlChangeOnNoteWave {
     pub no: isize,
     pub data: Vec<isize>,
+    pub index: isize, // for ControlChangeOnNote
 }
 /// Track
 #[derive(Debug)]
@@ -169,7 +175,8 @@ pub struct Track {
     pub cc_on_time_freq: isize,
     pub events: Vec<Event>,
     pub tie_notes: Vec<Event>,
-    pub cc_on_note_wave: Vec<ControllChangeOnNoteWave>,
+    pub cc_on_note: Vec<ControlChangeOnNoteWave>,
+    pub cc_on_note_wave: Vec<ControlChangeOnNoteWave>,
 }
 
 impl Track {
@@ -213,6 +220,7 @@ impl Track {
             events: vec![],
             tie_notes: vec![],
             bend_range: -1,
+            cc_on_note: vec![],
             cc_on_note_wave: vec![],
         }
     }
@@ -288,6 +296,7 @@ impl Track {
                 EventType::NoteOff => {},
                 EventType::PitchBend => {}, // TODO: #8
                 EventType::PitchBendRange => {}, // TODO: #8
+                EventType::DirectSMF => {},
             }
         }
         // add cc
@@ -481,9 +490,13 @@ impl Track {
             }
         }
     }
+    pub fn remove_cc_on(&mut self, no: isize) {
+        self.remove_cc_on_note(no);
+        self.remove_cc_on_note_wave(no);
+    }
     pub fn remove_cc_on_note_wave(&mut self, no: isize) {
         if self.cc_on_note_wave.len() == 0 { return; }
-        let mut new_list: Vec<ControllChangeOnNoteWave> = vec![];
+        let mut new_list: Vec<ControlChangeOnNoteWave> = vec![];
         for cow in self.cc_on_note_wave.iter() {
             if cow.no == no { continue; }
             new_list.push(cow.clone());
@@ -491,8 +504,8 @@ impl Track {
         self.cc_on_note_wave = new_list;
     }
     pub fn set_cc_on_note_wave(&mut self, no: isize, ia: Vec<isize>) {
-        self.remove_cc_on_note_wave(no);
-        let cc_new = ControllChangeOnNoteWave { no, data: ia };
+        self.remove_cc_on(no);
+        let cc_new = ControlChangeOnNoteWave { no, data: ia, index: 0 };
         self.cc_on_note_wave.push(cc_new);
     }
     pub fn write_cc_on_note_wave(&mut self, start_pos: isize) {
@@ -504,6 +517,32 @@ impl Track {
             self.write_cc_on_time(cow.no, cow.data.clone());
         }
         self.timepos = end_pos;
+    }
+    pub fn remove_cc_on_note(&mut self, no: isize) {
+        if self.cc_on_note.len() == 0 { return; }
+        let mut new_list: Vec<ControlChangeOnNoteWave> = vec![];
+        for cow in self.cc_on_note.iter() {
+            if cow.no == no { continue; }
+            new_list.push(cow.clone());
+        }
+        self.cc_on_note = new_list;
+    }
+    pub fn set_cc_on_note(&mut self, no: isize, ia: Vec<isize>) {
+        self.remove_cc_on(no);
+        let cc_new = ControlChangeOnNoteWave { no, data: ia, index: 0 };
+        self.cc_on_note.push(cc_new);
+    }
+    pub fn write_cc_on_note(&mut self, start_pos: isize) {
+        for it in self.cc_on_note.iter_mut() {
+            if it.data.len() <= it.index as usize {
+                continue;
+            }
+            let v = it.data[it.index as usize];
+            it.index += 1;
+            let e = Event::cc(start_pos, self.channel, it.no, v);
+            self.events.push(e);
+        }
+        self.cc_on_note.retain(|it| it.data.len() > it.index as usize);
     }
 }
 
