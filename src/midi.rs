@@ -253,7 +253,7 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
             let msg = match meta_type {
                 0x2F => { // end of track
                     info.is_eot = true;
-                    String::from("__END_OF_TRACK__")
+                    String::from("/* __END_OF_TRACK__ */")
                 },
                 0x51 => { // tempo
                     // mpq = 60000000 / tempo || mpq * tempo = 60000000 || tempo = 60000000 / mpq
@@ -335,7 +335,7 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
             msg
         },
         0x90 => { // note off
-            let msg = format!("NoteOn    {:02x} {:02x} {:02x} : {},v{}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]), bin[p+2]);
+            let msg = format!("NoteOn    {:02x} {:02x} {:02x} : {},,{}", bin[p], bin[p+1], bin[p+2], note_no_dec(bin[p+1]), bin[p+2]);
             *pos += 3;
             msg
         },
@@ -402,18 +402,19 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
         log("[ERROR] Midi Format error");
         return res;
     }
-    log(&format!("[MThd] midi format={}", smf_format));
+    log("// ----- MIDI DUMP DATA -----");
+    log(&format!("/// [MThd] midi format={}", smf_format));
     pos += 2;
     let track_count = array_read_u16(bin, pos);
-    log(&format!("[MThd] track_count={}", track_count));
+    log(&format!("/// [MThd] track_count={}", track_count));
     pos += 2;
     let timebase = array_read_u16(bin, pos) as usize;
-    log(&format!("[MThd] timebase={}", timebase));
+    log(&format!("TIMEBASE={}", timebase));
     pos += 2;
     // tracks
     for no in 0..track_count {
-        log(&format!("----------------------"));
-        log(&format!("[MTrk] no={}", no));
+        log(&format!("// ----- TRACK -----"));
+        log(&format!("TRACK({})", no + 1));
         let mtrk = array_read_str(bin, pos, 4);
         if mtrk != "MTrk" {
             log(&format!("[ERROR] Track header broken MTrk!={}", mtrk));
@@ -421,7 +422,7 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
         }
         pos += 4;
         let mtrk_size = array_read_u32(bin, pos);
-        log(&format!("[MTrk] track_block_size={}B", mtrk_size));
+        // log(&format!("// [MTrk] track_block_size={}B", mtrk_size));
         pos += 4;
         let mut time = 0;
         // loop track
@@ -437,7 +438,8 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
             let mes = base / info.frac + 1;
             //
             let desc = dump_midi_event(bin, &mut pos, &mut info);
-            log(&format!("{:5}|TIME({:03}:{:03}:{:03}) {}", time, mes, beat, tick, desc));
+            // log(&format!("{:5}|TIME({:03}:{:03}:{:03}) {}", time, mes, beat, tick, desc));
+            log(&format!("TIME({:03}:{:03}:{:03}) {}", mes, beat, tick, desc));
         }
         info.is_eot = false;
     }

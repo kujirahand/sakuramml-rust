@@ -37,6 +37,12 @@
     const parsedData = picoAudio.parseSMF(new Uint8Array(midi))
     picoAudio.setData(parsedData)
     picoAudio.play()
+    // dump?
+    const dump_cb = document.getElementById('dump_cb').checked
+    if (dump_cb) {
+      const dump_log = com.dump_midi(midi)
+      document.getElementById('msg').innerHTML += "<hr>" + tohtml(dump_log)
+    }
   });
   // Stop Button
   document.getElementById('stop').addEventListener('click', () => {
@@ -77,6 +83,7 @@
   <button id="stop">Stop</button>
   <textarea id="mml" rows="20" style="width:100%;">ドレミ</textarea>
 </div>
+<div><input type="checkbox" id="dump_cb">&nbsp;<label for="dump_cb">dump</label></div>
 <div id="msg"></div>
 
 </body></html>

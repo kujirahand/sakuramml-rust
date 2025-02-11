@@ -177,6 +177,19 @@ mod tests {
         assert!(log.contains("NoteOn"));
         assert!(log.contains("NoteOff"));
         assert!(log.contains("90 30 64"));
+        // harmony
+        let log = mml_dump("v100 o4 'c>c'");
+        assert!(log.contains("o4c"));
+        assert!(log.contains("o5c"));
+    }
+    #[test]
+    fn test_tone2() {
+        // tone
+        let log = mml_dump("v100 o4 'c>c'");
+        assert!(log.contains("NoteOn"));
+        assert!(log.contains("NoteOff"));
+        assert!(log.contains("90 30 64"));
+        assert!(log.contains("90 30 64"));
     }
     #[test]
     fn test_meta() {

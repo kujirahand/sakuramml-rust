@@ -392,8 +392,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "Rhythm", TokenType::Rhythm, '*'); // read Rhythm notes (ex) Rhythm{ bhsh bhsh }
     sysfunc_add!(sf, "RHYTHM", TokenType::Rhythm, '*'); // read Rhythm notes (ex) Rhythm{ bhsh bhsh }
     sysfunc_add!(sf, "R", TokenType::Rhythm, '*'); // read Rhythm notes (ex) Rhythm{ bhsh bhsh }
-    sysfunc_add!(sf, "Rythm", TokenType::Rhythm, '*'); // 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh }
-    sysfunc_add!(sf, "RYTHM", TokenType::Rhythm, '*'); // 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh }
+    sysfunc_add!(sf, "Rythm", TokenType::Rhythm, '*'); // 互換性:綴りミス [typo] read Rhythm notes (ex) Rhythm{ bhsh bhsh }
+    sysfunc_add!(sf, "RYTHM", TokenType::Rhythm, '*'); // 互換性:綴りミス [typo] read Rhythm notes (ex) Rhythm{ bhsh bhsh }
     sysfunc_add!(sf, "Div", TokenType::Div, '*'); // tuplet(連符) (ex) Div{ ceg }
     sysfunc_add!(sf, "DIV", TokenType::Div, '*'); // tuplet(連符) (ex) Div{ ceg }
     sysfunc_add!(sf, "Sub", TokenType::Sub, '*'); // sub track / rewind time position (ex) Sub{ceg} egb
