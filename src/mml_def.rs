@@ -432,7 +432,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "q2Add", TokenType::Unimplemented, 'I'); // Unimplemented
     sysfunc_add!(sf, "SoundType", TokenType::SoundType, 'S'); // set sound type (ex) SoundType({pico})
     sysfunc_add!(sf, "DeviceNumber", TokenType::DeviceNumber, 'I'); // set Device Number (ex) DeviceNumber=$10
-    //@ Controll Change / Voice Change / RPN/NRPN
+    //@ Controll Change / Voice Change / RPN/NRPN / PitchBend
     sysfunc_add!(sf, "Voice", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
     sysfunc_add!(sf, "VOICE", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
     sysfunc_cc_add!(sf, "M", TokenType::ControllChangeCommand, '*', 1); // CC#1 Modulation (ex) M(10)
@@ -453,11 +453,12 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "Chorus", TokenType::ControllChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) Chorus(100)
     sysfunc_cc_add!(sf, "VAR", TokenType::ControllChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) VAR(100)
     sysfunc_cc_add!(sf, "Variation", TokenType::ControllChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) Variation(100)
-    sysfunc_add!(sf, "PB", TokenType::PitchBend, '*'); // Pitchbend range: -8192...0...8191 (ex) PB(10)
+    sysfunc_add!(sf, "PitchBend", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~63~127
+    sysfunc_add!(sf, "PB", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PB(10)
+    sysfunc_rpn_add!(sf, "PitchBendSensitivity", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10)
+    sysfunc_rpn_add!(sf, "BR", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10) 
     sysfunc_add!(sf, "RPN", TokenType::RPN, 'A'); // write RPN (ex) RPN(0,1,64)
     sysfunc_add!(sf, "NRPN", TokenType::NRPN, 'A'); // write NRPN (ex) NRPN(1,1,1)
-    sysfunc_rpn_add!(sf, "BR", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10) 
-    sysfunc_rpn_add!(sf, "PitchBendSensitivity", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10)
     sysfunc_rpn_add!(sf, "FineTune", TokenType::RPNCommand, '*', 0, 1); // set fine tune range:0-63-127(-100 - 0 - +99.99セント）(ex) FineTune(63)
     sysfunc_rpn_add!(sf, "CoarseTune", TokenType::RPNCommand, '*', 0, 2); // set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(63)
     sysfunc_rpn_add!(sf, "VibratoRate", TokenType::NRPNCommand, '*', 1, 8); // set VibratoRate range: 0-127
