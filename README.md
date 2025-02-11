@@ -242,6 +242,20 @@ PRINT(A1) // (1,2,3)
 PRINT(A1(2)) // 3
 ```
 
+Replace `{i}` with `{c}` in the value of the string variable `S1` and `S2`.
+
+```
+// define variables
+STR S1={iiri iiri}
+// replace {i} to {c}
+S1.s({i}, {c})
+PRINT(S1) // ccrc ccrc
+
+// REPLACE function
+STR S2 = REPLACE({iiri iiri}, {i}, {c})
+PRINT(S2) // ccrc ccrc
+```
+
 ## reference
 
 - Command List --- [command.md](command.md)

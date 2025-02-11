@@ -876,6 +876,14 @@ fn check_variables(cur: &mut SourceCursor, song: &mut Song, cmd: String) -> Opti
         song.variables_insert(&cmd, SValue::None);
         return Some(tok);
     }
+    // replace string
+    else if cur.eq(".s(") {
+        cur.next_n(2);
+        let args = read_args_tokens(cur, song);
+        let mut replace_tok = Token::new_tokens(TokenType::StrVarReplace, 0, args);
+        replace_tok.value_s = Some(cmd);
+        return Some(replace_tok);
+    }
     // variables?
     match song.variables_get(&cmd) {
         Some(sval) => {

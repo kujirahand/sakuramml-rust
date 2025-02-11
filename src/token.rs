@@ -116,6 +116,7 @@ pub enum TokenType {
     DirectSMF,
     NoteOn,
     NoteOff,
+    StrVarReplace,
 }
 
 /// Token.value_type

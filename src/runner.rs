@@ -574,6 +574,15 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let val = exec_value(song, &val_tokens);
                 song.variables_insert(&var_key, val);
             },
+            TokenType::StrVarReplace => {
+                let var_key = t.value_s.clone().unwrap_or(String::from("ERROR"));
+                let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                if args.len() >= 2 {
+                    let mut val_s = song.variables_get(&var_key).unwrap_or(&SValue::None).to_s();
+                    val_s = val_s.replace(&args[0].to_s(), &args[1].to_s());
+                    song.variables_insert(&var_key, SValue::from_s(val_s));
+                }
+            },
             TokenType::PlayFromHere => song.play_from = trk!(song).timepos,
             TokenType::SongVelocityAdd => song.v_add = exec_value_int_by_token(song, t),
             TokenType::SongQAdd => song.q_add = exec_value_int_by_token(song, t),
@@ -1064,6 +1073,17 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
             song.stack.push(SValue::from_str(s));
         } else {
             song.stack.push(SValue::from_str("(MID:ERROR)"));
+        }
+    }
+    else if func_name == "REPLACE" || func_name == "Replace" {
+        if arg_count >= 3 {
+            let val = args[0].to_s();
+            let s_from = args[1].to_s();
+            let s_to = args[2].to_s();
+            let s = val.replace(&s_from, &s_to);
+            song.stack.push(SValue::from_str(&s));
+        } else {
+            song.stack.push(SValue::from_str("(REPLACE:ERROR)"));
         }
     }
     else if func_name == "SizeOf" || func_name == "SIZEOF" {
@@ -2141,10 +2161,16 @@ mod tests {
         assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
     }
    #[test]
-    fn test_exec_sys_func() {
+    fn test_exec_sys_func_mid() {
         // mid
         let song = exec_easy("STR A={abcd};PRINT(MID(A,1,2))");
         assert_eq!(song.get_logs_str(), "[PRINT](0) ab");
+    }
+   #[test]
+    fn test_exec_sys_func_replace() {
+        // mid
+        let song = exec_easy("STR A={abcd};PRINT(REPLACE(A,{ab},{rr}))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) rrcd");
     }
    #[test]
     fn test_lex_macro_extract() {
