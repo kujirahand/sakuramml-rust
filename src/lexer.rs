@@ -94,7 +94,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             'r' => result.push(read_rest(&mut cur)),         // @ rest - 休符
             'l' => result.push(read_length(&mut cur, song)), // @ length - 音長の指定(例 l4)
             'o' => result.push(read_octave(&mut cur, song)), // @ octave - 音階の指定(例 o5) 範囲:0-10
-            'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ pitch bend - ピッチベンドの指定 範囲:0-127 (63が中央)
+            'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ pitch bend - ピッチベンドの指定 範囲:0-127 (63が中央) / (ref) PB(n) は -8192~0~8191
             'q' => result.push(read_qlen(&mut cur, song)), // @ gate - ゲートの指定 (例 q90) 範囲:0-100
             'v' => result.push(read_velocity(&mut cur, song)), // @ velocity - ベロシティ音量の指定 範囲:0-127 / v.Random=n
             't' => result.push(read_timing(&mut cur, song)), // @ timing - 発音タイミングの指定 (例 t-1) / t.Random=n
