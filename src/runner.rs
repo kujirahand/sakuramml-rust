@@ -102,10 +102,10 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::Print => {
                 let args_tokens = t.children.clone().unwrap_or(vec![]);
-                // println!("print_args=:{:?}", args_tokens);
+                // println!("@@@print_args=:{:?}", args_tokens);
                 let args = exec_args(song, &args_tokens);
                 let mut disp: Vec<String> = vec![];
-                for v in args.into_iter() {
+                for v in args {
                     disp.push(v.to_s());
                 }
                 let disp_s = disp.join(" ");
@@ -552,9 +552,19 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                         continue;
                     },
                     Some(var_name) => {
-                        let vals = song.variables_get(&var_name).clone().unwrap_or(&SValue::None);
+                        // get variable's value
+                        let val = song.variables_get(&var_name);
                         // println!("GetVariable: {}={:?}", var_name, vals);
-                        song.stack.push(vals.clone());
+                        let val = match val {
+                            Some(v) => v.clone(),
+                            None => {
+                                match get_system_value(var_name, &song) {
+                                    Some(v) => v,
+                                    None => SValue::None,
+                                }
+                            }
+                        };
+                        song.stack.push(val);
                     }
                 }
             },
@@ -1233,16 +1243,48 @@ fn exec_for(song: &mut Song, t: &Token) -> bool {
 
 fn get_system_value(cmd: &str, song: &Song) -> Option<SValue> {
     // <SYSTEM_REF>
-    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" { // @ 現在のトラック番号を得る
+    if cmd == "TR" || cmd == "TRACK" || cmd == "Track" { // @ get current track no - 現在のトラック番号を得る
         let tr = song.cur_track as isize;
         return Some(SValue::from_i(tr));
     }
-    if cmd == "CH" || cmd == "CHANNEL" { // @ 現在のチャンネル番号を得る
+    if cmd == "CH" || cmd == "CHANNEL" { // @ get current channel no - 現在のチャンネル番号を得る
         let ch = trk!(song).channel + 1; // range: 1-16
         return Some(SValue::from_i(ch));
     }
-    if cmd == "TIME" || cmd == "Time" { // @ 現在のタイムポインタ値を得る
+    if cmd == "TIME" || cmd == "Time" || cmd == "TIMEPOS" || cmd == "TIMEPTR" { // @ get time posision - 現在のタイムポインタ値を得る
         let v = trk!(song).timepos;
+        return Some(SValue::from_i(v));
+    }
+    if cmd == "TEMPO" || cmd == "Tempo" || cmd == "BPM" { // @ get tempo - 現在のテンポ値を得る
+        let v = song.tempo;
+        return Some(SValue::from_i(v));
+    }
+    if cmd == "KEY" || cmd == "KEY_SHIFT" { // @ get key shift - 現在のキーシフト値を得る
+        let v = song.key_shift;
+        return Some(SValue::from_i(v));
+    }
+    if cmd == "TR_KEY" || cmd == "TrackKey" { // @ get track key shift - 現在のトラックごとのキーシフト値を得る
+        let v = trk!(song).track_key;
+        return Some(SValue::from_i(v));
+    }
+    if cmd == "TIMEBASE" || cmd == "Timebase" { // @ get timebase - 現在のタイムベース値を得る
+        let v = song.timebase;
+        return Some(SValue::from_i(v));
+    }
+    if cmd == "l" { // @ get length - 現在のlの値を得る
+        let v = trk!(song).length;
+        return Some(SValue::from_i(v));
+    }
+    if cmd == "v" { // @ get velocity - 現在のvの値を得る
+        let v = trk!(song).velocity;
+        return Some(SValue::from_i(v));
+    }
+    if cmd == "q" { // @ get gate rate - 現在のqの値を得る
+        let v = trk!(song).qlen;
+        return Some(SValue::from_i(v));
+    }
+    if cmd == "o" { // @ get octave rate - 現在のoの値を得る
+        let v = trk!(song).octave;
         return Some(SValue::from_i(v));
     }
     // </SYSTEM_REF>
@@ -2163,5 +2205,34 @@ mod tests {
         assert_eq!(song.get_logs_str(), "[PRINT](0) 16");
         let song = exec_easy("INT A=0x10; PRINT(A)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 16");
+    }
+   #[test]
+    fn test_loop() {
+        // loop simple
+        let song = exec_easy("[4 c4]");
+        assert_eq!(trk!(song).timepos, song.timebase * 4);
+        // loop break
+        let song = exec_easy("[4 c4 : c4] c4");
+        assert_eq!(trk!(song).timepos, song.timebase * 8);
+        // loop nested
+        let song = exec_easy("[4 [2 c4] ]");
+        assert_eq!(trk!(song).timepos, song.timebase * 8);
+        // loop nested with break
+        let song = exec_easy("[4 [2 c4 : c4] ]");
+        assert_eq!(trk!(song).timepos, song.timebase * 12);
+    }
+   #[test]
+    fn test_read_system_value() {
+        // timebase test
+        let song = exec_easy("TIMEBASE(96); c4; PRINT(TIME)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 96");
+        let song = exec_easy("TIMEBASE(48); c4; PRINT(TIME)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 48");
+        // v
+        let song = exec_easy("v120 c4; PRINT(v)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 120");
+        // o
+        let song = exec_easy("o6 c4; PRINT(o)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 6");
     }
  }

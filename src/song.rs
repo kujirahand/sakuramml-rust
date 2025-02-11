@@ -754,7 +754,8 @@ impl Song {
         self.variables_stack.push(last); // スコープを戻す
     }
     pub fn variables_get(&self, key: &str) -> Option<&SValue> {
-        for vars in self.variables_stack.iter().rev() { // 全てのスコープを調べる
+        // search scope
+        for vars in self.variables_stack.iter().rev() {
             match vars.get(key) {
                 None => continue,
                 Some(val) => return Some(val),
