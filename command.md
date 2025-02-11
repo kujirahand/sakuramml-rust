@@ -12,7 +12,7 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | r | rest - 休符 |
 | l | length - 音長の指定(例 l4) |
 | o | octave - 音階の指定(例 o5) 範囲:0-10 |
-| p | pitch bend - ピッチベンドの指定 範囲:0-127 (63が中央) |
+| p | pitch bend - ピッチベンドの指定 範囲:0-127 (63が中央) / (ref) PB(n) は -8192~0~8191 |
 | q | gate - ゲートの指定 (例 q90) 範囲:0-100 |
 | v | velocity - ベロシティ音量の指定 範囲:0-127 / v.Random=n |
 | t | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
@@ -64,8 +64,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | Rhythm | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
 | RHYTHM | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
 | R | read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
-| Rythm | 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
-| RYTHM | 互換性:綴りミス read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| Rythm | 互換性:綴りミス [typo] read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
+| RYTHM | 互換性:綴りミス [typo] read Rhythm notes (ex) Rhythm{ bhsh bhsh } |
 | Div | tuplet(連符) (ex) Div{ ceg } |
 | DIV | tuplet(連符) (ex) Div{ ceg } |
 | Sub | sub track / rewind time position (ex) Sub{ceg} egb |
@@ -124,11 +124,14 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | Chorus | CC#93 Chorus range:0-127 (ex) Chorus(100) |
 | VAR | CC#94 Variation range:0-127 (ex) VAR(100) |
 | Variation | CC#94 Variation range:0-127 (ex) Variation(100) |
-| PB | Pitchbend range: -8192...0...8191 (ex) PB(10) |
+| PitchBend | Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~63~127 |
+| PB | Pitchbend range: -8192~0~8191 (ex) PB(10) |
+| PitchBendSensitivity | PitchBendSensitivity (ex) BR(10) |
+| BEND_RANGE | PitchBendSensitivity (ex) BEND_RANGE(10) |
+| BendRange | PitchBendSensitivity (ex) BendRange(10) |
+| BR | PitchBendSensitivity (ex) BR(10) |
 | RPN | write RPN (ex) RPN(0,1,64) |
 | NRPN | write NRPN (ex) NRPN(1,1,1) |
-| BR | PitchBendSensitivity (ex) BR(10)  |
-| PitchBendSensitivity | PitchBendSensitivity (ex) BR(10) |
 | FineTune | set fine tune range:0-63-127(-100 - 0 - +99.99セント）(ex) FineTune(63) |
 | CoarseTune | set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(63) |
 | VibratoRate | set VibratoRate range: 0-127 |

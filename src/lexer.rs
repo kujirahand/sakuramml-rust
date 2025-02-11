@@ -89,16 +89,16 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                 result.push(Token::new_lineno(cur.line));
             },
             // lower command
-            'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ note - ドレミファソラシ c(音長),(ゲート),(音量),(タイミング),(音階)
-            'n' => result.push(read_note_n(&mut cur, song)), // @ note no - 番号を指定して発音(例: n36) n(番号),(音長),(ゲート),(音量),(タイミング)
+            'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ note - ドレミファソラシ c(l),(q),(v),(t),(o)
+            'n' => result.push(read_note_n(&mut cur, song)), // @ note no - 番号を指定して発音 n(no),(l),(q),(v),(t) - (ex) n60
             'r' => result.push(read_rest(&mut cur)),         // @ rest - 休符
-            'l' => result.push(read_length(&mut cur, song)), // @ length - 音長の指定(例 l4)
-            'o' => result.push(read_octave(&mut cur, song)), // @ octave - 音階の指定(例 o5) 範囲:0-10
-            'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ pitch bend - ピッチベンドの指定 範囲:0-127 (63が中央) / (ref) PB(n) は -8192~0~8191
-            'q' => result.push(read_qlen(&mut cur, song)), // @ gate - ゲートの指定 (例 q90) 範囲:0-100
-            'v' => result.push(read_velocity(&mut cur, song)), // @ velocity - ベロシティ音量の指定 範囲:0-127 / v.Random=n
+            'l' => result.push(read_length(&mut cur, song)), // @ length - 音長の指定 (ex) l4 c
+            'o' => result.push(read_octave(&mut cur, song)), // @ octave - 音階の指定 range:0-10 (ex) o6 c
+            'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ pitch bend - ピッチベンドの指定 range:0-127 (center:63) (ex) p63 / (ref) PB(n) は -8192~0~8191
+            'q' => result.push(read_qlen(&mut cur, song)), // @ gate rate - ゲートの指定 range:0-100 (ex) q90
+            'v' => result.push(read_velocity(&mut cur, song)), // @ velocity - ベロシティ音量の指定 range:0-127 (ex) v100 / v.Random=n
             't' => result.push(read_timing(&mut cur, song)), // @ timing - 発音タイミングの指定 (例 t-1) / t.Random=n
-            'y' => result.push(read_cc(&mut cur, song)), // @ Control change - コントロールチェンジの指定 (ex) y1,100) / range:0-127 / y1.onTime(low,high,len)
+            'y' => result.push(read_cc(&mut cur, song)), // @ Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len)
             // Upper command
             'A'..='Z' | '_' => {
                 cur.prev();
@@ -110,7 +110,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                 }
                 result.push(read_upper_command(&mut cur, song));
             },
-            '#' => { // @ マクロ
+            '#' => { // @ Macro - マクロ定義 (ex) #A={cdefg}
                 cur.prev();
                 if cur.eq("##") || cur.eq("# ") || cur.eq("#-") { // なんかみんなが使っているので一行コメントと見なす
                     cur.get_token_ch('\n');
@@ -164,12 +164,12 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)), // @ break of loop - ループ最終回に脱出 (ex)　[4 cde:g]e
             ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)),   // @ end of loop - ループ終了
             '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)), // @ harmony - 和音 (ex) 'ceg' (format) 'ceg'(音長),(ゲート)
-            '$' => read_def_rhythm_macro(&mut cur, song), // @ define rhythm macro - リズムマクロ定義 (format) $char{ defined }
-            '{' => result.push(read_command_div(&mut cur, song, true)), // @ 連符 (例 {ceg}4) {c^d}(音長)
+            '$' => read_def_rhythm_macro(&mut cur, song), // @ define rhythm macro - リズムマクロ定義 $(char){ defined } (ex) $c{n60,}
+            '{' => result.push(read_command_div(&mut cur, song, true)), // @ tuplet - 連符 {note}(len) (ex) {ceg}4 {c^d}
             '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)), // @ Octave up once - 一度だけ音階を+1する
             '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)), // @ Octave down once - 一度だけ音階を-1する
             '?' => result.push(Token::new_value(TokenType::PlayFromHere, 0)), // @ play from here - ここから演奏する (=PlayFromHere)
-            '&' => {}, // @ tie and slur - タイ・スラー(Slurコマンドで動作が変更できる)
+            '&' => {}, // @ tie, slur - タイ・スラー(Slurコマンドで動作が変更できる)
             // </CHAR_COMMANDS>
             _ => {
                 let msg = format!("{}", ch);
