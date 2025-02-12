@@ -444,8 +444,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "PortamentoTime", TokenType::ControlChangeCommand, '*', 5); // CC#5 Portamento Time range:0-127 (ex) PT(10)
     sysfunc_cc_add!(sf, "V", TokenType::ControlChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
     sysfunc_cc_add!(sf, "MainVolume", TokenType::ControlChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
-    sysfunc_cc_add!(sf, "P", TokenType::ControlChangeCommand, '*', 10); // CC#10 Panpot range:0-63-127 (ex) P(63)
-    sysfunc_cc_add!(sf, "Panpot", TokenType::ControlChangeCommand, '*', 10); // CC#10 Panpot range:0-63-127 (ex) Panpot(63)
+    sysfunc_cc_add!(sf, "P", TokenType::ControlChangeCommand, '*', 10); // CC#10 Panpot range:0-64-127 (ex) P(64)
+    sysfunc_cc_add!(sf, "Panpot", TokenType::ControlChangeCommand, '*', 10); // CC#10 Panpot range:0-64-127 (ex) Panpot(64)
     sysfunc_cc_add!(sf, "EP", TokenType::ControlChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
     sysfunc_cc_add!(sf, "Expression", TokenType::ControlChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
     sysfunc_cc_add!(sf, "PS", TokenType::ControlChangeCommand, '*', 65); // CC#65 Portament switch range:0-127 (ex) PS(1)
@@ -456,7 +456,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "Chorus", TokenType::ControlChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) Chorus(100)
     sysfunc_cc_add!(sf, "VAR", TokenType::ControlChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) VAR(100)
     sysfunc_cc_add!(sf, "Variation", TokenType::ControlChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) Variation(100)
-    sysfunc_add!(sf, "PitchBend", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~63~127
+    sysfunc_add!(sf, "PitchBend", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~64~127
     sysfunc_add!(sf, "PB", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PB(10)
     sysfunc_rpn_add!(sf, "PitchBendSensitivity", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10)
     sysfunc_rpn_add!(sf, "BEND_RANGE", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BEND_RANGE(10)
@@ -464,8 +464,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_rpn_add!(sf, "BR", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10)
     sysfunc_add!(sf, "RPN", TokenType::RPN, 'A'); // write RPN (ex) RPN(0,1,64)
     sysfunc_add!(sf, "NRPN", TokenType::NRPN, 'A'); // write NRPN (ex) NRPN(1,1,1)
-    sysfunc_rpn_add!(sf, "FineTune", TokenType::RPNCommand, '*', 0, 1); // set fine tune range:0-63-127(-100 - 0 - +99.99セント）(ex) FineTune(63)
-    sysfunc_rpn_add!(sf, "CoarseTune", TokenType::RPNCommand, '*', 0, 2); // set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(63)
+    sysfunc_rpn_add!(sf, "FineTune", TokenType::RPNCommand, '*', 0, 1); // set fine tune range:0-64-127(-100 - 0 - +99.99セント）(ex) FineTune(64)
+    sysfunc_rpn_add!(sf, "CoarseTune", TokenType::RPNCommand, '*', 0, 2); // set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(64)
     sysfunc_rpn_add!(sf, "VibratoRate", TokenType::NRPNCommand, '*', 1, 8); // set VibratoRate range: 0-127
     sysfunc_rpn_add!(sf, "VibratoDepth", TokenType::NRPNCommand, '*', 1, 9); // set VibratoRate range: 0-127
     sysfunc_rpn_add!(sf, "VibratoDelay", TokenType::NRPNCommand, '*', 1, 10); // set VibratoRate range: 0-127
