@@ -384,8 +384,8 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
             // PichBend is Little Endian!!
             let vv: isize = (((bin[p+2] as isize) << 7) | bin[p+1] as isize) - 8192;
             let vv2 = vv + 8192;
-            let pb: isize = ((vv + 8192) >> 7) & 0x7F;
-            let msg = format!("PitchBend({}) /*vv={} vv2={}  p{}*/", vv, vv, vv2, pb);
+            let pb: isize = (vv2 >> 7) & 0x7F;
+            let msg = format!("PitchBend({}) /* p{} */", vv, pb);
             *pos += 3;
             msg
         },
