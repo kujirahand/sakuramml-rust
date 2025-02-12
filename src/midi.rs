@@ -281,7 +281,17 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
                 },
                 _ => { // text
                     let txt = array_read_str(bin, p+3, meta_len);
-                    format!("Meta \ttype={:02x} len={:02x} text={}", meta_type, meta_len, txt)
+                    let meta_name = match meta_type {
+                        0x01 => { "TEXT".to_string() },
+                        0x02 => { "COPYRIGHT".to_string() },
+                        0x03 => { "TRACK_NAME".to_string() },
+                        0x04 => { "INSTRUMENT_NAME".to_string() },
+                        0x05 => { "LYRIC".to_string() },
+                        0x06 => { "MARKER".to_string() },
+                        0x07 => { "CUE_POINT".to_string() },
+                        _ => { format!("// Meta Type=${:02x} Length={} Text=", meta_type, meta_len) }
+                    };
+                    format!("{}{{{}}};", meta_name, txt)
                 }
             };
             *pos += 3 + meta_len;
