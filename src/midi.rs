@@ -320,7 +320,7 @@ pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReade
             format!("SysEx$={};", m)
         },
         _ => {
-            format!("[ERROR] Unknown meta event...={:02x}", meta_type)
+            format!("// [ERROR] Unknown meta event...={:02x}", meta_type)
         }
     }
 }
@@ -393,7 +393,7 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
             dump_midi_event_meta(bin, pos, info)
         },
         _ => {
-            format!("[ERROR] Unknown event...={:02x}", event_type)
+            format!("// [ERROR] Unknown event...={:02x}", event_type)
         }
     }
 }
@@ -436,10 +436,10 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
     // tracks
     for no in 0..track_count {
         log(&format!("// ----- TRACK -----"));
-        log(&format!("TRACK({})", no + 1));
+        log(&format!("TRACK({})", no));
         let mtrk = array_read_str(bin, pos, 4);
         if mtrk != "MTrk" {
-            log(&format!("[ERROR] Track header broken MTrk!={}", mtrk));
+            log(&format!("// [ERROR] Track header broken MTrk!={}", mtrk));
             return res;
         }
         pos += 4;
