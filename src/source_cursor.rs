@@ -157,7 +157,9 @@ impl SourceCursor {
                 level += 1;
             }
             else if ch == close_ch {
-                level -= 1;
+                if level > 0 {
+                    level -= 1;
+                }
                 // last?
                 if level == 0 { break; }
             }
