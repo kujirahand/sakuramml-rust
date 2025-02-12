@@ -223,7 +223,7 @@ impl SourceCursor {
                     self.index += 1;
                     continue;
                 },
-                ' ' | '|' => {
+                ' ' | '|' | '\t' => {
                     self.next();
                 },
                 _ => { break; }

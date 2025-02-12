@@ -2261,4 +2261,19 @@ mod tests {
         let song = exec_easy("o6 c4; PRINT(o)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 6");
     }
+    #[test]
+    fn test_add_len() {
+        // test basic
+        let song = exec_easy("l4 c");
+        let pos = song.tracks[0].timepos;
+        assert_eq!(pos, 96 * 1);
+        // test space
+        let song = exec_easy("l4 c ^");
+        let pos = song.tracks[0].timepos;
+        assert_eq!(pos, 96 * 2);
+        // test tab
+        let song = exec_easy("l4 c \t ^^^");
+        let pos = song.tracks[0].timepos;
+        assert_eq!(pos, 96 * 4);
+    }
  }
