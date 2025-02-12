@@ -83,8 +83,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | Play | play multi track (ex) Play(AA,BB,CC) |
 | PLAY | play multi track (ex) Play(AA,BB,CC) |
 | SysEx | System Exclusive (ex) SysEx$=f0,43,10,4c,00,{00,00,30,f0},f7 |
-| PlayFrom.SysEx | Unimplemented |
-| PlayFrom.CtrlChg | Unimplemented |
+| PlayFrom.SysEx | =SysEx |
+| PlayFrom.CtrlChg | =CONTROL_CHANGE |
 | PlayFrom | play from time position (ex) PlayFrom(5:1:0) |
 | PLAY_FROM | play from time position (ex) PLAY_FROM(5:1:0) |
 | PlayFromHere | play from current time pos (ex) PlayFromHere |
@@ -106,6 +106,9 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | DeviceNumber | set Device Number (ex) DeviceNumber=$10 |
 | Voice | set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1) |
 | VOICE | set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1) |
+| CONTROL_CHANGE | write Control Change (ex) CC(1,100) |
+| ControlChange | write Control Change (ex) CC(1,100) |
+| CC | write Control Change (ex) CC(1,100) |
 | M | CC#1 Modulation (ex) M(10) |
 | Modulation | CC#1 Modulation range:0-127 (ex) M(10) |
 | PT | CC#5 Portamento Time range:0-127 (ex) PT(10) |
@@ -226,6 +229,9 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | RandomSeed | set random seed |
 | FUNCTION | define user function |
 | Function | define user function |
+| DirectSMF | direct smf event / DirectSMF(b1, b2, b3, ...) |
+| NoteOn | note no / NoteOn(noteno, velocity) |
+| NoteOff | note off / NoteOn(noteno, velocity) |
 
 
 ## Values in a formula
@@ -234,9 +240,17 @@ Values that can be referenced in a formula (計算式で参照できる値)
 
 | Command | Description |
 |---------|--------|
-| TR /  TRACK /  Track  |現在のトラック番号を得る|
-| CH /  CHANNEL  |現在のチャンネル番号を得る|
-| TIME /  Time  |現在のタイムポインタ値を得る|
+| TR /  TRACK /  Track  |get current track no - 現在のトラック番号を得る|
+| CH /  CHANNEL  |get current channel no - 現在のチャンネル番号を得る|
+| TIME /  Time /  TIMEPOS /  TIMEPTR  |get time posision - 現在のタイムポインタ値を得る|
+| TEMPO /  Tempo /  BPM  |get tempo - 現在のテンポ値を得る|
+| KEY /  KEY_SHIFT  |get key shift - 現在のキーシフト値を得る|
+| TR_KEY /  TrackKey  |get track key shift - 現在のトラックごとのキーシフト値を得る|
+| TIMEBASE /  Timebase  |get timebase - 現在のタイムベース値を得る|
+| l  |get length - 現在のlの値を得る|
+| v  |get velocity - 現在のvの値を得る|
+| q  |get gate rate - 現在のqの値を得る|
+| o  |get octave rate - 現在のoの値を得る|
 
 
 ## Macro and Voice List 
