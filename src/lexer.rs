@@ -1102,8 +1102,13 @@ fn read_timebase(cur: &mut SourceCursor, song: &mut Song) -> Token {
 
 fn read_key_flag(cur: &mut SourceCursor, _song: &mut Song) -> Token {
     let mut flag = 1;
-    let mut key_flag = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    let key_flag_index_a = [0, 2, 4, 5, 7, 9, 11];
+    let mut key_flag = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // c, c#,d, d#,e, f, f#,g, g#,a, a#,b
+    // --- key_flag means ---
+    //                      0  1  2  3  4  5  6  7  8  9 10 11
+    //                      c, c#,d, d#,e, f, f#,g, g#,a, a#,b
+    // --- converter ---
+    //                      a, b, c, d, e, f, g
+    let key_flag_index_a = [9,11, 0, 2, 4, 5, 7];
     cur.skip_space();
     if cur.eq_char('=') {
         cur.next();
@@ -1130,8 +1135,17 @@ fn read_key_flag(cur: &mut SourceCursor, _song: &mut Song) -> Token {
     while !cur.is_eos() {
         cur.skip_space();
         // numeric value
-        if cur.eq_char('0') || cur.eq_char('1') || cur.eq("-1") {
-            let v = cur.get_int(0);
+        let mut plus_minus = 1;
+        if cur.eq_char('+') {
+            cur.next();
+        } else if cur.eq_char('-') {
+            cur.next();
+            plus_minus = -1;
+        }
+        // number
+        if cur.is_numeric() {
+            let v = cur.get_int(0) * plus_minus;
+            if key_flag_index_a.len() <= idx { continue; }
             key_flag[key_flag_index_a[idx]] = v;
             idx += 1;
             if idx >= 8 {

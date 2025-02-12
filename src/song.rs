@@ -614,7 +614,7 @@ pub struct Song {
     pub functions: Vec<SFunction>,
     pub system_functions: HashMap<String, mml_def::SystemFunction>,
     pub reserved_words: HashMap<String, u8>,
-    pub key_flag: Vec<isize>,
+    pub key_flag: Vec<isize>, // order: [c,c#,d,d#,e,f,f#,g,g#,a,a#,b]
     pub key_shift: isize,
     pub play_from: isize,
     pub v_add: isize,

@@ -1589,6 +1589,7 @@ fn get_note_info_from_token(t: &Token) -> NoteInfo {
     }
 }
 
+/// get note info, and shift key
 fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut Song) {
     // set note with track's default value
     if note.qlen == 0 {
@@ -1608,7 +1609,7 @@ fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut Song) {
     // key_shift / key_flag / track_key
     if song.use_key_shift {
         noteno += if note.natural == 0 {
-            song.key_flag[note.no as usize]
+            song.key_flag[(note.no as usize) % 12]
         } else {
             0
         };
@@ -1621,6 +1622,7 @@ fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut Song) {
 fn exec_note(song: &mut Song, t: &Token) {
     // get note parameters
     let mut note = get_note_info_from_token(t);
+    // get note info, and shift key
     set_note_info_with_default_value(&mut note, song);
     // timepos
     let timepos = trk!(song).timepos;

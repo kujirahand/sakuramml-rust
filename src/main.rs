@@ -236,4 +236,26 @@ mod tests {
         let log = mml_dump("GSScaleTuning(0,1,2,3,4,5,6,7,8,9,10,11);");
         assert!(log.contains("SysEx$=F0,/*len:15*/41,10,42,12,40,11,40,00,01,02,03,04,05,06,07,08,09,0A,0B,2D,F7;"));
     }
+    #[test]
+    fn test_keyflag_fmt1() {
+        // test for issues #23
+        // keyflag                     a,b,c,d,e,f,g
+        let log = mml_dump("c;KeyFlag=(0,0,0,0,0,0,0);c");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        let log = mml_dump("c;KeyFlag=(1,1,1,1,1,1,1);c");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        assert!(log.contains("NoteOn($3d,$64)"));
+        let log = mml_dump("c;KeyFlag=(1,1,2,1,1,1,1);c");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        assert!(log.contains("NoteOn($3e,$64)"));
+    }
+    #[test]
+    fn test_keyflag_fmt2() {
+        // test for issues #23
+        let log = mml_dump("c;KeyFlag#();c");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        let log = mml_dump("c;KeyFlag#(c);c");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        assert!(log.contains("NoteOn($3d,$64)"));
+    }
 }
