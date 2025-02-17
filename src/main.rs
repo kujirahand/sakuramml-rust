@@ -276,4 +276,10 @@ mod tests {
         assert!(log.contains("NoteOn($3c,$64)"));
         assert!(log.contains("NoteOn($3e,$64)"));
     }
+    #[test]
+    fn test_program_change() {
+        let log = mml_dump("@1 cde");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        assert!(log.contains("NoteOn($3d,$64)"));
+    }
 }

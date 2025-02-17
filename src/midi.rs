@@ -371,7 +371,7 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
             msg
         },
         0xC0 => { // Voice
-            let msg = format!("Voice({})", bin[p+1]);
+            let msg = format!("Voice({}) // ${:02x},${:02x}", bin[p+1] + 1, bin[p], bin[p+1]);
             *pos += 2;
             msg
         },
