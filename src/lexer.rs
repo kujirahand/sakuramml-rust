@@ -1935,6 +1935,7 @@ fn read_note(cur: &mut SourceCursor, ch: char) -> Token {
         }
     }
     // length
+    // 例外的に改行を許す
     let note_len = cur.get_note_length();
     cur.skip_space();
     // qlen

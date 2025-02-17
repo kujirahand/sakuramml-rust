@@ -2280,4 +2280,11 @@ mod tests {
         let pos = song.tracks[0].timepos;
         assert_eq!(pos, 96 * 4);
     }
+   #[test]
+    fn test_read_length() { // 改行後の音長を有効にする #60
+        let song = exec_easy("l8 c^\n^^");
+        assert_eq!(song.tracks[0].timepos, song.timebase * 2);
+        let song = exec_easy("l8 c^\n^4");
+        assert_eq!(song.tracks[0].timepos, song.timebase * 2);
+    }
  }

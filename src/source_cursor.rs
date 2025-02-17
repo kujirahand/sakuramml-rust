@@ -228,6 +228,18 @@ impl SourceCursor {
                 ' ' | '|' | '\t' => {
                     self.next();
                 },
+                '\n' => { // 改行があっても続く部分に"^"か数値があれば続行
+                    let tmp_index = self.index;
+                    self.next(); // skip '\n'
+                    self.skip_space_ret();
+                    let ch2 = self.peek_n(0);
+                    if ch2 == '^' {
+                        continue;
+                    }
+                    // rollback
+                    self.index = tmp_index;
+                    break;
+                }
                 _ => { break; }
             }
         }
