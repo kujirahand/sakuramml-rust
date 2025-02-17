@@ -184,7 +184,10 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
 /// append error log for lex
 fn lex_error(cur: &mut SourceCursor, song: &mut Song, msg: &str) {
     // make error log
-    let near = cur.peek_str_n(8).replace('\n', "↵");
+    let mut near = cur.peek_str_n(8).replace('\n', "↵");
+    if near.len() == 0 {
+        near = "[EOS]".to_string();
+    }
     let log = format!(
         "[ERROR]({}) {}: \"{}\" {} \"{}\"",
         cur.line,
@@ -1456,7 +1459,7 @@ fn read_command_rhythm(cur: &mut SourceCursor, song: &mut Song) -> Token {
 
 fn read_def_rhythm_macro(cur: &mut SourceCursor, song: &mut Song) {
     let ch = cur.get_char(); // get macro char
-    println!("macro={}", ch);
+    // println!("macro={}", ch);
     cur.skip_space();
     if cur.eq_char('=') {
         cur.next();
