@@ -59,6 +59,8 @@ pub fn init_variables() -> HashMap<String, SValue> {
     var.insert(String::from("Unison5th"), SValue::from_str("Sub{ Key=7 #?1 Key=0 } #?1")); // @ 5度のユニゾンを演奏 (例 Unison5th{cde})
     var.insert(String::from("Unison3th"), SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1")); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})
     var.insert(String::from("Unison"), SValue::from_str("Sub{ Key=#?2 #?1 Key=0 } #?1")); // @ N度のユニゾンを演奏 (例 Unison{cde},7)
+    // from v2::groove.h
+    var.insert(String::from("RndTiming"), SValue::from_str("t.Random(#?1)")); // @ set random timing (ex) RndTiming(3)
     // tie/slur mode
     var.insert(String::from("SLUR_PORT"), SValue::from_i(0)); // @ スラー定数。グリッサンド。ノートオンを、ポルタメントでつなぐ (例 Slur(SlurPort, !8) のように指定)
     var.insert(String::from("SLUR_BEND"), SValue::from_i(1)); // @ スラー定数。ベンド。異音程をベンドで表現。ギターのハンマリングに近い。 (例 Slur(SlurPort, !8) のように指定)

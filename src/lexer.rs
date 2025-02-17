@@ -169,7 +169,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)), // @ Octave up once - 一度だけ音階を+1する
             '"' => result.push(Token::new_value(TokenType::OctaveOnce, -1)), // @ Octave down once - 一度だけ音階を-1する
             '?' => result.push(Token::new_value(TokenType::PlayFromHere, 0)), // @ play from here - ここから演奏する (=PlayFromHere)
-            '&' => {}, // @ tie, slur - タイ・スラー(Slurコマンドで動作が変更できる)
+            '&' => result.push(read_tie_error(&mut cur, song)), // @ tie, slur - タイ・スラー(Slurコマンドで動作が変更できる)
             // </CHAR_COMMANDS>
             _ => {
                 let msg = format!("{}", ch);
@@ -1372,6 +1372,10 @@ fn read_command_sub(cur: &mut SourceCursor, song: &mut Song) -> Token {
     tok
 }
 
+fn read_tie_error(cur: &mut SourceCursor, _: &mut Song) -> Token {
+    Token::new_empty("[ERROR] tie", cur.line)
+}
+
 fn read_command_div(cur: &mut SourceCursor, song: &mut Song, need2back: bool) -> Token {
     // is 1char command
     if need2back {
@@ -1972,7 +1976,11 @@ fn read_note(cur: &mut SourceCursor, ch: char) -> Token {
     if cur.eq_char('&') {
         cur.next(); // skip &
         cur.skip_space();
-        slur = SValue::Int(1);
+        if cur.eq_char('$') || cur.is_numeric() {
+            slur = SValue::Int(cur.get_int(0));
+        } else {
+            slur = SValue::Int(1);
+        }
     }
     Token::new(
         TokenType::Note,

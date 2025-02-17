@@ -1686,7 +1686,7 @@ fn exec_note(song: &mut Song, t: &Token) {
         return;
     }
     // tie or slur?
-    if note.slur == 1 {
+    if note.slur >= 1 {
         trk!(song).tie_notes.push(event);
         return;
     }
