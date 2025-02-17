@@ -258,4 +258,22 @@ mod tests {
         assert!(log.contains("NoteOn($3c,$64)"));
         assert!(log.contains("NoteOn($3d,$64)"));
     }
+    #[test]
+    fn test_track_key() {
+        // test for issues #57
+        let log = mml_dump("n$3c;TrackKey(1);n$3c");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        assert!(log.contains("NoteOn($3d,$64)"));
+        // KeyShift + TrackKey
+        let log = mml_dump("n$3c; KeyShift(1); TrackKey(1); n$3c");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        assert!(log.contains("NoteOn($3e,$64)"));
+        // TrackKey note name
+        let log = mml_dump("c;TrackKey(1);c");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        assert!(log.contains("NoteOn($3d,$64)"));
+        let log = mml_dump("c;TrackKey(1);KeyShift(1)c");
+        assert!(log.contains("NoteOn($3c,$64)"));
+        assert!(log.contains("NoteOn($3e,$64)"));
+    }
 }

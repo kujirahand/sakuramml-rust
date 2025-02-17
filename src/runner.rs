@@ -1864,6 +1864,8 @@ fn exec_note_n(song: &mut Song, t: &Token) {
     let data_note_vel = var_extract(&t.data[3], song).to_i(); // -1
     let data_note_t = var_extract(&t.data[4], song).to_i(); // isize::MIN
     let start_pos = trk!(song).timepos;
+    let track_key = trk!(song).track_key;
+    let key_shift = song.key_shift;
 
     // check parameters
     let notelen = calc_length(&data_note_len, song.timebase, trk!(song).length);
@@ -1910,7 +1912,7 @@ fn exec_note_n(song: &mut Song, t: &Token) {
     let event = Event::note(
         trk!(song).timepos + t,
         trk!(song).channel,
-        data_note_no,
+        data_note_no + track_key + key_shift,
         notelen_real,
         v,
     );
