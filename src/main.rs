@@ -15,12 +15,14 @@ use std::time::SystemTime;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 use std::thread;
+
 fn thread_id_to_u64() -> u64 {
     let thread_id = thread::current().id();
     let mut hasher = DefaultHasher::new();
     thread_id.hash(&mut hasher);
     hasher.finish()
 }
+
 fn time_to_u64() -> u64 {
     let now = SystemTime::now();
     let duration = now.duration_since(SystemTime::UNIX_EPOCH).expect("Time went backwards");
@@ -278,8 +280,8 @@ mod tests {
     }
     #[test]
     fn test_program_change() {
-        let log = mml_dump("@1 cde");
+        let log = mml_dump("@1c");
+        assert!(log.contains("Voice(1)"));
         assert!(log.contains("NoteOn($3c,$64)"));
-        assert!(log.contains("NoteOn($3d,$64)"));
     }
 }
