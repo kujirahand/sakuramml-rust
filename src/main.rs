@@ -227,6 +227,12 @@ mod tests {
         assert!(log.contains("SysEx$=F0,/*len:0A*/43,10,4C,00,00,00,30,F0,60,F7;"));
     }
     #[test]
+    fn test_sysex_reset_gm() {
+        // SysEx normal
+        let log = mml_dump("ResetGM();");
+        assert!(log.contains("SysEx$=F0,/*len:05*/7E,7F,09,01,F7;"));
+    }
+    #[test]
     fn test_sysex_gseffect() {
         // GSEffect
         let log = mml_dump("GSEffect(0x30, 0);");

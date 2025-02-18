@@ -93,7 +93,7 @@ fn generate_track(track: &Track) -> Vec<u8> {
                     res.push(*b);
                 }
             },
-            EventType::SysEx => {
+            EventType::SysEx => { // SysEx の書き込み処理
                 let data = e.data.clone().unwrap();
                 if data.len() == 0 { continue; }
                 let delta_time = e.time - timepos;

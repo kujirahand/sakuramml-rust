@@ -335,13 +335,13 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let dev = song.device_number as u8;
                 match t.value_i {
                     0 => { // GM
-                        song.add_event(Event::sysex_raw(time, vec![0x7E, 0x7F, 0x9, 0x1, 0xF7]));
+                        song.add_event(Event::sysex_raw(time, vec![0xF0, 0x7E, 0x7F, 0x9, 0x1, 0xF7]));
                     }
                     1 => { // GS
-                        song.add_event(Event::sysex_raw(time, vec![0x41, dev, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7]));
+                        song.add_event(Event::sysex_raw(time, vec![0xF0, 0x41, dev, 0x42, 0x12, 0x40, 0x00, 0x7F, 0x00, 0x41, 0xF7]));
                     },
                     2 => { // XG
-                        song.add_event(Event::sysex_raw(time, vec![0x43, dev, 0x4c, 0x00, 0x00, 0x7e, 0x00, 0xf7]));
+                        song.add_event(Event::sysex_raw(time, vec![0xF0, 0x43, dev, 0x4c, 0x00, 0x00, 0x7e, 0x00, 0xf7]));
                     },
                     _ => {},
                 }
