@@ -326,7 +326,21 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 song.add_event(e);
             },
             TokenType::SysEx => {
-                let args: Vec<SValue> = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                // check arguments
+                let mut args: Vec<SValue> = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+                if args.len() == 0 {
+                    runtime_error(song, &format!("SysEx : {}", song.get_message(MessageKind::ErrorWrongArguments)));
+                    continue;
+                }
+                // check leading 0xF0
+                if args[0].to_i() != 0xF0 {
+                    args.insert(0, SValue::from_i(0xF0));
+                }
+                // check trailing 0xF7
+                if args[args.len()-1].to_i() != 0xF7 {
+                    args.push(SValue::from_i(0xF7));
+                }
+                // sysex event
                 let e = Event::sysex(trk!(song).timepos, &args, t.value_i == 1);
                 song.add_event(e);
             },
