@@ -975,12 +975,27 @@ fn read_arg_value(cur: &mut SourceCursor, song: &mut Song) -> SValue {
         }
         '(' => {
             cur.next(); // skip (
-            let v = read_arg_value(cur, song);
-            cur.skip_space();
+            let mut args = vec![];
+            let mut flag_array = false;
+            loop {
+                let v = read_arg_value(cur, song);
+                args.push(v);
+                cur.skip_space();
+                if cur.eq_char(',') {
+                    cur.next();
+                    flag_array = true;
+                    continue;
+                }
+                break;
+            }
             if cur.eq_char(')') {
                 cur.next();
             }
-            v
+            if flag_array {
+                SValue::from_vec(args)
+            } else {
+                SValue::from_i(args[0].to_i())
+            }
         }
         '{' => {
             let s = cur.get_token_nest('{', '}');
@@ -994,8 +1009,19 @@ fn read_arg_value_int_array(cur: &mut SourceCursor, song: &mut Song) -> SValue {
     let mut a: Vec<isize> = vec![];
     loop {
         cur.skip_space();
+        // println!("@@@read_arg_value_int_array:{}", cur.peek_n(0));
         let v = read_arg_value(cur, song);
-        a.push(v.to_i());
+        match v {
+            SValue::None => { break; }
+            SValue::Array(av) => {
+                for v in av.into_iter() {
+                    a.push(v.to_i());
+                }
+            },
+            _ => {
+                a.push(v.to_i())
+            }
+        }
         cur.skip_space();
         if !cur.eq_char(',') {
             break;
@@ -1533,8 +1559,8 @@ fn read_command_cc(cur: &mut SourceCursor, no: isize, song: &mut Song) -> Token 
             return Token::new_empty("not supported : onNoteWave", cur.line);
         } else if cmd == "onNoteWaveR" || cmd == "WR"{ // (命令).onNoteWaveR(low,high,len...) // ノートオンしている間、low,higi,len...を繰り返す
             // TODO: not supported
-            let _ = read_arg_int_array(cur, song);
-            song.add_log(format!("[WARN]({}) not supported : onNoteWaveR", cur.line));
+            let a = read_arg_int_array(cur, song);
+            song.add_log(format!("[WARN]({}) not supported : onNoteWaveR : {:?}", cur.line, a));
             return Token::new_empty("not supported : onNoteWaveR", cur.line);
         } else if cmd == "onCycle" || cmd == "C" {
             // TODO: not supported

@@ -44,6 +44,9 @@ impl SValue {
     pub fn from_b(b: bool) -> Self {
         Self::Bool(b)
     }
+    pub fn from_vec(a: Vec<SValue>) -> Self {
+        Self::Array(a)
+    }
     pub fn to_b(&self) -> bool {
         let v = self.to_i();
         return v != 0;
