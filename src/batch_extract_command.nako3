@@ -113,9 +113,6 @@ S_LISTを改行で区切って反復
    　RES=RES&「| {KEY} | {FMT} | {VAL} |」&改行。
 ここまで。
 SYSTEM_CALC_FUNCTION=RES
-S_LISTを表示
-RESを表示
-終わり
 
 # ------------------------------------------
 # 参照できるシステムの値 - runner.rs
