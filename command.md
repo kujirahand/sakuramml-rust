@@ -240,6 +240,29 @@ Function usable within an expression (計算式で使える関数)
 
 | Command | Format | Description |
 |---------|--------|--------|
+| Random | Random(N, M) / Random(N) | return random number from n to m (ex) Random(1,6) |
+| RANDOM | RANDOM(N, M) / RANDOM(N) | return random number from n to m (ex) RANDOM(1,6) |
+| RandomInt | RandomInt(N, M) / RandomInt(N) | return random number from n to m (ex) RandomInt(1,6) |
+| RND | RND(N, M) / RND(N) | return random number from n to m (ex) RND(1,6) |
+| Rnd | Rnd(N, M) / Rnd(N) | return random number from n to m (ex) Rnd(1,6) |
+| RandomSelect | RandomSelect(...) | return one item selected from the arguments (ex) RandomSelect({a}, {b}, {c}) |
+| Chr | Chr(C) | convert code to char (ex) Chr(49) |
+| CHR | CHR(C) | convert code to char (ex) CHR(49) |
+| Asc | Asc(S) | return char from code |
+| ASC | ASC(S) | return char from code |
+| Mid | Mid(S, N, M) | extract M characters from string S starting at position N and return them (ex) Mid({abc}, 1,2) // => ab |
+| MID | MID(S, N, M) | extract M characters from string S starting at position N and return them (ex) MID({abc}, 1,2) // => ab |
+| Replace | Replace(S, A, B) | Replace A in string S with B (ex) Replace({abc}, {a}, {b}) // =>  bbc |
+| REPLACE | REPLACE(S, A, B) | Replace A in string S with B (ex) REPLACE({abc}, {a}, {b}) // =>  bbc |
+| SizeOf | SizeOf(A) | return size of A |
+| SIZEOF | SIZEOF(A) | return size of A |
+| StrLen | StrLen(S) | return length of S (ex) StrLen({abc}) // => 3 |
+| STRLEN | STRLEN(S) | return length of S (ex) STRLEN({abc}) // => 3 |
+| MML | MML(C) | return C(o/v/q/t/@/BR) value (ex) MML({o}) |
+| Hex | Hex(V) | return Hex value (ex) Hex(255) // => FF |
+| HEX | HEX(V) | return Hex value (ex) Hex(255) // => FF |
+| Pos | Pos(N, M) | Return the 1-based index of substring N in M (ex) Pos({b}, {abc}) // => 2 |
+| POS | POS(N, M) | Return the 1-based index of substring N in M (ex) Pos({b}, {abc}) // => 2 |
 
 
 ## Values in a formula
