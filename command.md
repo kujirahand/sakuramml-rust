@@ -12,7 +12,7 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | r | rest - 休符 |
 | l | length - 音長の指定 (ex) l4 c |
 | o | octave - 音階の指定 range:0-10 (ex) o6 c |
-| p | pitch bend - ピッチベンドの指定 range:0-127 (center:63) (ex) p63 / (ref) PB(n) は -8192~0~8191 |
+| p | pitch bend - ピッチベンドの指定 range:0-127 (center:64) (ex) p64 / (ref) PB(n) は -8192~0~8191 |
 | q | gate rate - ゲートの指定 range:0-100 (ex) q90 |
 | v | velocity - ベロシティ音量の指定 range:0-127 (ex) v100 / v.Random=n |
 | t | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
@@ -115,8 +115,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | PortamentoTime | CC#5 Portamento Time range:0-127 (ex) PT(10) |
 | V | CC#7 Main Volume range:0-127 (ex) V(10) |
 | MainVolume | CC#7 Main Volume range:0-127 (ex) V(10) |
-| P | CC#10 Panpot range:0-63-127 (ex) P(63) |
-| Panpot | CC#10 Panpot range:0-63-127 (ex) Panpot(63) |
+| P | CC#10 Panpot range:0-64-127 (ex) P(64) |
+| Panpot | CC#10 Panpot range:0-64-127 (ex) Panpot(64) |
 | EP | CC#11 Expression range:0-127 (ex) EP(100) |
 | Expression | CC#11 Expression range:0-127 (ex) EP(100) |
 | PS | CC#65 Portament switch range:0-127 (ex) PS(1) |
@@ -127,7 +127,7 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | Chorus | CC#93 Chorus range:0-127 (ex) Chorus(100) |
 | VAR | CC#94 Variation range:0-127 (ex) VAR(100) |
 | Variation | CC#94 Variation range:0-127 (ex) Variation(100) |
-| PitchBend | Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~63~127 |
+| PitchBend | Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~64~127 |
 | PB | Pitchbend range: -8192~0~8191 (ex) PB(10) |
 | PitchBendSensitivity | PitchBendSensitivity (ex) BR(10) |
 | BEND_RANGE | PitchBendSensitivity (ex) BEND_RANGE(10) |
@@ -135,8 +135,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | BR | PitchBendSensitivity (ex) BR(10) |
 | RPN | write RPN (ex) RPN(0,1,64) |
 | NRPN | write NRPN (ex) NRPN(1,1,1) |
-| FineTune | set fine tune range:0-63-127(-100 - 0 - +99.99セント）(ex) FineTune(63) |
-| CoarseTune | set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(63) |
+| FineTune | set fine tune range:0-64-127(-100 - 0 - +99.99セント）(ex) FineTune(64) |
+| CoarseTune | set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(64) |
 | VibratoRate | set VibratoRate range: 0-127 |
 | VibratoDepth | set VibratoRate range: 0-127 |
 | VibratoDelay | set VibratoRate range: 0-127 |
@@ -234,6 +234,14 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | NoteOff | note off / NoteOn(noteno, velocity) |
 
 
+## Function usable within an expression
+
+Function usable within an expression (計算式で使える関数)
+
+| Command | Format | Description |
+|---------|--------|--------|
+
+
 ## Values in a formula
 
 Values that can be referenced in a formula (計算式で参照できる値)
@@ -264,6 +272,7 @@ Macros and Voice list (マクロや音色など変数定義):
 | Unison5th |  5度のユニゾンを演奏 (例 Unison5th{cde}) (値:"Sub{ Key=7 #?1 Key=0 } #?1") |
 | Unison3th |  3度のユニゾンを演奏 (例 Unison3th{cde}) (値:"Sub{ Key=4 #?1 Key=0 } #?1") |
 | Unison |  N度のユニゾンを演奏 (例 Unison{cde},7) (値:"Sub{ Key=#?2 #?1 Key=0 } #?1") |
+| RndTiming |  set random timing (ex) RndTiming(3) (値:"t.Random(#?1)") |
 | SLUR_PORT |  スラー定数。グリッサンド。ノートオンを、ポルタメントでつなぐ (例 Slur(SlurPort, !8) のように指定) (値:0) |
 | SLUR_BEND |  スラー定数。ベンド。異音程をベンドで表現。ギターのハンマリングに近い。 (例 Slur(SlurPort, !8) のように指定) (値:1) |
 | SLUR_GATE |  スラー定数。＆のついた音符のゲートを、valueにする (値:2) |
@@ -482,9 +491,12 @@ Rhythm macro (リズムマクロ)
 | b | "n36," |
 | s | "n38," |
 | h | "n42," |
-| H | "n44," |
-| o | "n46," |
+| m | "n46," |
 | c | "n49," |
+| H | "n50," |
+| M | "n47," |
+| L | "n43," |
+| o | "n46," |
 | _ | "r" |
 
 

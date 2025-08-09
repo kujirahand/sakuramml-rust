@@ -98,6 +98,26 @@ S_LISTを改行で区切って反復
 RES_UP=RES
 
 # ------------------------------------------
+RES=""
+Lの「<SYSTEM_CALC_FUNCTION>」から「</SYSTEM_CALC_FUNCTION>」を範囲切り取る。S_LISTに代入。
+S_LISTを改行で区切って反復
+　　対象を『/"(.+?)"/』で正規表現マッチ。
+　　KEY=抽出文字列[0]
+　　もし、そうでなければ、続ける。
+   対象の「//」まで切り取る
+   対象の「//」まで切り取る。FMT=それ
+   VAL=対象
+   FMT=トリム(FMT)
+   VAL=トリム(VAL)
+   FMT=置換(FMT,"|","/")
+   　RES=RES&「| {KEY} | {FMT} | {VAL} |」&改行。
+ここまで。
+SYSTEM_CALC_FUNCTION=RES
+S_LISTを表示
+RESを表示
+終わり
+
+# ------------------------------------------
 # 参照できるシステムの値 - runner.rs
 # ------------------------------------------
 RES=""
@@ -159,6 +179,14 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | Command | Description |
 |---------|--------|
 {RES_UP}
+
+## Function usable within an expression
+
+Function usable within an expression (計算式で使える関数)
+
+| Command | Format | Description |
+|---------|--------|--------|
+{SYSTEM_CALC_FUNCTION}
 
 ## Values in a formula
 
