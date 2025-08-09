@@ -1,4 +1,4 @@
-set TARGET_DIR=.\sakuramml-bin
+set TARGET_DIR=.\win-sakuramml-bin
 
 cargo build --release
 # copy
