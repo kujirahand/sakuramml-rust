@@ -1,6 +1,4 @@
 #!/usr/bin/env cnako3
-!「nadesiko3-toml」を取り込む。
-
 ### パスを解決
 DIR_ROOT=母艦パスからパス抽出
 FILE_CARGO_TOML=「{母艦パス}/Cargo.toml」
@@ -10,7 +8,7 @@ FILE_PICO_TOOLS=「{DIR_ROOT}/picosakura/tools/version_picosakura.inc.php」
 FILE_PICO_SAKURA_RUST=「{DIR_ROOT}/picosakura-rust/Cargo.toml」
 ### バージョン情報を得る
 S=FILE_CARGO_TOMLを開く。
-T=SをTOMLデコード
+T=SをTOML取得
 # TをJSONエンコード整形して表示
 VER=T["package"]["version"]
 VERを表示。

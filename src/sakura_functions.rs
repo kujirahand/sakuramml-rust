@@ -88,8 +88,7 @@ pub fn calc_replace(_: &mut Song, args: Vec<SValue>) -> SValue {
 
 /// SizeOf
 pub fn calc_sizeof(_: &mut Song, args: Vec<SValue>) -> SValue {
-    let arg_count = args.len();
-    if arg_count >= 1 {
+    if args.len() >= 1 {
         let v = match &args[0] {
             SValue::Array(a) => a.len(),
             SValue::Str(s, _) => s.len(),
@@ -97,15 +96,14 @@ pub fn calc_sizeof(_: &mut Song, args: Vec<SValue>) -> SValue {
             SValue::StrArray(a) => a.len(),
             _ => 0
         };
-        SValue::from_i(v as isize);
+        return SValue::from_i(v as isize);
     }
     SValue::from_i(0)
 }
 
 /// StrLen
 pub fn calc_strlen(_: &mut Song, args: Vec<SValue>) -> SValue {
-    let arg_count = args.len();
-    if arg_count >= 1 {
+    if args.len() >= 1 {
         let v = match &args[0] {
             SValue::Array(a) => a.len(),
             SValue::Str(s, _) => s.len(),
@@ -113,7 +111,7 @@ pub fn calc_strlen(_: &mut Song, args: Vec<SValue>) -> SValue {
             SValue::StrArray(a) => a.len(),
             _ => 0
         };
-        SValue::from_i(v as isize);
+        return SValue::from_i(v as isize);
     }
     SValue::from_i(0)
 }
