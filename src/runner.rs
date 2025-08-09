@@ -1032,7 +1032,6 @@ fn exec_userfunc_or_array_or_macro(song: &mut Song, t: &Token) -> bool {
 fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
     let args_tokens = t.children.clone().unwrap_or(vec![]);
     let args:Vec<SValue> = exec_args(song, &args_tokens);
-    let arg_count = args.len();
     let func_name = if t.data.len() > 0 { t.data[0].to_s() } else { "".to_string() };
     // is user function?
     let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
@@ -1046,73 +1045,10 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
     // todo: https://sakuramml.com/wiki/index.php?%E7%B5%84%E3%81%BF%E8%BE%BC%E3%81%BF%E9%96%A2%E6%95%B0
     //
     // 参照できるシステム関数
-    if func_name == "Random" || func_name == "RANDOM" || func_name == "RandomInt" || func_name == "RND" || func_name == "Rnd" {
-        // song.add_log(format!("[Random]({}) {:?}", t.lineno, arg_count, args));
-        if arg_count >= 2 {
-            let min = args[0].to_i();
-            let max = args[1].to_i();
-            let rnd = (song.rand() & 0x7FFFFFFF) as isize % (max - min + 1) + min;
-            song.stack.push(SValue::from_i(rnd));
-        } else if arg_count == 1 {
-            let m = args[0].to_i();
-            let v = ((song.rand() & 0x7FFFFFFF) as isize) % m;
-            song.stack.push(SValue::from_i(v));
-        } else if arg_count == 0 {
-            let v = song.rand() as isize;
-            song.stack.push(SValue::from_i(v));
-        }
-    }
-    else if func_name == "RandomSelect" {
-        let r = song.rand() as usize % arg_count;
-        song.stack.push(args[r as usize].clone());
-    }
-    else if func_name == "CHR" || func_name == "Chr" {
-        if arg_count >= 1 {
-            let val = args[0].to_i();
-            let mut s = String::new();
-            s.push(std::char::from_u32(val as u32).unwrap_or(' '));
-            song.stack.push(SValue::from_s(s));
-        } else {
-            song.stack.push(SValue::from_str(" "));
-        }
-    }
-    else if func_name == "MID" || func_name == "Mid" {
-        if arg_count >= 3 {
-            let val = args[0].to_s();
-            let i_from = args[1].to_i() as usize;
-            let i_len = args[2].to_i() as usize;
-            // println!("MID={},{},{}", val, i_from, i_len);
-            let s = vb_mid(&val, i_from, i_len).unwrap_or("");
-            // println!("MID={}", s);
-            song.stack.push(SValue::from_str(s));
-        } else {
-            song.stack.push(SValue::from_str("(MID:ERROR)"));
-        }
-    }
-    else if func_name == "REPLACE" || func_name == "Replace" {
-        if arg_count >= 3 {
-            let val = args[0].to_s();
-            let s_from = args[1].to_s();
-            let s_to = args[2].to_s();
-            let s = val.replace(&s_from, &s_to);
-            song.stack.push(SValue::from_str(&s));
-        } else {
-            song.stack.push(SValue::from_str("(REPLACE:ERROR)"));
-        }
-    }
-    else if func_name == "SizeOf" || func_name == "SIZEOF" {
-        if arg_count >= 1 {
-            let v = match &args[0] {
-                SValue::Array(a) => a.len(),
-                SValue::Str(s, _) => s.len(),
-                SValue::IntArray(a) => a.len(),
-                SValue::StrArray(a) => a.len(),
-                _ => 0
-            };
-            song.stack.push(SValue::from_i(v as isize));
-        }
-    }
-    else {
+    if let Some(cb) = song.calc_functions.get(&func_name) {
+        let result = cb(song, args);
+        song.stack.push(result);
+    } else {
         // macro ("=var_name")
         let func_name2 = if func_name.len() >= 2 { func_name[1..].to_string() } else { func_name };
         let args = t.children.clone().unwrap_or(vec![]);
@@ -1134,14 +1070,6 @@ fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
         }
     }
     true
-}
-
-fn vb_mid(input: &str, start: usize, length: usize) -> Option<&str> {
-    let input_len = input.len();
-    let start = if start >= 1 { start - 1 } else { 0 };
-    let mut end = start + length;
-    if end >= input_len { end = input_len; }
-    Some(&input[start..end])
 }
 
 fn exec_if(song: &mut Song, t: &Token) -> bool {
@@ -1952,6 +1880,7 @@ fn exec_voice(song: &mut Song, t: &Token) {
     let no = value_range(1, no, 128) - 1;
     let bank_msb = if args.len() >= 2 { args[1].to_i() } else { 0 };
     let bank_lsb = if args.len() >= 3 { args[2].to_i() } else { 0 };
+    trk!(song).program_change = no + 1;
     // bank ?
     if args.len() == 1 {
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));

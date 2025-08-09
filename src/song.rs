@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use crate::runner::value_range;
+use crate::sakura_functions;
 use crate::svalue::SValue;
 use crate::mml_def::{self, TieMode};
 use crate::sakura_message::{MessageLang, MessageData, MessageKind};
@@ -155,6 +156,7 @@ pub struct Track {
     pub tie_mode: TieMode, // Slur(#7)
     pub tie_value: isize,
     pub bend_range: isize,
+    pub program_change: isize,
     pub v_on_time_start: isize,
     pub v_on_time: Option<Vec<isize>>,
     pub v_on_note_index: isize,
@@ -198,6 +200,7 @@ impl Track {
             q_rand: 0,
             t_rand: 0,
             o_rand: 0,
+            program_change: 0,
             cc_on_time_freq: 4,
             v_on_time_start: -1,
             v_on_time: None,
@@ -573,6 +576,12 @@ impl Flags {
 }
 
 #[derive(Debug)]
+pub enum SFunctionType {
+    System,
+    User,
+}
+
+#[derive(Debug)]
 pub struct SFunction {
     pub name: String,
     pub tokens: Tokens,
@@ -581,6 +590,7 @@ pub struct SFunction {
     pub arg_names: Vec<String>,
     pub arg_types: Vec<char>, // S: string, I: int, A: array
     pub arg_def_values: Vec<SValue>,
+    pub function_type: SFunctionType,
 }
 
 impl SFunction {
@@ -593,6 +603,19 @@ impl SFunction {
             arg_names: vec![],
             arg_types: vec![],
             arg_def_values: vec![],
+            function_type: SFunctionType::User,
+        }
+    }
+    pub fn new_system(name: &str, func_id: usize, arg_types: &'static str) -> Self {
+        Self {
+            name: name.to_string(),
+            tokens: vec![],
+            lineno: 0,
+            func_id,
+            arg_names: vec![],
+            arg_types: arg_types.chars().collect(),
+            arg_def_values: vec![],
+            function_type: SFunctionType::System,
         }
     }
 }
@@ -613,6 +636,7 @@ pub struct Song {
     pub variables_stack: Vec<HashMap<String, SValue>>,
     pub functions: Vec<SFunction>,
     pub system_functions: HashMap<String, mml_def::SystemFunction>,
+    pub calc_functions: HashMap<String, sakura_functions::CallbackCalcFn>,
     pub reserved_words: HashMap<String, u8>,
     pub key_flag: Vec<isize>, // order: [c,c#,d,d#,e,f,f#,g,g#,a,a#,b]
     pub key_shift: isize,
@@ -647,6 +671,7 @@ impl Song {
             timesig_deno: 4,
             flags: Flags::new(),
             system_functions: sys_funcs,
+            calc_functions: mml_def::init_system_calc_functions(),
             rhthm_macro: mml_def::init_rhythm_macro(),
             variables_stack: vars_stack,
             functions: vec![],

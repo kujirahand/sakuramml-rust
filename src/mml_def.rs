@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::sakura_version;
 use crate::svalue::SValue;
 use crate::token::TokenType;
+use crate::sakura_functions;
 
 /// Tie & Slur Mode
 /// 0: グリッサンド : ノートオンを、ポルタメントでつなぐ
@@ -276,6 +277,7 @@ pub fn init_variables() -> HashMap<String, SValue> {
     //</VARIABLES>
     var
 }
+
 pub fn init_reserved_words(sys_funcs: &HashMap<String, SystemFunction>) -> HashMap<String, u8> {
     let mut var = HashMap::new();
     // Add system functions to reserved words
@@ -572,5 +574,41 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "NoteOn", TokenType::NoteOn, 'A'); // note no / NoteOn(noteno, velocity)
     sysfunc_add!(sf, "NoteOff", TokenType::NoteOff, 'A'); // note off / NoteOn(noteno, velocity)
     //</SYSTEM_FUNCTION>
+    sf
+}
+
+macro_rules! syscalc_add {
+    ($obj:expr, $name:expr, $callback:expr) => {
+        $obj.insert(String::from($name), $callback)
+    }
+}
+
+pub fn init_system_calc_functions() -> HashMap<String, sakura_functions::CallbackCalcFn> {
+    let mut sf: HashMap<String, sakura_functions::CallbackCalcFn> = HashMap::new();
+    // <SYSTEM_CALC_FUNCTION>
+    syscalc_add!(sf, "Random", sakura_functions::calc_randomint); // Random(N, M) | Random(N) // return random number from n to m (ex) Random(1,6)
+    syscalc_add!(sf, "RANDOM", sakura_functions::calc_randomint); // RANDOM(N, M) | RANDOM(N) // return random number from n to m (ex) RANDOM(1,6)
+    syscalc_add!(sf, "RandomInt", sakura_functions::calc_randomint); // RandomInt(N, M) | RandomInt(N) // return random number from n to m (ex) RandomInt(1,6)
+    syscalc_add!(sf, "RND", sakura_functions::calc_randomint); // RND(N, M) | RND(N) // return random number from n to m (ex) RND(1,6)
+    syscalc_add!(sf, "Rnd", sakura_functions::calc_randomint); // Rnd(N, M) | Rnd(N) // return random number from n to m (ex) Rnd(1,6)
+    syscalc_add!(sf, "RandomSelect", sakura_functions::calc_random_select); // RandomSelect(...) // return one item selected from the arguments (ex) RandomSelect({a}, {b}, {c})
+    syscalc_add!(sf, "Chr", sakura_functions::calc_chr); // Chr(C) // convert code to char (ex) Chr(49)
+    syscalc_add!(sf, "CHR", sakura_functions::calc_chr); // CHR(C) // convert code to char (ex) CHR(49)
+    syscalc_add!(sf, "Asc", sakura_functions::calc_asc); // Asc(S) // return char from code
+    syscalc_add!(sf, "ASC", sakura_functions::calc_asc); // ASC(S) // return char from code
+    syscalc_add!(sf, "Mid", sakura_functions::calc_mid); // Mid(S, N, M) // extract M characters from string S starting at position N and return them (ex) Mid({abc}, 1,2) // => ab
+    syscalc_add!(sf, "MID", sakura_functions::calc_mid); // MID(S, N, M) // extract M characters from string S starting at position N and return them (ex) MID({abc}, 1,2) // => ab
+    syscalc_add!(sf, "Replace", sakura_functions::calc_replace); // Replace(S, A, B) // Replace A in string S with B (ex) Replace({abc}, {a}, {b}) // =>  bbc
+    syscalc_add!(sf, "REPLACE", sakura_functions::calc_replace); // REPLACE(S, A, B) // Replace A in string S with B (ex) REPLACE({abc}, {a}, {b}) // =>  bbc
+    syscalc_add!(sf, "SizeOf", sakura_functions::calc_sizeof); // SizeOf(A) // return size of A
+    syscalc_add!(sf, "SIZEOF", sakura_functions::calc_sizeof); // SIZEOF(A) // return size of A
+    syscalc_add!(sf, "StrLen", sakura_functions::calc_strlen); // StrLen(S) // return length of S (ex) StrLen({abc}) // => 3
+    syscalc_add!(sf, "STRLEN", sakura_functions::calc_strlen); // STRLEN(S) // return length of S (ex) STRLEN({abc}) // => 3
+    syscalc_add!(sf, "MML", sakura_functions::calc_mml); // MML(C) // return C(o/v/q/t/@/BR) value (ex) MML({o})
+    syscalc_add!(sf, "Hex", sakura_functions::calc_hex); // Hex(V) // return Hex value (ex) Hex(255) // => FF
+    syscalc_add!(sf, "HEX", sakura_functions::calc_hex); // HEX(V) // return Hex value (ex) Hex(255) // => FF
+    syscalc_add!(sf, "Pos", sakura_functions::calc_pos); // Pos(N, M) // Return the 1-based index of substring N in M (ex) Pos({b}, {abc}) // => 2
+    syscalc_add!(sf, "POS", sakura_functions::calc_pos); // POS(N, M) // Return the 1-based index of substring N in M (ex) Pos({b}, {abc}) // => 2
+    // </SYSTEM_CALC_FUNCTION>
     sf
 }
