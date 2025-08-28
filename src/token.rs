@@ -305,6 +305,11 @@ impl Token {
             lineno,
         }
     }
+    pub fn new_comment(commet: &str, lineno: isize) -> Self {
+        let mut t = Token::new_empty(commet, lineno);
+        t.ttype = TokenType::Comment;
+        t
+    }
     pub fn new_sysex(a: Vec<isize>) -> Self {
         let mut sa: Vec<SValue> = vec![];
         for (i, v) in a.iter().enumerate() {
@@ -321,6 +326,10 @@ impl Token {
             return String::new();
         }
         match self.ttype {
+            TokenType::Comment => {
+                let line = format!("[{:?}#{}]", self.ttype, self.value_s.as_ref().unwrap_or(&String::from("")));
+                return line;
+            },
             TokenType::CalcTree => {
                 if let Some(children) = &self.children {
                     let mut s = String::new();

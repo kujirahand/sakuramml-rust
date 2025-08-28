@@ -992,6 +992,31 @@ fn normalize_tokens(tokens: Vec<Token>) -> Vec<Token> {
     res
 }
 
+/// read const int value
+fn read_arg_const_int(cur: &mut SourceCursor) -> Option<isize> {
+    cur.skip_space();
+    if cur.eq_char('=') {
+        cur.next();
+    }
+    if cur.eq_char('(') {
+        cur.next();
+    }
+    cur.skip_space();
+    let value: isize;
+    let ch = cur.peek_n(0);
+    match ch {
+        '-' | '0'..='9' | '$' => {
+            value = cur.get_int(0);
+        }
+        _ => return None,
+    }
+    cur.skip_space();
+    if cur.eq_char(')') {
+        cur.next();
+    }
+    Some(value)
+}
+
 fn read_arg_value(cur: &mut SourceCursor, song: &mut Song) -> SValue {
     cur.skip_space();
     let ch = cur.peek_n(0);
@@ -1162,12 +1187,22 @@ fn scan_chars(s: &str, c: char) -> isize {
 }
 
 fn read_timebase(cur: &mut SourceCursor, song: &mut Song) -> Token {
-    let v = read_arg_value(cur, song);
-    song.timebase = v.to_i();
+    // タイムベースの変更は慎重さが求められるため音符書き込み後の変更は警告を出す
+    if song.timebase_changed {
+        let msg = song.get_message(MessageKind::WarningChangeTimebaseAfterNote);
+        read_warning(cur, song, "TIMEBASE", &msg);
+    }
+    let v_opt = read_arg_const_int(cur);
+    if v_opt.is_none() {
+        let msg = song.get_message(MessageKind::ShouldBeConstant);
+        return read_error(cur, song, msg);
+    }
+    song.timebase = v_opt.unwrap_or(96);
     if song.timebase <= 48 {
         song.timebase = 48;
     }
-    Token::new_empty(&format!("TIMEBASE={}", v.to_i()), cur.line)
+    song.timebase_changed = true;
+    Token::new_comment(&format!("TIMEBASE={}", song.timebase), cur.line)
 }
 
 fn read_key_flag(cur: &mut SourceCursor, _song: &mut Song) -> Token {
@@ -2164,5 +2199,12 @@ mod tests {
         let mut song = Song::new();
         assert_eq!(&tokens_to_str(&lex(&mut song, "P(10)", 0)), "[ControlChange,10]");
         assert_eq!(&tokens_to_str(&lex(&mut song, "M(10)", 0)), "[ControlChange,1]");
+    }
+    #[test]
+    fn test_timebase() {
+        let mut song = Song::new();
+        let tokens = lex(&mut song, "TIMEBASE(48)", 0);
+        println!("{:?}", tokens);
+        assert_eq!(&tokens_to_str(&tokens), "[Comment#TIMEBASE=48]");
     }
 }

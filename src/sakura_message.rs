@@ -19,6 +19,8 @@ pub enum MessageKind {
     ErrorTypeMismatch,
     ErrorMissingValue,
     InvalidArgument,
+    WarningChangeTimebaseAfterNote,
+    ShouldBeConstant,
 }
 
 /// Language
@@ -151,6 +153,18 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
             match lang {
                 MessageLang::EN => "Invalid argument",
                 MessageLang::JA => "引数が無効です",
+            }
+        },
+        MessageKind::WarningChangeTimebaseAfterNote => {
+            match lang {
+                MessageLang::EN => "Changing TIMEBASE after writing notes may cause unexpected results.",
+                MessageLang::JA => "音符の書き込み後にTIMEBASEを変更すると予期しない結果になる可能性があります。",
+            }
+        },
+        MessageKind::ShouldBeConstant => {
+            match lang {
+                MessageLang::EN => "The argument should be a constant value.",
+                MessageLang::JA => "引数は定数である必要があります。",
             }
         },
     }

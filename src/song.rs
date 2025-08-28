@@ -627,6 +627,7 @@ pub struct Song {
     pub message_data: MessageData,
     pub tracks: Vec<Track>,
     pub tempo: isize,
+    pub timebase_changed: bool, // タイムベースの変更は1度限り許す
     pub timebase: isize,
     pub cur_track: usize,
     pub timesig_frac: isize, // 分子
@@ -664,6 +665,7 @@ impl Song {
             debug: false,
             message_data: MessageData::new(MessageLang::EN),
             timebase,
+            timebase_changed: false,
             tempo: 120,
             tracks: vec![trk],
             cur_track: 0,
