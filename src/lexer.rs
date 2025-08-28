@@ -726,7 +726,7 @@ fn read_calc(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
             // (examle) 1 + 2 * 3 => [left] (1 + 2) [operator] * [right] 3
             // => (1 + (2 * 3))
             // 元々の左側の演算をばらして、右側にくっつける
-            let left_operator = left_val.mark;
+            let left_operator = left_val.operator_flag;
             let left_priority = left_val.value_i;
             let mut left_val_children = left_val.children.clone().unwrap_or(vec![]);
             if left_val_children.len() < 2 { // 括弧や値の場合

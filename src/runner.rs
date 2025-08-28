@@ -737,7 +737,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 // nop
             },
             TokenType::CalcTree => {
-                if t.mark == '\0' { // dummy calc
+                if t.operator_flag == '\0' { // dummy calc
                     match &t.children {
                         Some(tokens) => {
                             exec(song, tokens);
@@ -748,7 +748,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     continue;
                 }
                 // get flag char
-                let flag = t.mark;
+                let flag = t.operator_flag;
                 let values = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
                 // only 1 value
                 if flag == '!' { // flag "!(val)"
