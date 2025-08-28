@@ -462,7 +462,8 @@ fn read_warning(cur: &mut SourceCursor, song: &mut Song, cmd: &str, reason: &str
 
 
 // --- lex calc script ---
-const LEX_VALUE: isize = 1;
+const LEX_PAREN: isize = 1;
+const LEX_VALUE: isize = 10;
 const LEX_MUL_DIV: isize = 20;
 const LEX_PLUS_MINUS: isize = 30;
 const LEX_COMPARE: isize = 40;
@@ -473,13 +474,27 @@ fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
     let ch = cur.peek_n(0);
     match ch {
         '(' => {
-            cur.next();
-            let token = read_calc(cur, song);
+            // ( calc ) | ( array ) | ( value )
+            cur.next(); // skip '('
+            let token_opt = read_calc(cur, song);
+            // 空っぽなら、空のArrayとして扱う
+            if token_opt.is_none() {
+                if cur.eq_char(')') {
+                    cur.next(); // skip ')'
+                    return Some(Token::new_data_tokens(TokenType::MakeArray, 0, vec![], vec![]));
+                }
+                let msg = song.get_message(MessageKind::MissingParenthesis);
+                read_error(cur, song, msg);
+                return Some(Token::new_const0());
+            }
+            // value or array
+            let token = token_opt.unwrap_or(Token::new_const0());
+            // check array
             cur.skip_space();
             let ch = cur.peek_n(0);
             if ch == ',' {
                 cur.next(); // is array
-                let mut array_tokens = vec![token.unwrap_or(Token::new_const0())];
+                let mut array_tokens = vec![token];
                 while cur.has_next() {
                     let token = match read_calc(cur, song) {
                         Some(t) => t,
@@ -506,8 +521,9 @@ fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
                 let msg = song.get_message(MessageKind::MissingParenthesis);
                 read_error(cur, song, msg);
             }
-            // 値1つの場合はそのまま返す
-            return token;
+            // ( calc )
+            let token = Token::new_calc_token('(', LEX_PAREN, vec![token]);
+            return Some(token);
         },
         '-' => {
             // is negative number ?
@@ -525,15 +541,11 @@ fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
                     Token::new_const(TokenType::ConstInt, 0, None, TokenValueType::INT)
                 }
             };
-            let mut token_tree = Token::new_data_tokens(
-                TokenType::CalcTree, 
-                0,
-                vec![],
-                vec![
+            // -1 * value
+            let token_tree = Token::new_calc_token('*', LEX_VALUE, vec![
                     Token::new_const(TokenType::ConstInt, -1, None, TokenValueType::INT),
                     token,
-                ]);
-            token_tree.tag = '*' as isize;
+            ]);
             return Some(token_tree);
         },
         '0'..='9' => {
@@ -638,6 +650,14 @@ fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
         cur.next_n(2);
         ch = '=';
     }
+    else if cur.eq("&&") { // logical and
+        cur.next_n(2);
+        ch = '&';
+    }
+    else if cur.eq("||") { // logical or
+        cur.next_n(2);
+        ch = '|';
+    }
     else {
         cur.next();
     }
@@ -656,8 +676,11 @@ fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
         '≧' => LEX_COMPARE,
         '≦' => LEX_COMPARE,
         '!' => LEX_COMPARE,
-        _ => { 0 }
+        _ => { -1 }
     };
+    if priority < 0 {
+        return None;
+    }
     Some((ch, priority))
 }
 
@@ -676,45 +699,63 @@ fn read_calc(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
     };
     // read operator and right value
     while cur.has_next() {
+        // read operator
         let (operator_ch, operator_priority) = match read_operator(cur) {
             Some(res) => res,
             None => break,
         };
+        println!("@@@operator_ch={}({})", operator_ch, operator_priority);
+        // read right value
         let right_val_o = read_calc(cur, song);
         if right_val_o.is_none() {
             let msg = song.get_message(MessageKind::ErrorMissingValue);
             read_error(cur, song, msg);
         }
         let right_val = right_val_o.unwrap_or(Token::new_empty("ERROR", cur.line));
+        
         // replace left_val to CalcTree
         if left_val.ttype != TokenType::CalcTree {
-            left_val = Token::new_tokens(TokenType::CalcTree, operator_priority, vec![left_val, right_val]);
-            left_val.tag =  operator_ch as isize;
+            left_val = Token::new_calc_token(
+                operator_ch,
+                operator_priority,
+                vec![left_val, right_val]);
             continue;
         }
         // check priority
         if left_val.value_i < operator_priority {
             // (examle) 1 + 2 * 3 => [left] (1 + 2) [operator] * [right] 3
-            // => ((2 * 3) + 1)
-            let mut left_val_children = left_val.children.unwrap_or(vec![]);
-            let left_operator = left_val.tag;
+            // => (1 + (2 * 3))
+            // 元々の左側の演算をばらして、右側にくっつける
+            let left_operator = left_val.mark;
             let left_priority = left_val.value_i;
+            let mut left_val_children = left_val.children.clone().unwrap_or(vec![]);
+            if left_val_children.len() < 2 { // 括弧や値の場合
+                // example (1) + 2
+                left_val = Token::new_calc_token(
+                    operator_ch,
+                    operator_priority,
+                    vec![left_val, right_val]);
+                continue;
+            }
             let val2 = left_val_children.pop().unwrap_or(Token::new_const(TokenType::ConstInt, 0, None, TokenValueType::INT));
             let val1 = left_val_children.pop().unwrap_or(Token::new_const(TokenType::ConstInt, 0, None, TokenValueType::INT));
             let val3 = right_val;
-            let mut new_left = Token::new_tokens(TokenType::CalcTree, 0, vec![val2, val3]);
-            new_left.tag = operator_ch as isize;
-            new_left.value_i = operator_priority;
-            left_val = Token::new_tokens(TokenType::CalcTree, 0, vec![val1, new_left]);
-            left_val.tag = left_operator;
-            left_val.value_i = left_priority;
+            let new_right = Token::new_calc_token(
+                operator_ch,
+                operator_priority,
+                vec![val2, val3]);
+            left_val = Token::new_calc_token(
+                left_operator,
+                left_priority,
+                vec![val1, new_right]);
         } else {
-            left_val = Token::new_tokens(TokenType::CalcTree, 0, vec![left_val, right_val]);
-            left_val.tag = operator_ch as isize;
-            left_val.value_i = operator_priority;
+            left_val = Token::new_calc_token(
+                operator_ch,
+                operator_priority,
+                vec![left_val, right_val]);
         }
     }
-    // println!("read_calc={:?}", left_val);
+    // println!("@@@read_calc={:?}", left_val.to_debug_str(0));
     Some(left_val)
 }
 

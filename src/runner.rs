@@ -78,7 +78,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
         if song.flags.break_flag != 0 { break; }
         let t = &tokens[pos];
         if song.debug {
-            println!("- exec({:03})(line:{}) {}", pos, song.lineno, t.to_debug_str());
+            println!("- exec({:03})(line:{}) {}", pos, song.lineno, t.to_debug_str(0));
         }
         match t.ttype {
             TokenType::Unimplemented => {},
@@ -737,8 +737,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 // nop
             },
             TokenType::CalcTree => {
-                // tag == 0
-                if t.tag == 0 { // dummy calc
+                if t.mark == '\0' { // dummy calc
                     match &t.children {
                         Some(tokens) => {
                             exec(song, tokens);
@@ -749,7 +748,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     continue;
                 }
                 // get flag char
-                let flag = std::char::from_u32(t.tag as u32).unwrap_or('😔');
+                let flag = t.mark;
                 let values = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
                 // only 1 value
                 if flag == '!' { // flag "!(val)"
@@ -764,8 +763,9 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let b = if values.len() >= 2 { values[1].clone() } else { SValue::None };
                 let mut c = SValue::None;
                 match flag {
-                    '&' => c = SValue::from_b(a.to_b() && b.to_b()), // and
-                    '|' => c = SValue::from_b(a.to_b() || b.to_b()), // or
+                    '(' => c = a.clone(), // nop
+                    '&' => c = SValue::from_b(a.to_b() && b.to_b()), // logical and
+                    '|' => c = SValue::from_b(a.to_b() || b.to_b()), // logical or
                     '=' => c = SValue::from_b(a.eq(b)),
                     '≠' => c = SValue::from_b(a.ne(b)), // !=
                     '>' => c = SValue::from_b(a.gt(b)),
@@ -2229,5 +2229,24 @@ mod tests {
         assert_eq!(song.tracks[0].timepos, song.timebase * 2);
         let song = exec_easy("l8 c^\n^4");
         assert_eq!(song.tracks[0].timepos, song.timebase * 2);
+    }
+   #[test]
+    fn test_calc_and_or() {
+        /*
+        let song = exec_easy("PRINT(TRUE&TRUE)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) TRUE");
+        //
+        let song = exec_easy("PRINT(TRUE&FALSE)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) FALSE");
+        //
+        let song = exec_easy("PRINT(TRUE&FALSE&TRUE)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) FALSE");
+        //
+        let song = exec_easy("PRINT(TRUE&TRUE&TRUE)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) TRUE");
+        //
+        */
+        let song = exec_easy("PRINT( (1=1)&TRUE )");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) TRUE");
     }
  }

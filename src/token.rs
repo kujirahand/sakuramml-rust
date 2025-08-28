@@ -142,6 +142,7 @@ pub struct Token {
     pub value_s: Option<String>,
     pub value_type: TokenValueType,
     pub tag: isize,
+    pub mark: char,
     pub data: Vec<SValue>,
     pub children: Option<Vec<Token>>,
     pub lineno: isize,
@@ -155,6 +156,7 @@ impl Token {
             value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
+            mark: '\0',
             data: vec![],
             children: None,
             lineno,
@@ -167,6 +169,7 @@ impl Token {
             value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
+            mark: '\0',
             data,
             children: None,
             lineno: 0,
@@ -179,6 +182,7 @@ impl Token {
             value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
+            mark: '\0',
             data: vec![],
             children: None,
             lineno: 0,
@@ -191,6 +195,7 @@ impl Token {
             value_s,
             value_type,
             tag: 0,
+            mark: '\0',
             data: vec![],
             children: None,
             lineno: 0,
@@ -203,6 +208,7 @@ impl Token {
             value_s: Some(var_name),
             value_type: TokenValueType::VOID,
             tag: 0,
+            mark: '\0',
             data: vec![],
             children: init_tokens,
             lineno: 0,
@@ -215,6 +221,7 @@ impl Token {
             value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
+            mark: '\0',
             data: vec![],
             children: None,
             lineno: 0,
@@ -227,6 +234,7 @@ impl Token {
             value_s: None,
             value_type: TokenValueType::VOID,
             tag,
+            mark: '\0',
             data: vec![],
             children: None,
             lineno: 0,
@@ -239,8 +247,22 @@ impl Token {
             value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
+            mark: '\0',
             data: vec![],
             children: Some(tokens),
+            lineno: 0,
+        }
+    }
+    pub fn new_calc_token(operator_ch: char, priority: isize, children: Vec<Token>) -> Self {
+        Self {
+            ttype: TokenType::CalcTree,
+            value_i: priority,
+            value_s: None,
+            value_type: TokenValueType::VOID,
+            tag: 0,
+            mark: operator_ch,
+            data: vec![],
+            children: Some(children),
             lineno: 0,
         }
     }
@@ -251,6 +273,7 @@ impl Token {
             value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
+            mark: '\0',
             data: vec![],
             children: Some(tokens),
             lineno,
@@ -263,6 +286,7 @@ impl Token {
             value_s: None,
             value_type: TokenValueType::VOID,
             tag: 0,
+            mark: '\0',
             data,
             children: Some(tokens),
             lineno: 0,
@@ -275,6 +299,7 @@ impl Token {
             value_s: Some(String::from(cmd)),
             value_type: TokenValueType::VOID,
             tag: 0,
+            mark: '\0',
             data: vec![],
             children: None,
             lineno,
@@ -290,23 +315,36 @@ impl Token {
         }
         Self::new(TokenType::SysEx, 0, sa)
     }
-    pub fn to_debug_str(&self) -> String {
+    pub fn to_debug_str(&self, level: isize) -> String {
         // LineNoは除外
         if self.ttype == TokenType::LineNo {
             return String::new();
         }
-        format!("[{:?},{}]", self.ttype, self.value_i)
+        match self.ttype {
+            TokenType::CalcTree => {
+                if let Some(children) = &self.children {
+                    let mut s = String::new();
+                    for t in children.iter() {
+                        s.push_str(&t.to_debug_str(level+1));
+                    }
+                    return format!(
+                        "[{:?} {}({}){{{}}}]",
+                        self.ttype,
+                        self.mark,
+                        self.value_i,
+                        s);
+                }
+                let line = format!("[{:?},{}]", self.ttype, self.value_i);
+                return line;
+            },
+            _ => {},
+        }
+        let line = format!("[{:?},{}]", self.ttype, self.value_i);
+        line
     }
 }
 
-pub fn tokens_to_str(tokens: &Vec<Token>) -> String {
-    let mut s = String::new();
-    for t in tokens.iter() {
-        s.push_str(&t.to_debug_str());
-    }
-    s
-}
-
+// indent line for debug print
 fn indent_line(src: &str, level: isize) -> String {
     let part0 = " │  ";
     let part1 = " ├──";
@@ -319,6 +357,14 @@ fn indent_line(src: &str, level: isize) -> String {
         s.push_str(part0);
     }
     s.push_str(src);
+    s
+}
+
+pub fn tokens_to_str(tokens: &Vec<Token>) -> String {
+    let mut s = String::new();
+    for t in tokens.iter() {
+        s.push_str(&t.to_debug_str(0));
+    }
     s
 }
 
