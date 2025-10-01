@@ -964,8 +964,9 @@ fn read_variables(cur: &mut SourceCursor, song: &mut Song, name: &str, sval: SVa
 fn read_call_function(cur: &mut SourceCursor, song: &mut Song, func_id: usize) -> Token {
     cur.skip_space();
     let args: Vec<Token> = read_args_tokens(cur, song);
-    let mut call_func_tok = Token::new(TokenType::CallUserFunction, func_id as isize, vec![]);
-    call_func_tok.tag = func_id as isize; // Fix: Set func_id in tag field
+    // Create token with func_id only in tag field (not value_i to avoid duplication)
+    let mut call_func_tok = Token::new(TokenType::CallUserFunction, 0, vec![]);
+    call_func_tok.tag = func_id as isize; // func_id is stored in tag field for runtime use
     call_func_tok.children = Some(args);
     call_func_tok
 }
