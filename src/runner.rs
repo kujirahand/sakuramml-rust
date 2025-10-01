@@ -1000,7 +1000,8 @@ fn exec_userfunc_or_array_or_macro(song: &mut Song, t: &Token) -> bool {
         runtime_error(song, &format!("broken func_id={} in exec_call_user_function", func_id));
         return false;
     }
-    // println!("call_user_function={}::{:?}", song.functions[func_id].name, song.functions[func_id].arg_def_values);
+    // println!("call_user_function[{}]={}::{:?}", func_id, song.functions[func_id].name, song.functions[func_id].arg_def_values);
+    
     song.variables_stack_push();
     // eval args
     let args_tokens = t.children.clone().unwrap();
@@ -2107,14 +2108,31 @@ mod tests {
         ));
         assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
     }
-   #[test]
+    
+    #[test]
     fn test_exec_function_issues71() {
+        // First test individual calls
+        let song = exec_easy(&format!("{}\n{}\n{}\n",
+            "FUNCTION FOO(STR TMP){ Result=1; }",
+            "FUNCTION BAA(STR TMP){ Result=0; }",
+            "PRINT(FOO({0}));",
+        ));
+        assert_eq!(song.get_logs_str(), "[PRINT](2) 1");
+        
+        let song = exec_easy(&format!("{}\n{}\n{}\n",
+            "FUNCTION FOO(STR TMP){ Result=1; }",
+            "FUNCTION BAA(STR TMP){ Result=0; }",
+            "PRINT(BAA({A}));",
+        ));
+        assert_eq!(song.get_logs_str(), "[PRINT](2) 0");
+        
+        // Now test multiple calls on same line  
         let song = exec_easy(&format!("{}\n{}\n{}\n",
             "FUNCTION FOO(STR TMP){ Result=1; }",
             "FUNCTION BAA(STR TMP){ Result=0; }",
             "PRINT(FOO({0})); PRINT(BAA({A})); PRINT(BAA({a}));",
         ));
-        assert_eq!(song.get_logs_str(), "[PRINT](3) 1\n[PRINT](3) 0\n[PRINT](3) 0");
+        assert_eq!(song.get_logs_str(), "[PRINT](2) 1\n[PRINT](2) 0\n[PRINT](2) 0");
     }
    #[test]
     fn test_exec_sys_func_mid() {

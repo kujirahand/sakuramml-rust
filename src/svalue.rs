@@ -56,6 +56,7 @@ impl SValue {
             Self::Int(i) => *i,
             Self::Str(s, _) => s.parse().unwrap_or(0),
             Self::Bool(b) => if *b { 1 } else { 0 },
+            Self::UserFunc(id) => *id as isize,
             Self::None => 0,
             _ => 0,
         }

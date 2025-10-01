@@ -965,6 +965,7 @@ fn read_call_function(cur: &mut SourceCursor, song: &mut Song, func_id: usize) -
     cur.skip_space();
     let args: Vec<Token> = read_args_tokens(cur, song);
     let mut call_func_tok = Token::new(TokenType::CallUserFunction, func_id as isize, vec![]);
+    call_func_tok.tag = func_id as isize; // Fix: Set func_id in tag field
     call_func_tok.children = Some(args);
     call_func_tok
 }
