@@ -2108,6 +2108,15 @@ mod tests {
         assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
     }
    #[test]
+    fn test_exec_function_issues71() {
+        let song = exec_easy(&format!("{}\n{}\n{}\n",
+            "FUNCTION FOO(STR TMP){ Result=1; }",
+            "FUNCTION BAA(STR TMP){ Result=0; }",
+            "PRINT(FOO({0})); PRINT(BAA({A})); PRINT(BAA({a}));",
+        ));
+        assert_eq!(song.get_logs_str(), "[PRINT](3) 1\n[PRINT](3) 0\n[PRINT](3) 0");
+    }
+   #[test]
     fn test_exec_sys_func_mid() {
         // mid
         let song = exec_easy("STR A={abcd};PRINT(MID(A,1,2))");
