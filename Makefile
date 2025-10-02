@@ -12,6 +12,8 @@ all: build
 
 # Build release binary
 build:
+	make wasm
+	make doc
 	cargo build --release
 
 # Build binary distribution package
