@@ -16,6 +16,9 @@ pub mod runner;
 pub mod mml_def;
 pub mod song_test;
 
+#[cfg(test)]
+mod lexer_test;
+
 extern crate wasm_bindgen;
 use wasm_bindgen::prelude::*;
 
