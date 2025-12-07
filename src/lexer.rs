@@ -1,6 +1,6 @@
 //! lexer
 use crate::source_cursor::SourceCursor;
-use crate::runner::calc_length;
+use crate::note_length::calc_length;
 use crate::sakura_message::MessageKind;
 use crate::song::{Song, SFunction};
 use crate::svalue::SValue;

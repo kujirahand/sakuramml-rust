@@ -1,12 +1,12 @@
 //! runner from tokens
 use crate::mml_def::TieMode;
 use crate::token::TokenValueType;
-use super::source_cursor::SourceCursor;
 use super::lexer::lex;
 use super::song::{Event, NoteInfo, Song};
 use super::svalue::SValue;
 use super::token::{Token, TokenType};
 use super::sakura_message::MessageKind;
+use super::note_length::calc_length;
 
 #[derive(Debug)]
 pub struct LoopItem {
@@ -1416,83 +1416,6 @@ fn exec_get_time(song: &mut Song, t: &Token, cmd: &str) -> isize{
     let base = song.timebase * 4 / song.timesig_deno;
     let total = (mes - 1) * (base * song.timesig_frac) + (beat - 1) * base + tick;
     total
-}
-
-/// Calculate note length
-pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
-    let mut res = def_len;
-    if len_str == "" {
-        return def_len;
-    }
-    let mut cur = SourceCursor::from(len_str);
-    let mut step_mode = false;
-    if cur.eq_char('%') {
-        cur.next();
-        step_mode = true;
-    }
-    if cur.is_numeric() || cur.eq_char('-') {
-        if step_mode {
-            res = cur.get_int(0);
-        } else {
-            let i = cur.get_int(4);
-            res = if i > 0 { timebase * 4 / i } else { 0 };
-        }
-    }
-    if cur.peek_n(0) == '.' {
-        if cur.eq("....") {
-            cur.next_n(4);
-            res += (res as f32 / 2.0 + res as f32 / 4.0 + res as f32 / 8.0 + res as f32 / 16.0) as isize;
-        } else if cur.eq("...") { // triple dotted note (三付点音符)
-            cur.next_n(3);
-            res += (res as f32 / 2.0 + res as f32 / 4.0 + res as f32 / 8.0) as isize;
-        } else if cur.eq("..") { // double dotted note (複付点音符)
-            cur.next_n(2);
-            res += (res as f32 / 2.0 + res as f32 / 4.0) as isize;
-        } else { // dotted note
-            cur.next();
-            res += (res as f32 / 2.0) as isize;
-        }
-    }
-    while !cur.is_eos() {
-        let c = cur.peek_n(0);
-        if (c != '^') && (c != '+') {
-            break;
-        }
-        cur.next(); // skip '^'
-        if cur.eq_char('%') {
-            step_mode = true;
-            cur.next();
-        }
-        if cur.is_numeric() || cur.eq_char('-') {
-            let mut n = if step_mode {
-                cur.get_int(0)
-            } else {
-                let i = cur.get_int(4);
-                if i == 0 {
-                    def_len
-                } else {
-                    timebase * 4 / i
-                }
-            };
-            if cur.eq("....") {
-                cur.next_n(4);
-                n += (n as f32 / 2.0 + n as f32 / 4.0 + n as f32 / 8.0 + n as f32 / 16.0) as isize;
-            } else if cur.eq("...") {
-                cur.next_n(3);
-                n += (n as f32 / 2.0 + n as f32 / 4.0 + n as f32 / 8.0) as isize;
-            } else if cur.eq("..") {
-                cur.next_n(2);
-                n += (n as f32 / 2.0 + n as f32 / 4.0) as isize;
-            } else if cur.peek_n(0) == '.' {
-                cur.next();
-                n = (n as f32 * 1.5) as isize;
-            }
-            res += n;
-        } else {
-            res += def_len;
-        }
-    }
-    res
 }
 
 fn get_note_info_from_token(t: &Token) -> NoteInfo {

@@ -13,6 +13,7 @@ pub mod svalue;
 pub mod midi;
 pub mod sutoton;
 pub mod runner;
+pub mod note_length;
 pub mod mml_def;
 pub mod song_test;
 
