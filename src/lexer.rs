@@ -1917,7 +1917,14 @@ fn read_cc(cur: &mut SourceCursor, song: &mut Song, ch: char) -> Token {
     if cur.eq_char(',') {
         cur.next(); // skip ','
     }
-    let val_token = read_calc(cur, song).unwrap();
+    let val_token = match read_calc(cur, song) {
+        Some(v) => v,
+        None => {
+            let msg = song.get_message(MessageKind::ScriptSyntaxError);
+            read_error(cur, song, msg);
+            return Token::new_empty("ERROR", cur.line);
+        }
+    };
     let cc_token = Token::new_tokens(TokenType::ControlChange, no, vec![val_token]);
     if ch == 'C' {
         cur.skip_space();

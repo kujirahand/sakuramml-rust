@@ -120,6 +120,15 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let mut it = LoopItem::new();
                 it.start_pos = pos + 1;
                 it.count = var_extract(&t.data[0], song).to_i() as usize;
+                // Avoid usize underflow/panic when loop count is 0.
+                // Also keep behavior predictable (treat 0 as 1 iteration).
+                if it.count == 0 {
+                    song.add_log(format!(
+                        "[WARN]({}) Loop count is 0; treated as 1.",
+                        t.lineno
+                    ));
+                    it.count = 1;
+                }
                 // println!("loop={}", it.count);
                 loop_stack.push(it);
             },
@@ -131,7 +140,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     }
                     Some(i) => i,
                 };
-                if it.index == (it.count - 1) {
+                if it.index.saturating_add(1) >= it.count {
                     if it.end_pos == 0 {
                         for i in pos..tokens.len() {
                             match &tokens[i].ttype {
@@ -153,7 +162,13 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::LoopEnd => {
                 if loop_stack.len() > 0 {
-                    let mut it = loop_stack.pop().unwrap();
+                    let mut it = match loop_stack.pop() {
+                        Some(v) => v,
+                        None => {
+                            pos += 1;
+                            continue;
+                        }
+                    };
                     it.end_pos = pos + 1;
                     it.index += 1;
                     if it.index < it.count {
