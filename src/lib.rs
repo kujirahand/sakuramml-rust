@@ -31,6 +31,9 @@ pub const SAKURA_DEBUG_NONE: u32 = 0;
 /// Debug level - show info
 pub const SAKURA_DEBUG_INFO: u32 = 1;
 
+/// MAX Input Size (3MB)
+pub const SAKURA_MAX_INPUT_SIZE: usize = 3 * 1024 * 1024;
+
 // ------------------------------------------
 // Sakura Functions for JavaScript
 // ------------------------------------------
@@ -52,6 +55,7 @@ pub struct SakuraCompiler {
     log_str: String,
     lang: String,
     debug_level: u32,
+    max_input_size: usize,
 }
 #[wasm_bindgen]
 impl SakuraCompiler {
@@ -62,10 +66,22 @@ impl SakuraCompiler {
             log_str: "".to_string(),
             debug_level: 0,
             lang: "en".to_string(),
+            max_input_size: SAKURA_MAX_INPUT_SIZE,
         }
     }
     /// compile to MIDI data
     pub fn compile(&mut self, source: &str) -> Vec<u8> {
+        if source.len() > self.max_input_size {
+            let msg = format!(
+                "[ERROR](0) Input size exceeds max_input_size ({} > {})",
+                source.len(),
+                self.max_input_size
+            );
+            self.song.add_log(msg);
+            let log_text = self.song.get_logs_str();
+            self.log_str.push_str(&log_text);
+            return vec![];
+        }
         if self.debug_level > 0 {
             self.song.debug = true;
         }
@@ -94,6 +110,16 @@ impl SakuraCompiler {
     /// set debug level
     pub fn set_debug_level(&mut self, level: u32) {
         self.debug_level = level;
+    }
+    /// get max input size
+    #[wasm_bindgen(getter)]
+    pub fn max_input_size(&self) -> usize {
+        self.max_input_size
+    }
+    /// set max input size
+    #[wasm_bindgen(setter)]
+    pub fn set_max_input_size(&mut self, value: usize) {
+        self.max_input_size = value;
     }
     /// dump midi
     pub fn dump_midi(&self, bin: Vec<u8>) -> String {
