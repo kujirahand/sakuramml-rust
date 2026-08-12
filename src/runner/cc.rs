@@ -85,3 +85,75 @@ pub(super) fn exec_decres(song: &mut Song, t: &Token) {
     // write EP
     trk!(song).write_cc_on_time(11, ia);
 }
+
+/// コントロールチェンジの送信
+pub(super) fn exec_control_change(song: &mut Song, t: &Token) {
+    let no = t.value_i;
+    let val_tokens = t.children.clone().unwrap_or(vec![]);
+    let val_v = exec_value(song, &val_tokens);
+    let val = val_v.to_i();
+    trk!(song).remove_cc_on_note_wave(no);
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, no, val));
+}
+
+/// ピッチベンドの送信
+pub(super) fn exec_pitch_bend(song: &mut Song, t: &Token) {
+    let val = var_extract(&t.data[0], song).to_i();
+    let val = if t.value_i == 0 { val * 128 } else { val + 8192 };
+    song.add_event(Event::pitch_bend(
+        trk!(song).timepos,
+        trk!(song).channel,
+        val,
+    ));
+}
+
+/// テンポの指定
+pub(super) fn exec_tempo(song: &mut Song, t: &Token) {
+    let tempo = exec_value_int_by_token(song, t);
+    let tempo = value_range(10, tempo, 300);
+    tempo_change(song, tempo);
+}
+
+/// テンポの変化 (TempoChange)
+pub(super) fn exec_tempo_change(song: &mut Song, t: &Token) {
+    let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    if data.len() == 3 {
+        tempo_change_a_to_b(song, data[0].to_i(), data[1].to_i(), data[2].to_i());
+    } else if data.len() == 2 {
+        tempo_change_a_to_b(song, song.tempo, data[0].to_i(), data[1].to_i());
+    } else {
+        tempo_change(song, data[0].to_i());
+    }
+}
+
+/// 時間経過によるCCの変化
+pub(super) fn exec_cc_on_time(song: &mut Song, t: &Token) {
+    let no = t.value_i;
+    let ia = t.data[0].to_int_array();
+    trk!(song).remove_cc_on(no);
+    trk!(song).write_cc_on_time(no, ia);
+}
+
+/// 音符ごとのCCの変化
+pub(super) fn exec_cc_on_note(song: &mut Song, t: &Token) {
+    let no = t.value_i;
+    let ia = t.data[0].to_int_array();
+    trk!(song).set_cc_on_note(no, ia);
+}
+
+/// 音符ごとのCCの波形変化
+pub(super) fn exec_cc_on_note_wave(song: &mut Song, t: &Token) {
+    let no = t.value_i;
+    let ia = t.data[0].to_int_array();
+    trk!(song).set_cc_on_note_wave(no, ia);
+}
+
+/// 時間経過によるCC変化の頻度
+pub(super) fn exec_cc_on_time_freq(song: &mut Song, t: &Token) {
+    trk!(song).cc_on_time_freq = var_extract(&t.data[0], song).to_i();
+}
+
+/// 時間経過によるピッチベンドの変化
+pub(super) fn exec_pb_on_time(song: &mut Song, t: &Token) {
+    trk!(song).write_pb_on_time(t.value_i, t.data[0].to_int_array(), song.timebase);
+}

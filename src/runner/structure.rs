@@ -128,3 +128,73 @@ pub(super) fn exec_get_time(song: &mut Song, t: &Token, cmd: &str) -> isize{
     let total = (mes - 1) * (base * song.timesig_frac) + (beat - 1) * base + tick;
     total
 }
+
+/// トラックの切り替え
+pub(super) fn exec_track(song: &mut Song, t: &Token) {
+    let no = exec_value_int_by_token(song, t) as usize;
+    song.change_cur_track(no);
+}
+
+/// チャンネルの指定
+pub(super) fn exec_channel(song: &mut Song, t: &Token) {
+    let no = exec_value_int_by_token(song, t);
+    let v = value_range(1, no, 16) - 1; // CH(1 to 16)
+    trk!(song).channel = v as isize;
+}
+
+/// 子トークンをまとめて実行する
+pub(super) fn exec_tokens(song: &mut Song, t: &Token) {
+    let _ = match &t.children {
+        Some(tokens) => exec(song, tokens),
+        None => false,
+    };
+}
+
+/// 調号の指定
+pub(super) fn exec_key_flag(song: &mut Song, t: &Token) {
+    song.key_flag = t.data[0].to_int_array();
+}
+
+/// 曲全体のキーシフト
+pub(super) fn exec_key_shift(song: &mut Song, t: &Token) {
+    song.key_shift = exec_value_int_by_token(song, t);
+}
+
+/// トラック単位のキーシフト
+pub(super) fn exec_track_key(song: &mut Song, t: &Token) {
+    trk!(song).track_key = exec_value_int_by_token(song, t);
+}
+
+/// キーシフトを使うかどうかの指定
+pub(super) fn exec_use_key_shift(song: &mut Song, t: &Token) {
+    song.use_key_shift = t.value_i != 0;
+}
+
+/// 現在位置を演奏開始位置にする
+pub(super) fn exec_play_from_here(song: &mut Song) {
+    song.play_from = trk!(song).timepos;
+}
+
+/// 曲全体のベロシティ加算値
+pub(super) fn exec_song_velocity_add(song: &mut Song, t: &Token) {
+    song.v_add = exec_value_int_by_token(song, t);
+}
+
+/// 曲全体のゲート加算値
+pub(super) fn exec_song_q_add(song: &mut Song, t: &Token) {
+    song.q_add = exec_value_int_by_token(song, t);
+}
+
+/// 小節番号のシフト
+pub(super) fn exec_measure_shift(song: &mut Song, t: &Token) {
+    song.flags.measure_shift = exec_value_int_by_token(song, t);
+}
+
+/// 各種設定の変更
+pub(super) fn exec_set_config(song: &mut Song, t: &Token) {
+    let key = t.data[0].to_s();
+    let val = &t.data[1];
+    if key == "RandomSeed" {
+        song.rand_seed = val.to_i() as u32;
+    }
+}

@@ -131,3 +131,10 @@ pub(super) fn exec_for(song: &mut Song, t: &Token) -> bool {
     }
     true
 }
+
+/// Return文 - 戻り値を設定する (実行の中断は呼び出し側で行う)
+pub(super) fn exec_return(song: &mut Song, t: &Token) {
+    let val_tokens = t.children.clone().unwrap();
+    let val = exec_value(song, &val_tokens);
+    song.variables_insert("Result", val);
+}
