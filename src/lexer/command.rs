@@ -36,7 +36,7 @@ pub(super) fn read_upper_command(cur: &mut SourceCursor, song: &mut Song) -> Tok
                 let args = read_args_tokens(cur, song);
                 return Token::new_tokens_lineno(token_t, tag1, args, lineno);
             },
-            '_' => { // no paramerter
+            '_' => { // no parameter
                 return Token::new_tokens_lineno(token_t, tag1, vec![], lineno);
             },
             _ => {
