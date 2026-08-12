@@ -421,7 +421,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                     },
                     0x02 => { // Master Balance (0x02) 14bit
                         // The documented form is MasterBalance(value). Keep the
-                        // historical MasterBalance(device, value) form working too.
+                        // legacy MasterBalance(dummy, value) form working too.
                         let mut val = if data.len() >= 2 { data[1].to_i() }
                             else if data.len() == 1 { data[0].to_i() }
                             else { 0 };
