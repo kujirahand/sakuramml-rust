@@ -27,7 +27,7 @@ pub(super) fn exec_octave_once(song: &mut Song, t: &Token) {
 /// ベロシティの指定 (v)
 pub(super) fn exec_velocity(song: &mut Song, t: &Token) {
     let ino = t.data[0].to_i();
-    if ino > 0 {
+    if ino >= 0 {
         let index = ino as usize;
         let velocity = value_range(-127, t.value_i, 127);
         trk!(song).set_v_sub(index, velocity);
@@ -71,7 +71,7 @@ pub(super) fn exec_octave_random(song: &mut Song, t: &Token) {
 pub(super) fn exec_velocity_random(song: &mut Song, t: &Token) {
     let random = var_extract(&t.data[0], song).to_i();
     let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
-    if index > 0 {
+    if index >= 0 {
         trk!(song).set_v_sub_random(index as usize, random);
     } else {
         trk!(song).v_rand = random;
@@ -92,7 +92,7 @@ pub(super) fn exec_qlen_random(song: &mut Song, t: &Token) {
 pub(super) fn exec_velocity_on_time(song: &mut Song, t: &Token) {
     let values = t.data[0].to_int_array();
     let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
-    if index > 0 {
+    if index >= 0 {
         trk!(song).set_v_sub_on_time(index as usize, values);
     } else {
         trk!(song).v_on_note = None;
@@ -105,7 +105,7 @@ pub(super) fn exec_velocity_on_time(song: &mut Song, t: &Token) {
 pub(super) fn exec_velocity_on_note(song: &mut Song, t: &Token, is_cycle: bool) {
     let values = t.data[0].to_int_array();
     let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
-    if index > 0 {
+    if index >= 0 {
         trk!(song).set_v_sub_on_note(index as usize, values, is_cycle);
     } else {
         trk!(song).v_on_time = None;

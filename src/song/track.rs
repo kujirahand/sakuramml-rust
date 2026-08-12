@@ -343,9 +343,15 @@ impl Track {
                     let low = values[0];
                     let high = values[1];
                     let len = values[2];
+                    if len <= 0 {
+                        continue;
+                    }
                     let area_time_to = area_time + len;
                     if area_time <= cur_time && cur_time < area_time_to {
-                        sub_velocity = (high - low) * (cur_time - area_time) / len + low;
+                        let velocity = (high - low) as f32
+                            * ((cur_time - area_time) as f32 / len as f32)
+                            + low as f32;
+                        sub_velocity = velocity as isize;
                     }
                     area_time = area_time_to;
                 }

@@ -456,4 +456,44 @@ mod test_issue_102 {
         assert_eq!(velocities[8], 70);
         assert_eq!(song.tracks[0].v_sub_rand, vec![0, 0]);
     }
+
+    #[test]
+    fn test_sub_velocity_layer_zero_is_distinct_from_base_velocity() {
+        let song = exec_easy("v70 v__0(10) c v__0.onCycle(20,-20) def");
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(song.tracks[0].velocity, 70);
+        assert_eq!(velocities, vec![80, 90, 50, 90]);
+    }
+
+    #[test]
+    fn test_single_underscore_still_targets_base_velocity() {
+        let song = exec_easy("v70 v_.onCycle(80,60) cd");
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(velocities, vec![80, 60]);
+    }
+
+    #[test]
+    fn test_sub_velocity_on_time_ignores_non_positive_lengths() {
+        let song = exec_easy("v70 v__1.onTime(10,20,0,20,30,-1) cd");
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(velocities, vec![70, 70]);
+    }
 }

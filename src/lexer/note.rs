@@ -148,7 +148,6 @@ pub(super) fn read_velocity(cur: &mut SourceCursor, song: &mut Song) -> Token {
     } else if cur.eq("_") {
         cur.next();
         cur.get_int(0);
-        ino = 0;
     }
     if cur.eq_char('.') {
         cur.next(); // skip '.'

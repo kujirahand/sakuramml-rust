@@ -184,7 +184,7 @@ v70 v__1.onCycle(10,-10) cdef // velocities: 80,60,80,60
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
 
-`v__n(value)` (`n` is 1 or greater) defines an independent adjustment layer added to the
+`v__n(value)` (`n` is 0 or greater) defines an independent adjustment layer added to the
 base velocity. Multiple layers are summed, and the final value is clamped to 0–127. See the
 [MML syntax reference](docs/syntax-note.md#サブベロシティ-v__n) for completion and reset behavior.
 
