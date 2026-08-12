@@ -402,7 +402,11 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let sub_id = t.value_i as u8 & 0x7F;
                 match sub_id {
                     0x01 => { // Master Volume (0x01) 7bit
-                        let val = if data.len() >= 1 { data[1].to_i() as u8 & 0x7F } else { 0 };
+                        // The documented form is MasterVolume(value). Keep the
+                        // historical MasterVolume(device, value) form working too.
+                        let val = if data.len() >= 2 { data[1].to_i() as u8 & 0x7F }
+                            else if data.len() == 1 { data[0].to_i() as u8 & 0x7F }
+                            else { 0 };
                         event = Some(Event::sysex(
                             time, &vec![
                                 SValue::from_i(0xF0),
@@ -416,7 +420,11 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                             ], false));
                     },
                     0x02 => { // Master Balance (0x02) 14bit
-                        let mut val = if data.len() >= 1 { data[1].to_i() } else { 0 };
+                        // The documented form is MasterBalance(value). Keep the
+                        // historical MasterBalance(device, value) form working too.
+                        let mut val = if data.len() >= 2 { data[1].to_i() }
+                            else if data.len() == 1 { data[0].to_i() }
+                            else { 0 };
                         val += 8192;
                         let val_lsb = (val & 0x7F) as isize;
                         let val_msb = ((val >> 7) & 0x7F) as isize;

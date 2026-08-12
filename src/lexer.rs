@@ -1850,7 +1850,6 @@ fn read_timing(cur: &mut SourceCursor, song: &mut Song) -> Token {
         let cmd = cur.get_word();
         // t.Random ?
         if cmd == "Random" {
-            cur.index += 7;
             let r = read_arg_value(cur, song);
             return Token::new(TokenType::TimingRandom, 0, vec![r]);
         }

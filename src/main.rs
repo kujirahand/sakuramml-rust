@@ -248,6 +248,18 @@ mod tests {
         assert!(log.contains("SysEx$=F0,/*len:05*/7E,7F,09,01,F7;"));
     }
     #[test]
+    fn test_sysex_master_settings() {
+        // The documented one-argument forms must not panic and use that value.
+        let log = mml_dump("MasterVolume(100); MasterBalance(0);");
+        assert!(log.contains("SysEx$=F0,/*len:07*/7F,7F,04,01,00,64,F7;"));
+        assert!(log.contains("SysEx$=F0,/*len:07*/7F,7F,04,02,00,40,F7;"));
+
+        // Preserve the formerly documented dummy-first-argument form.
+        let log = mml_dump("MasterVolume(0, 100); MasterBalance(0, 0);");
+        assert!(log.contains("SysEx$=F0,/*len:07*/7F,7F,04,01,00,64,F7;"));
+        assert!(log.contains("SysEx$=F0,/*len:07*/7F,7F,04,02,00,40,F7;"));
+    }
+    #[test]
     fn test_sysex_gseffect() {
         // GSEffect
         let log = mml_dump("GSEffect(0x30, 0);");
