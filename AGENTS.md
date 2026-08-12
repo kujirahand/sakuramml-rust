@@ -27,18 +27,55 @@ sakuramml-rust/
 ├── src/                    # ソースコード
 │   ├── lib.rs             # ライブラリエントリーポイント
 │   ├── main.rs            # CLIエントリーポイント
-│   ├── lexer.rs           # 字句解析器
-│   ├── runner.rs          # トークン実行エンジン
-│   ├── song.rs            # 曲情報・コンパイル情報管理
+│   ├── lexer.rs           # 字句解析器のエントリーポイント
+│   ├── lexer/             # 字句解析器の機能別サブモジュール
+│   │   ├── args.rs        # コマンド引数の読み取り
+│   │   ├── calc.rs        # 計算式・制御構文の読み取り
+│   │   ├── cc.rs          # CC・RPN・NRPN・SysExの読み取り
+│   │   ├── command.rs     # 大文字コマンドと特殊構文の読み取り
+│   │   ├── error.rs       # 字句解析時のエラー・警告生成
+│   │   ├── note.rs        # 音符・音長・演奏パラメータの読み取り
+│   │   └── variable.rs    # 変数・ユーザー定義関数の読み取り
+│   ├── runner.rs          # トークン実行エンジンのエントリーポイント
+│   ├── runner/            # 実行処理の機能別サブモジュール
+│   │   ├── cc.rs          # CC・テンポ・音色の実行
+│   │   ├── control.rs     # 条件分岐・ループの実行
+│   │   ├── function.rs    # ユーザー定義関数・システム関数の実行
+│   │   ├── meta.rs        # メタイベント・ログ・直接SMF出力
+│   │   ├── note.rs        # 音符・休符の実行
+│   │   ├── structure.rs   # サブルーチン・連符・和音・タイムポインタの実行
+│   │   ├── sysex.rs       # SysExの実行
+│   │   ├── tie.rs         # タイ・スラーの実行
+│   │   ├── track_state.rs # トラックと演奏状態の更新
+│   │   └── variable.rs    # 変数・計算式・配列の実行
+│   ├── song.rs            # 曲全体の状態管理
+│   ├── song/              # 曲を構成するデータ型のサブモジュール
+│   │   ├── event.rs       # MIDIイベントの型と生成
+│   │   ├── flags.rs       # 実行時フラグの管理
+│   │   ├── function.rs    # ユーザー定義・システム関数の型
+│   │   └── track.rs       # トラックと演奏パラメータの管理
 │   ├── midi.rs            # MIDI出力生成
 │   ├── sutoton.rs         # 日本語表記変換
 │   ├── token.rs           # トークン定義
 │   ├── svalue.rs          # データ型定義
-│   ├── mml_def.rs         # MML機能定義
+│   ├── mml_def.rs         # MML定義の公開エントリーポイント
+│   ├── mml_def/           # MMLの予約語・組み込み定義
+│   │   ├── reserved_words.rs   # 予約語の定義
+│   │   ├── rhythm.rs           # リズムマクロの初期定義
+│   │   ├── system_functions.rs # システム関数とコマンドの定義
+│   │   ├── tie_mode.rs         # タイ・スラーモードの定義
+│   │   └── variables.rs        # 予約変数の初期定義
+│   ├── note_length.rs     # 音長文字列からステップ数への変換
 │   ├── sakura_functions.rs # 組み込み関数
 │   ├── sakura_message.rs  # メッセージ管理
 │   ├── sakura_version.rs  # バージョン情報
-│   └── source_cursor.rs   # ソースコード解析用
+│   ├── source_cursor.rs   # ソースコード解析用カーソル
+│   ├── lexer_test.rs      # 字句解析器のテスト
+│   ├── runner_test.rs     # 実行エンジンのテスト
+│   ├── song_test.rs       # 曲・MIDIイベントのテスト
+│   ├── batch_extract_command.nako3 # コマンド情報抽出スクリプト
+│   ├── batch_gen_voice_var.nako3   # 音色変数生成スクリプト
+│   └── batch_version.nako3         # バージョン更新スクリプト
 ├── pkg/                   # WebAssemblyパッケージ
 ├── samples/               # サンプルMMLファイル
 ├── target/                # ビルド出力
@@ -57,16 +94,17 @@ sakuramml-rust/
 
 - `main.rs`: コマンドライン引数解析と実行
 - `sutoton.rs`: 日本語表記(「ドレミ」など)をMML(`cde`)に変換
-- `lexer.rs`: MMLテキストをトークンに分割
-- `runner.rs`: トークンを実行し、MIDI イベントを生成
+- `lexer.rs`, `lexer/`: MMLテキストをトークンに分割。機能別の読み取り処理は`lexer/`以下に配置
+- `runner.rs`, `runner/`: トークンを実行し、MIDIイベントを生成。機能別の実行処理は`runner/`以下に配置
 - `midi.rs`: MIDIファイル形式で出力
 
 #### 3. データ構造
 
-- `song.rs`: 曲全体の情報、トラック管理、イベント管理
+- `song.rs`, `song/`: 曲全体の状態と、トラック・イベント・関数・実行時フラグを管理
 - `token.rs`: トークン型定義(TokenType, Token構造体)
 - `svalue.rs`: 値の型(整数、文字列、配列、ユーザー関数)
-- `mml_def.rs`: MMLコマンド定義、タイモード等
+- `mml_def.rs`, `mml_def/`: MMLの予約語、システム関数、予約変数、リズムマクロ、タイモードを定義
+- `note_length.rs`: 音長指定をMIDIステップ数に変換
 
 #### 4. 補助機能
 
@@ -167,7 +205,7 @@ cargo build --release
 - `children`: 子トークン
 - `data`: 付加データ
 
-#### `Event` (song.rs)
+#### `Event` (song/event.rs)
 
 MIDIイベント
 
@@ -214,11 +252,14 @@ cargo test
 1. **コンパイラフロー**: `sutoton` → `lexer` → `runner` → `midi`の順に処理
 2. **状態管理**: `Song`構造体がすべての状態を保持
 3. **トークン**: `TokenType`列挙型で命令を識別
-4. **runner.rs**: 実行エンジンのメインロジック(約1,700行以上)
+4. **runner.rs / runner/**: 実行エンジンの入口と機能別の実行処理
 5. **MIDI出力**: `Event`構造体をMIDI形式に変換
 
 ### よくある変更箇所
 
-- 新しいMMLコマンド追加: `mml_def.rs`, `lexer.rs`, `runner.rs`
-- バグ修正: 主に`runner.rs`の実行ロジック
-- 新機能: `TokenType`追加 → `lexer`でパース → `runner`で実行
+- 新しいMMLコマンド追加: `mml_def/system_functions.rs`でコマンドを定義し、必要に応じて`lexer/command.rs`で解析、対応する`runner/`のサブモジュールで実行
+- 音符・音長の変更: `lexer/note.rs`, `note_length.rs`, `runner/note.rs`
+- CC・RPN・NRPN・SysExの変更: `lexer/cc.rs`, `runner/cc.rs`, `runner/sysex.rs`
+- 変数・関数・計算式の変更: `lexer/variable.rs`, `lexer/calc.rs`, `runner/variable.rs`, `runner/function.rs`
+- トラック・イベント・実行状態の変更: `song/track.rs`, `song/event.rs`, `song/flags.rs`
+- 新機能: `token.rs`に`TokenType`追加 → `lexer/`でパース → `runner/`で実行 → 対応する`*_test.rs`にテスト追加
