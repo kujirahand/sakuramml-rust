@@ -103,7 +103,13 @@ pub(super) fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
         song.stack.push(result);
     } else {
         // macro ("=var_name")
-        let func_name2 = if func_name.len() >= 2 { func_name[1..].to_string() } else { func_name };
+        // 先頭の '=' はマクロ呼び出しの印なので取り除く。
+        // 計算式由来の関数呼び出しには '=' が付かないため、
+        // 無条件に先頭1文字を落とすと別名の変数を参照してしまう #94
+        let func_name2 = match func_name.strip_prefix('=') {
+            Some(name) => name.to_string(),
+            None => func_name,
+        };
         let args = t.children.clone().unwrap_or(vec![]);
         let args = exec_args(song, &args);
         let val = song.variables_get(&func_name2).unwrap_or(&SValue::new()).clone();
