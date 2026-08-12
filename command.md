@@ -18,7 +18,7 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | t | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
 | y | Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len) |
 | # | Macro - マクロ定義 (ex) #A={cdefg} |
-| @ | Voice select(音色の指定) range:1-128 (format) @(no),(Bank_LSB),(Bank_MSB) |
+| @ | Voice select(音色の指定) range:1-128 (format) @(no),(Bank_MSB),(Bank_LSB) |
 | > | Octave up (音階を1つ上げる) |
 | < | Octave down (音階を1つ下げる) |
 | ) | velocity up - 音量をvAddの値だけ上げる |
@@ -71,9 +71,9 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | Sub | sub track / rewind time position (ex) Sub{ceg} egb |
 | SUB | sub track / rewind time position (ex) Sub{ceg} egb |
 | S | sub track / rewind time position (ex) Sub{ceg} egb |
-| System.KeyFlag | set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
-| KeyFlag | set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
-| KF | set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note) |
+| System.KeyFlag | set key flag to note / 音名は区切らず並べる (ex) KeyFlag+(cf) / 数値指定は a,b,c,d,e,f,g の順 (ex) KeyFlag=(0,0,1,0,0,1,0) |
+| KeyFlag | set key flag to note / 音名は区切らず並べる (ex) KeyFlag+(cf) / 数値指定は a,b,c,d,e,f,g の順 (ex) KeyFlag=(0,0,1,0,0,1,0) |
+| KF | set key flag to note / 音名は区切らず並べる (ex) KeyFlag+(cf) / 数値指定は a,b,c,d,e,f,g の順 (ex) KeyFlag=(0,0,1,0,0,1,0) |
 | KeyShift | set key-shift (ex) KeyShift(3) |
 | Key | set key-shift (ex) Key(3) |
 | KEY | set key-shift (ex) KEY(3) |
@@ -88,7 +88,7 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | PlayFrom | play from time position (ex) PlayFrom(5:1:0) |
 | PLAY_FROM | play from time position (ex) PLAY_FROM(5:1:0) |
 | PlayFromHere | play from current time pos (ex) PlayFromHere |
-| PLAY_FROM_HRER | play from current time pos (ex) PLAY_FROM_HERE |
+| PLAY_FROM_HRER | play from current time pos / 綴りミスだが互換性のため維持 (ex) PLAY_FROM_HRER |
 | System.MeasureShift | set measure shift for time pointer (ex) System.MeasureShift(1) |
 | MeasureShift | set measure shift for time pointer (ex) MeasureShift(1) |
 | MEASURE_SHIFT | set measure shift for time pointer (ex) MeasureShift(1) |
@@ -96,10 +96,10 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | TRACK_SYNC | synchronize time pointers for all tracks (ex) TrackSync |
 | Slur | set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1) |
 | SLUR | set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1) |
-| System.vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3) |
-| vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3) |
-| System.qAdd | set "q++" command value (ex) qAdd(3) |
-| qAdd | set "q++" command value (ex) qAdd(3) |
+| System.vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value / 小文字始まりの vAdd は v コマンドと解釈されるため System.vAdd と書く (ex) System.vAdd(3) |
+| vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value / 小文字始まりの vAdd は v コマンドと解釈されるため System.vAdd と書く (ex) System.vAdd(3) |
+| System.qAdd | set q++ command value / 小文字始まりの qAdd は q コマンドと解釈されるため System.qAdd と書く (ex) System.qAdd(3) |
+| qAdd | set q++ command value / 小文字始まりの qAdd は q コマンドと解釈されるため System.qAdd と書く (ex) System.qAdd(3) |
 | System.q2Add | Unimplemented |
 | q2Add | Unimplemented |
 | SoundType | set sound type (ex) SoundType({pico}) |
@@ -138,8 +138,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | FineTune | set fine tune range:0-64-127(-100 - 0 - +99.99セント）(ex) FineTune(64) |
 | CoarseTune | set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(64) |
 | VibratoRate | set VibratoRate range: 0-127 |
-| VibratoDepth | set VibratoRate range: 0-127 |
-| VibratoDelay | set VibratoRate range: 0-127 |
+| VibratoDepth | set VibratoDepth range: 0-127 |
+| VibratoDelay | set VibratoDelay range: 0-127 |
 | FilterCutoff | set FilterCutoff range: 0-127 |
 | FilterResonance | set FilterResonance range: 0-127 |
 | EGAttack | set EGAttack range: 0-127 |
@@ -147,20 +147,20 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | EGRelease | set EGRelease range: 0-127 |
 | Fadein | fadein 小節数を指定 (ex) Fadein(1) |
 | Fadeout | fadeout 小節数を指定 (ex) Fadeout(1) |
-| Cresc | cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1) |
-| Decresc | cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1) |
-| CRESC | cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1) |
-| DECRESC | cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1) |
+| Cresc | だんだん大きくする Cresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Cresc=1,40,127 |
+| Decresc | だんだん小さくする Decresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Decresc=1,127,40 |
+| CRESC | だんだん大きくする Cresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Cresc=1,40,127 |
+| DECRESC | だんだん小さくする Decresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Decresc=1,127,40 |
 | ResetGM | ResetGM |
 | ResetGS | ResetGS |
 | ResetXG | ResetXG |
 | MasterVolume | master volume (range: 0-127) (ex) MasterVolume(100) |
-| MasterBalance | master ballance (range: -8192 to 8191(ex) MasterBallance(0) |
+| MasterBalance | master balance (range: -8192 to 8191) (ex) MasterBalance(0) |
 | Tempo | set tempo (ex) Tempo(120) |
 | TEMPO | set tempo (ex) TEMPO(120) |
 | T | set tempo (ex) T(120) |
 | BPM | set tempo (ex) BPM(120) |
-| TempoChange | tempo change slowly TempoChange(start, end, !len) (ex) TempoChange(80,120,!1) |
+| TempoChange | tempo change slowly TempoChange(start, end, len) / lenはステップ数で指定する (ex) TempoChange(80,120,384) |
 | TimeSignature | set time signature (ex) TimeSignature(4, 4) |
 | System.TimeSignature | set time signature (ex) TimeSignature(4, 4) |
 | TimeSig | set time signature (ex) TimeSignature(4, 4) |
@@ -182,7 +182,7 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | CuePoint | write CuePoint text (ex) CuePoint{"hello"} |
 | GSEffect | GSEffect(num, val) (ex) GSEffect($30, 0) |
 | GSReverbMacro | GSReverbMacro(val) - 0:Room1 5:Hall 6:Delay (ex) GSReverbMacro(0) |
-| GSReverbCharacter | GSReverbCharacter(val) - 0:Room1 5:Hall 6:Delay (ex) GSReverbMacro(0) |
+| GSReverbCharacter | GSReverbCharacter(val) - リバーブのキャラクター (ex) GSReverbCharacter(0) |
 | GSReverbPRE_LPE | GSReverbPRE_LPE(val) (ex) GSReverbPRE_LPE(0) |
 | GSReverbLevel | GSReverbLevel(val) (ex) GSReverbLevel(0) |
 | GSReverbTime | GSReverbTime(val) (ex) GSReverbTime(0) |
@@ -197,14 +197,14 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | GSChorusDepth | GSChorusDepth(val) (ex) GSChorusDepth(0) |
 | GSChorusSendToReverb | GSChorusSendToReverb(val) (ex) GSChorusSendToReverb(0) |
 | GSChorusSendToDelay | GSChorusSendToDelay(val) (ex) GSChorusSendToDelay(0) |
-| GS_RHYTHM | Change to rhythm part val=0:instrument/1:drum1/2:drum2 (ex) GSChorusSendToDelay(0) |
+| GS_RHYTHM | Change to rhythm part val=0:instrument/1:drum1/2:drum2 (ex) GS_RHYTHM(1) |
 | GSScaleTuning | GS Scale Tuning. GSScaleTuning(C,Cp,D,Dp,E,F,Fp,G,Gp,A,Ap,B) (ex) GSScaleTuning(0,0,0,0,0,0,0,0,0,0,0,0) |
 | Int | define int variables (ex) Int A = 3 |
 | INT | define int variables (ex) INT A = 3 |
 | Str | define string variables (ex) Str A = {cde} |
 | STR | define string variables (ex) STR A = {cde} |
-| Array | define string variables (ex) Str A = {cde} |
-| ARRAY | define string variables (ex) STR A = {cde} |
+| Array | define array variables (ex) Array A = (1,2,3) |
+| ARRAY | define array variables (ex) ARRAY A = (1,2,3) |
 | Print | print value (ex) Print({hello}) |
 | PRINT | print value (ex) PRINT({hello}) |
 | System.Include | Unimplemented |
@@ -248,8 +248,8 @@ Function usable within an expression (計算式で使える関数)
 | RandomSelect | RandomSelect(...) | return one item selected from the arguments (ex) RandomSelect({a}, {b}, {c}) |
 | Chr | Chr(C) | convert code to char (ex) Chr(49) |
 | CHR | CHR(C) | convert code to char (ex) CHR(49) |
-| Asc | Asc(S) | return char from code |
-| ASC | ASC(S) | return char from code |
+| Asc | Asc(S) | return character code of S (ex) Asc({A}) // => 65 |
+| ASC | ASC(S) | return character code of S (ex) ASC({A}) // => 65 |
 | Mid | Mid(S, N, M) | extract M characters from string S starting at position N and return them (ex) Mid({abc}, 1,2) // => ab |
 | MID | MID(S, N, M) | extract M characters from string S starting at position N and return them (ex) MID({abc}, 1,2) // => ab |
 | Replace | Replace(S, A, B) | Replace A in string S with B (ex) Replace({abc}, {a}, {b}) // =>  bbc |
@@ -296,10 +296,10 @@ Macros and Voice list (マクロや音色など変数定義):
 | Unison3th |  3度のユニゾンを演奏 (例 Unison3th{cde}) (値:"Sub{ Key=4 #?1 Key=0 } #?1") |
 | Unison |  N度のユニゾンを演奏 (例 Unison{cde},7) (値:"Sub{ Key=#?2 #?1 Key=0 } #?1") |
 | RndTiming |  set random timing (ex) RndTiming(3) (値:"t.Random(#?1)") |
-| SLUR_PORT |  スラー定数。グリッサンド。ノートオンを、ポルタメントでつなぐ (例 Slur(SlurPort, !8) のように指定) (値:0) |
-| SLUR_BEND |  スラー定数。ベンド。異音程をベンドで表現。ギターのハンマリングに近い。 (例 Slur(SlurPort, !8) のように指定) (値:1) |
-| SLUR_GATE |  スラー定数。＆のついた音符のゲートを、valueにする (値:2) |
-| SLUR_ALPE |  スラー定数。＆でつないだ音符の終わりまでゲートを伸ばす (値:3) |
+| SLUR_PORT |  スラー定数。グリッサンド。ノートオンを、ポルタメントでつなぐ (例 Slur(SLUR_PORT) のように指定) (値:0) |
+| SLUR_BEND |  スラー定数。ベンド。異音程をベンドで表現。ギターのハンマリングに近い。 (例 Slur(SLUR_BEND) のように指定) (値:1) |
+| SLUR_GATE |  スラー定数。＆のついた音符のゲートを、第2引数のvalueにする (例 Slur(SLUR_GATE, 100)) (値:2) |
+| SLUR_ALPE |  スラー定数。＆でつないだ音符の終わりまでゲートを伸ばす (例 Slur(SLUR_ALPE)) (値:3) |
 | GrandPiano |  音色:GrandPiano (値:1) |
 | BrightPiano |  音色:BrightPiano (値:2) |
 | ElectricGrandPiano |  音色:ElectricGrandPiano (値:3) |
@@ -552,7 +552,7 @@ Rhythm macro (リズムマクロ)
 | 調 | 調#(音符)//臨時記号を設定する。（例）調＃（ドファ） (="System.KeyFlag") |
 | 音階 | 音階(数値)//音階を数値で指定する。初期値は５。範囲は、0～10（例）音階５ (="o") |
 | 時間 | 時間(小節数:拍数:ステップ数)//指定時間にポインタを移動する。範囲は、小節数・拍数が、１～。ステップ数は、０～。（例）時間（４：１：０） (="Time") |
-| 読む | 読む(ファイル名)//外部定義ファイルを読み込む。（例）読む(chord2.h) (="Include") |
+| 読む | 読む(ファイル名)//外部定義ファイルを読み込む。※Includeは未実装。（例）読む(chord2.h) (="Include") |
 | 予約 | (コマンド)予約(v1,v2,v3...)//コマンドの値を予約しておく（例）音量予約120,50【ドレミファ】 (=".onNote=") |
 | 拍子 | 拍子 分子,分母//拍子を設定する。（例）拍子4,4 (="System.TimeSignature=") |
 | 音色 | 音色（番号）//音色を設定する。 (="@") |
@@ -574,8 +574,8 @@ Rhythm macro (リズムマクロ)
 | ド | 音名 (="c") |
 | レ | 音名 (="d") |
 | ミ | 音名 (="e") |
-| フ | 音名 (="f") |
-| ァ | 音名 (="") |
+| フ | 音名(「ファ」は「フ」+「ァ」で f になる) (="f") |
+| ァ | 「ファ」の「ァ」。空文字に変換される (="") |
 | ソ | 音名 (="g") |
 | ラ | 音名 (="a") |
 | シ | 音名 (="b") |
@@ -585,7 +585,7 @@ Rhythm macro (リズムマクロ)
 | れ | 音名 (="d") |
 | み | 音名 (="e") |
 | ふ | 音名 (="f") |
-| ぁ | 音名 (="") |
+| ぁ | 「ふぁ」の「ぁ」。空文字に変換される (="") |
 | そ | 音名 (="g") |
 | ら | 音名 (="a") |
 | し | 音名 (="b") |
@@ -610,20 +610,20 @@ Rhythm macro (リズムマクロ)
 | む | Midタム (="n47) |
 | ろ | Highタム (="n43) |
 | く | ドラム (="n44) |
-| 大きく | 大きく(音長),(最終値)//音量(EP)をだんだん大きくする (="Cresc=") |
-| 小さく | 小さく(音長),(最終値)//音量(EP)をだんだん小さくする (="Decresc=") |
-| クレッシェンド | 大きく(音長),(最終値)//音量(EP)をだんだん大きくする (="Cresc=") |
-| デクレッシェンド | 小さく(音長),(最終値)//音量(EP)をだんだん小さくする (="Cresc=") |
+| 大きく | 大きく(音長),(開始値),(最終値)//音量(EP)をだんだん大きくする（例）大きく1,40,127 (="Cresc=") |
+| 小さく | 小さく(音長),(開始値),(最終値)//音量(EP)をだんだん小さくする（例）小さく1,127,40 (="Decresc=") |
+| クレッシェンド | 大きく(音長),(開始値),(最終値)//音量(EP)をだんだん大きくする（例）大きく1,40,127 (="Cresc=") |
+| デクレッシェンド | 小さく(音長),(開始値),(最終値)//音量(EP)をだんだん小さくする（例）デクレッシェンド1,127,40 (="Decresc=") |
 | 音量戻す | 音量(EP)を最大値に戻す (="EP(127)") |
 | 方向左 | ステレオの左から音が出るようにする (="P(0)") |
 | 方向左前 | ステレオの左前から音が出るようにする (="P(32)") |
 | 方向前 | ステレオの前から音が出るようにする (="P(64)") |
 | 方向右前 | ステレオの右前から音が出るようにする (="P(96)") |
 | 方向右 | ステレオの右から音が出るようにする (="P(127)") |
-| 方向回す | ステレオの左右を回す (="P.onNoteWaveEx(0) |
+| 方向回す | ステレオの左右を回す ※onNoteWaveEx未対応のため現在は動作しない (="P.onNoteWaveEx(0) |
 | ビブラートオフ | ビブラートをやめる (="M(0)") |
 | ペダル | ペダルを踏む (="y64) |
 | 放す | ペダルを放す (="y64) |
-| テンポ改 | テンポ改([[[t1],t2],len])//テンポを推移的に変更する。lenを省略すると、全音符の間に推移し、t1を省略すると、以前の値からt2へ推移する。 (="TempoChange=") |
-| ビブラート | 推移的なビブラートをかける (="M.onNoteWaveEx(0) |
+| テンポ改 | テンポ改(開始テンポ),(終了テンポ),(長さ)//テンポを推移的に変更する。長さはステップ数。省略すると全音符の間に推移する。（例）テンポ改80,120,384 (="TempoChange=") |
+| ビブラート | 推移的なビブラートをかける ※onNoteWaveEx未対応のため現在は動作しない (="M.onNoteWaveEx(0) |
 | ここから演奏 | 途中から演奏したいときに書く (="PlayFrom(Time") |

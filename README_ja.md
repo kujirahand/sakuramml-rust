@@ -35,7 +35,7 @@ Web版が「[こちら(ピコサクラ)](https://sakuramml.com/go.php?15)」で�
 ```
 $ git clone https://github.com/kujirahand/sakuramml-rust.git
 $ cd sakuramml-rust
-$ cargo build --relase
+$ cargo build --release
 ```
 
 すると、`target/release/sakuramml`が作成されます。
@@ -67,8 +67,10 @@ TR=1 CH=1 l1 ceg^
 
 ```
 音符1「ドミソ」
-l4 `ceg` `dfa`8 `egb`8 `ceg`
+l4 'ceg' 'dfa'8 'egb'8 'ceg'
 ```
+
+和音はシングルクォートで囲みます。閉じたあとに `'ceg'4,90,120` のように音長・ゲート・ベロシティを指定できます。
 
 ## タイムの移動
 
@@ -162,7 +164,7 @@ v127 c ( c ( c (( c )) c ) c ) c
 「c0e0g」のように、0を指定した和音は、サポートしません。普通に以下のように指定してください。
 
 ```
-`ceg` `dfa` `egb` `ceg`
+'ceg' 'dfa' 'egb' 'ceg'
 「ドミソ」「レファラ」「ミソシ」「ドミソ」
 ```
 
@@ -173,7 +175,7 @@ v127 c ( c ( c (( c )) c ) c ) c
 - v.onTime(low, high, len, ...)　/ 省略形 v.T(low,high,len,...)
 - v.onNote(v1, v2, v3, ...)　/ 省略形 v.N(v1,v2,v3,...)
 - t.onNote(v1, v2, v3, ...)　/ 省略形 t.N(v1,v2,v3,...)
-- (ControllChange または PB または p).onTime(low, high, len, ...)
+- (ControlChange または PB または p).onTime(low, high, len, ...)
 
 ```
 v.onTime(0,127,!1)l8cccccccc
@@ -202,8 +204,9 @@ P1
 #Unison{cde},7
 ```
 
-## ファンレンス
+## リファレンス
 
+- **MML文法リファレンス --- [docs/syntax.md](docs/syntax.md)**
 - サクラ(Rust版)のコマンド一覧 --- [command.md](command.md)
   - サクラ(v2版)のコマンド一覧 --- https://sakuramml.com/doc/command/index.htm
 - 音色一覧 --- [voice.md](voice.md)

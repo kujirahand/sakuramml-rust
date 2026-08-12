@@ -1,8 +1,8 @@
 # sakuramml-rust
 
-`sakruamml` is a MML/ABC to MIDI compier.
+`sakuramml` is a MML to MIDI compiler.
 
-This compiler that converts the MML/ABC into MIDI files. 
+This compiler converts MML into MIDI files.
 MML is a notation system that represents sheet music using text such as `cde`.
 It is a tool that allows you to easily create music.
 It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAssembly).
@@ -38,7 +38,7 @@ An online tutorial is available. You can learn the commands while listening to t
 
 ### Compile with Rust
 
-Please install [Rust compier](https://www.rust-lang.org/tools/install).
+Please install [Rust compiler](https://www.rust-lang.org/tools/install).
 
 ```sh
 git clone https://github.com/kujirahand/sakuramml-rust.git
@@ -91,8 +91,10 @@ TR(2) CH(2) @1 l1 egb^
 You can play chords.
 
 ```
-l4 `ceg` `dfa`8 `egb`8 `ceg`
+l4 'ceg' 'dfa'8 'egb'8 'ceg'
 ```
+
+Enclose the notes in single quotes. You can specify the length, gate and velocity after the closing quote, like `'ceg'4,90,120`.
 
 ## Time Pointer
 
@@ -179,7 +181,7 @@ v127 c ( c ( c (( c )) c ) c ) c
   - The value that should be specified for `len` is the tick. When specifying the note length, it should be written as `!4`, for example.
 - v.onNote(v1, v2, v3, ...)　OR v.N(v1,v2,v3,...)
 - t.onNote(v1, v2, v3, ...)　OR t.N(v1,v2,v3,...)
-- (ControllChange or PB or p).onTime(low, high, len, ...)
+- (ControlChange or PB or p).onTime(low, high, len, ...)
 
 ```
 v.onTime(0,127,!1) l8cccccccc
@@ -258,6 +260,7 @@ PRINT(S2) // ccrc ccrc
 
 ## reference
 
+- **MML Syntax Reference (Japanese) --- [docs/syntax.md](docs/syntax.md)**
 - Command List --- [command.md](command.md)
 - Voice List - [voice.md](voice.md)
 
