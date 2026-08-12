@@ -228,7 +228,7 @@ impl SourceCursor {
                 ' ' | '|' | '\t' => {
                     self.next();
                 },
-                '\n' => { // 改行があっても続く部分に"^"か数値があれば続行
+                '\n' => { // 改行があっても続く部分が"^"で始まれば続行
                     let tmp_index = self.index;
                     let tmp_line = self.line;
                     self.next(); // skip '\n'

@@ -114,6 +114,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                 cur.prev();
                 if cur.eq("##") || cur.eq("# ") || cur.eq("#-") { // なんかみんなが使っているので一行コメントと見なす
                     cur.get_token_ch('\n');
+                    result.push(Token::new_lineno(cur.line)); // 改行を消費したので行番号を更新
                     continue;
                 }
                 result.push(read_upper_command(&mut cur, song));
@@ -138,23 +139,27 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                 if cur.eq("///") {
                     let lineno = cur.line;
                     let line_comment = cur.get_token_ch('\n');
-                    // 「///」を取り除いた本文をMetaTextとして埋め込む (see: runner.rs)
-                    let body = line_comment.trim_start_matches('/').trim().to_string();
+                    // コメント記号「///」だけを取り除いた本文をMetaTextとして埋め込む (see: runner.rs)
+                    let body = line_comment[3..].trim().to_string();
                     let mut tok = Token::new_const(TokenType::Comment, COMMENT_DEBUG, Some(body), TokenValueType::VOID);
                     tok.lineno = lineno;
                     result.push(tok);
+                    result.push(Token::new_lineno(cur.line)); // 改行を消費したので行番号を更新
                     continue;
                 } else if cur.eq("//") {
                     cur.get_token_ch('\n');
+                    result.push(Token::new_lineno(cur.line)); // 改行を消費したので行番号を更新
                     continue;
                 } else if cur.eq("/**") {
                     let range_comment = cur.get_token_s("*/");
                     let mut tok = Token::new_const(TokenType::Comment, COMMENT_NORMAL, Some(range_comment), TokenValueType::VOID);
                     tok.lineno = cur.line;
                     result.push(tok);
+                    result.push(Token::new_lineno(cur.line)); // 複数行にまたがる場合があるので行番号を更新
                     continue;
                 } else if cur.eq("/*") {
                     cur.get_token_s("*/");
+                    result.push(Token::new_lineno(cur.line)); // 複数行にまたがる場合があるので行番号を更新
                     continue;
                 }
                 cur.next();
