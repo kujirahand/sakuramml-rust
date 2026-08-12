@@ -350,3 +350,30 @@ mod test_for_runner {
     }
 }
 // ------------------------------------------
+
+#[cfg(test)]
+mod test_review_94 {
+    use super::exec_easy;
+    use crate::song::EventType;
+
+    #[test]
+    fn test_undefined_function_in_calc_keeps_name() {
+        // 計算式から未定義の関数を呼ぶと func_name に '=' が付かない。
+        // 先頭1文字を無条件に落とすと、別名の変数を参照してしまう。
+        // (修正前は FOO -> OO と解釈され 999 が返っていた)
+        let song = exec_easy("INT OO=999; PRINT(FOO(1))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) ");
+    }
+
+    #[test]
+    fn test_tempo_change_zero_writes_valid_mpq() {
+        // TempoChange は Tempo と違い範囲チェックがないため 0 が渡り得る。
+        // 0以下でも MIDI のテンポ(μsec/四分音符)として妥当な値を書くこと。
+        let song = exec_easy("TempoChange(0) c");
+        let e = song.tracks[0].events.iter()
+            .find(|e| e.etype == EventType::Meta && e.v2 == 0x51)
+            .expect("テンポのメタイベントがない");
+        // 既定の120BPM => 500000 usec => 0x07A120
+        assert_eq!(e.data, Some(vec![0x07u8, 0xA1, 0x20]));
+    }
+}
