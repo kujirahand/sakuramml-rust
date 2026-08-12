@@ -329,7 +329,7 @@ pub(super) fn read_note(cur: &mut SourceCursor, ch: char) -> Token {
         cur.get_int(0)
     };
     cur.skip_space();
-    // veolocity
+    // velocity
     let vel = if !cur.eq_char(',') {
         -1
     } else {
