@@ -22,6 +22,19 @@ pub struct ControlChangeOnNoteWave {
     pub index: isize, // for ControlChangeOnNote
 }
 
+#[derive(Debug, Clone)]
+struct VelocitySubOnTime {
+    start_time: isize,
+    values: Vec<isize>,
+}
+
+#[derive(Debug, Clone)]
+struct VelocitySubOnNote {
+    values: Vec<isize>,
+    index: usize,
+    is_cycle: bool,
+}
+
 /// Track
 #[derive(Debug)]
 pub struct Track {
@@ -31,6 +44,9 @@ pub struct Track {
     pub octave: isize,
     pub velocity: isize,
     pub v_sub: Vec<isize>,
+    pub v_sub_rand: Vec<isize>,
+    v_sub_on_time: Vec<Option<VelocitySubOnTime>>,
+    v_sub_on_note: Vec<Option<VelocitySubOnNote>>,
     pub qlen: isize,
     pub timing: isize,
     pub v_rand: isize,
@@ -82,6 +98,9 @@ impl Track {
             tie_mode: TieMode::Port,
             tie_value: 0,
             v_sub: vec![0],
+            v_sub_rand: vec![0],
+            v_sub_on_time: vec![None],
+            v_sub_on_note: vec![None],
             v_rand: 0,
             q_rand: 0,
             t_rand: 0,
@@ -248,6 +267,99 @@ impl Track {
         self.velocity = v;
         self.v_on_note_index += 1;
         return v;
+    }
+    fn ensure_v_sub_index(&mut self, index: usize) {
+        if self.v_sub.len() <= index {
+            self.v_sub.resize(index + 1, 0);
+            self.v_sub_rand.resize(index + 1, 0);
+            self.v_sub_on_time.resize(index + 1, None);
+            self.v_sub_on_note.resize(index + 1, None);
+        }
+    }
+
+    pub fn set_v_sub(&mut self, index: usize, velocity: isize) {
+        self.ensure_v_sub_index(index);
+        self.v_sub[index] = velocity;
+        self.v_sub_on_time[index] = None;
+        self.v_sub_on_note[index] = None;
+    }
+
+    pub fn set_v_sub_random(&mut self, index: usize, random: isize) {
+        self.ensure_v_sub_index(index);
+        self.v_sub_rand[index] = random;
+    }
+
+    pub fn set_v_sub_on_time(&mut self, index: usize, values: Vec<isize>) {
+        self.ensure_v_sub_index(index);
+        self.v_sub_on_note[index] = None;
+        self.v_sub_on_time[index] = Some(VelocitySubOnTime {
+            start_time: self.timepos,
+            values,
+        });
+    }
+
+    pub fn set_v_sub_on_note(&mut self, index: usize, values: Vec<isize>, is_cycle: bool) {
+        self.ensure_v_sub_index(index);
+        self.v_sub_on_time[index] = None;
+        self.v_sub_on_note[index] = Some(VelocitySubOnNote {
+            values,
+            index: 0,
+            is_cycle,
+        });
+    }
+
+    /// サブベロシティの先行指定を進め、各レイヤーを基準値へ加算する
+    pub fn apply_v_sub(&mut self, velocity: isize) -> isize {
+        let mut total = 0;
+        for index in 0..self.v_sub.len() {
+            let mut clear_on_note = false;
+            if let Some(state) = &mut self.v_sub_on_note[index] {
+                if state.values.len() == 0 {
+                    clear_on_note = true;
+                } else {
+                    if state.index >= state.values.len() {
+                        if state.is_cycle {
+                            state.index = 0;
+                        } else {
+                            clear_on_note = true;
+                        }
+                    }
+                    if !clear_on_note {
+                        self.v_sub[index] = state.values[state.index];
+                        state.index += 1;
+                    }
+                }
+            }
+            if clear_on_note {
+                self.v_sub_on_note[index] = None;
+            }
+
+            let mut sub_velocity = self.v_sub[index];
+            let mut clear_on_time = false;
+            if let Some(state) = &self.v_sub_on_time[index] {
+                let cur_time = self.timepos - state.start_time;
+                let mut area_time = 0;
+                for values in state.values.chunks_exact(3) {
+                    let low = values[0];
+                    let high = values[1];
+                    let len = values[2];
+                    let area_time_to = area_time + len;
+                    if area_time <= cur_time && cur_time < area_time_to {
+                        sub_velocity = (high - low) * (cur_time - area_time) / len + low;
+                    }
+                    area_time = area_time_to;
+                }
+                if area_time <= cur_time {
+                    clear_on_time = true;
+                    sub_velocity = self.v_sub[index];
+                }
+            }
+            if clear_on_time {
+                self.v_sub_on_time[index] = None;
+            }
+            total += sub_velocity;
+        }
+        velocity + total
     }
     pub fn calc_t_on_note(&mut self, def: isize) -> isize {
         // on_note?

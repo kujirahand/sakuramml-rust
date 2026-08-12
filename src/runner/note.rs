@@ -107,6 +107,13 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     } else {
         qlen
     };
+    let v_sub_rand = trk!(song).v_sub_rand.clone();
+    let mut v = trk!(song).apply_v_sub(v);
+    for random in v_sub_rand {
+        if random > 0 {
+            v = song.calc_rand_value(v, random);
+        }
+    }
     // note len
     let mut notelen = calc_length(&note.len_s, song.timebase, trk!(song).length);
     // note len onNote / onCycle
@@ -201,6 +208,13 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     } else {
         qlen
     };
+    let v_sub_rand = trk!(song).v_sub_rand.clone();
+    let mut v = trk!(song).apply_v_sub(v);
+    for random in v_sub_rand {
+        if random > 0 {
+            v = song.calc_rand_value(v, random);
+        }
+    }
     // calc
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // range

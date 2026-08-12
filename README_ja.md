@@ -174,13 +174,20 @@ v127 c ( c ( c (( c )) c ) c ) c
 
 - v.onTime(low, high, len, ...)　/ 省略形 v.T(low,high,len,...)
 - v.onNote(v1, v2, v3, ...)　/ 省略形 v.N(v1,v2,v3,...)
+- v__n.onTime/onNote/onCycle(...)　/ 通常のベロシティに加算するレイヤー別先行指定（省略形 T/N/C）
+- v__n.Random(width)　/ レイヤー別のランダム補正（0で解除）
 - t.onNote(v1, v2, v3, ...)　/ 省略形 t.N(v1,v2,v3,...)
 - (ControlChange または PB または p).onTime(low, high, len, ...)
 
 ```mml
 v.onTime(0,127,!1)l8cccccccc
+v70 v__1.onCycle(10,-10) cdef // ベロシティは80,60,80,60
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
+
+`v__n(value)`（nは1以上）は、通常のベロシティへ加算する独立した補正レイヤーです。
+複数レイヤーは合算され、最終値は0～127に収められます。詳しい終了動作や解除方法は
+[MML文法リファレンス](docs/syntax-note.md#サブベロシティ-v__n)を参照してください。
 
 ## マクロの機能
 

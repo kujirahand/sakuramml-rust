@@ -173,13 +173,20 @@ Reservation notation is available.
 
 - `v.onTime(low, high, len, ...)` / abbreviated form: `v.T(low,high,len,...)`
 - `v.onNote(v1, v2, v3, ...)` / abbreviated form: `v.N(v1,v2,v3,...)`
+- `v__n.onTime/onNote/onCycle(...)` / per-layer advance specification added to the base velocity (abbreviated forms: `T`/`N`/`C`)
+- `v__n.Random(width)` / per-layer random adjustment (use 0 to disable it)
 - `t.onNote(v1, v2, v3, ...)` / abbreviated form: `t.N(v1,v2,v3,...)`
 - `(ControlChange`, `PB`, or `p`).onTime(low, high, len, ...)
 
 ```mml
 v.onTime(0,127,!1)l8cccccccc
+v70 v__1.onCycle(10,-10) cdef // velocities: 80,60,80,60
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
+
+`v__n(value)` (`n` is 1 or greater) defines an independent adjustment layer added to the
+base velocity. Multiple layers are summed, and the final value is clamped to 0–127. See the
+[MML syntax reference](docs/syntax-note.md#サブベロシティ-v__n) for completion and reset behavior.
 
 ## Macros
 

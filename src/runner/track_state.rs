@@ -26,19 +26,16 @@ pub(super) fn exec_octave_once(song: &mut Song, t: &Token) {
 
 /// ベロシティの指定 (v)
 pub(super) fn exec_velocity(song: &mut Song, t: &Token) {
-    trk!(song).v_on_note = None;
-    trk!(song).v_on_time = None;
     let ino = t.data[0].to_i();
     if ino > 0 {
-        while trk!(song).v_sub.len() >= ino as usize {
-            trk!(song).v_sub.push(0);
-        }
-        trk!(song).v_sub[ino as usize] = value_range(0, t.value_i, 127);
+        let index = ino as usize;
+        let velocity = value_range(-127, t.value_i, 127);
+        trk!(song).set_v_sub(index, velocity);
     } else {
+        trk!(song).v_on_note = None;
+        trk!(song).v_on_time = None;
         trk!(song).velocity = value_range(0, t.value_i, 127);
     }
-    trk!(song).v_on_time = None;
-    trk!(song).v_on_note = None;
 }
 
 /// ベロシティの相対変更 ()( )
@@ -72,7 +69,13 @@ pub(super) fn exec_octave_random(song: &mut Song, t: &Token) {
 
 /// ベロシティのランダム変化
 pub(super) fn exec_velocity_random(song: &mut Song, t: &Token) {
-    trk!(song).v_rand = var_extract(&t.data[0], song).to_i();
+    let random = var_extract(&t.data[0], song).to_i();
+    let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
+    if index > 0 {
+        trk!(song).set_v_sub_random(index as usize, random);
+    } else {
+        trk!(song).v_rand = random;
+    }
 }
 
 /// タイミングのランダム変化
@@ -87,17 +90,29 @@ pub(super) fn exec_qlen_random(song: &mut Song, t: &Token) {
 
 /// 時間経過によるベロシティ変化
 pub(super) fn exec_velocity_on_time(song: &mut Song, t: &Token) {
-    trk!(song).v_on_note = None;
-    trk!(song).v_on_time_start = trk!(song).timepos;
-    trk!(song).v_on_time = Some(t.data[0].to_int_array());
+    let values = t.data[0].to_int_array();
+    let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
+    if index > 0 {
+        trk!(song).set_v_sub_on_time(index as usize, values);
+    } else {
+        trk!(song).v_on_note = None;
+        trk!(song).v_on_time_start = trk!(song).timepos;
+        trk!(song).v_on_time = Some(values);
+    }
 }
 
 /// 音符ごとのベロシティ変化 (is_cycle=trueで繰り返し)
 pub(super) fn exec_velocity_on_note(song: &mut Song, t: &Token, is_cycle: bool) {
-    trk!(song).v_on_time = None;
-    trk!(song).v_on_note_index = 0;
-    trk!(song).v_on_note = Some(t.data[0].to_int_array());
-    trk!(song).v_on_note_is_cycle = is_cycle;
+    let values = t.data[0].to_int_array();
+    let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
+    if index > 0 {
+        trk!(song).set_v_sub_on_note(index as usize, values, is_cycle);
+    } else {
+        trk!(song).v_on_time = None;
+        trk!(song).v_on_note_index = 0;
+        trk!(song).v_on_note = Some(values);
+        trk!(song).v_on_note_is_cycle = is_cycle;
+    }
 }
 
 /// 音符ごとのタイミング変化 (is_cycle=trueで繰り返し)
