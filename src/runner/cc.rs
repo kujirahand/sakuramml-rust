@@ -39,9 +39,15 @@ pub(super) fn tempo_change_a_to_b(song: &mut Song, a: isize, b: isize, len: isiz
     trk!(song).timepos = timepos;
 }
 
+/// テンポの既定値(BPM)
+const DEFAULT_TEMPO: isize = 120;
+
 pub(super) fn tempo_change(song: &mut Song, tempo: isize) {
+    // TempoChange は Tempo と違い範囲チェックがないため 0 以下が渡り得る。
+    // そのままだと MIDI のテンポ(μsec/四分音符)が不正な値になるので既定値に戻す #94
+    let tempo = if tempo > 0 { tempo } else { DEFAULT_TEMPO };
     song.tempo = tempo;
-    let mpq = if tempo > 0 { 60000000 / tempo } else { 120 };
+    let mpq = 60000000 / tempo;
     let e = Event::meta(
         trk!(song).timepos,
         0xFF,
