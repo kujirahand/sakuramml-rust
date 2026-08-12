@@ -712,7 +712,7 @@ fn read_calc(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
             Some(res) => res,
             None => break,
         };
-        println!("@@@operator_ch={}({})", operator_ch, operator_priority);
+        // println!("@@@operator_ch={}({})", operator_ch, operator_priority);
         // read right value
         let right_val_o = read_calc(cur, song);
         if right_val_o.is_none() {
@@ -1850,7 +1850,6 @@ fn read_timing(cur: &mut SourceCursor, song: &mut Song) -> Token {
         let cmd = cur.get_word();
         // t.Random ?
         if cmd == "Random" {
-            cur.index += 7;
             let r = read_arg_value(cur, song);
             return Token::new(TokenType::TimingRandom, 0, vec![r]);
         }

@@ -115,17 +115,15 @@ SysEx$=F0,43,10,4C,00,00,00,30,F0,60,F7;
 
 | コマンド | 内容 | 範囲 |
 |---|---|---|
-| `MasterVolume(0, n)` | マスターボリューム | 0-127 |
-| `MasterBalance(0, n)` | マスターバランス | -8192～8191 |
+| `MasterVolume(n)` | マスターボリューム | 0-127 |
+| `MasterBalance(n)` | マスターバランス | -8192～8191 |
 
 ```
-MasterVolume(0, 100)
-MasterBalance(0, 0)
+MasterVolume(100)
+MasterBalance(0)
 ```
 
-> 現在の実装では、引数を1つだけ渡すとコンパイラがクラッシュします
-> ([#85](https://github.com/kujirahand/sakuramml-rust/issues/85))。
-> 上の例のように、値の前にダミーの引数を付けて2つ渡してください。
+互換性のため、従来の `MasterVolume(0, n)` / `MasterBalance(0, n)` 形式も利用できます。
 
 ## GS音源のエフェクト
 

@@ -49,6 +49,16 @@ mod test_for_runner {
         assert_eq!(e.v2, 96 * 2);
     }
     #[test]
+    fn test_timing_random_keeps_following_notes() {
+        let song = exec_easy("t.Random(3) cde");
+        let note_count = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .count();
+        assert_eq!(note_count, 3);
+    }
+    #[test]
     fn test_exec_track_sync() {
         //
         let song = exec_easy("TR=1 l4 cdef TR=2 c TrackSync;");
