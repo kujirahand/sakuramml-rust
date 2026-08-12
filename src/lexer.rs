@@ -712,7 +712,7 @@ fn read_calc(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
             Some(res) => res,
             None => break,
         };
-        println!("@@@operator_ch={}({})", operator_ch, operator_priority);
+        // println!("@@@operator_ch={}({})", operator_ch, operator_priority);
         // read right value
         let right_val_o = read_calc(cur, song);
         if right_val_o.is_none() {
