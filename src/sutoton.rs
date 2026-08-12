@@ -80,7 +80,7 @@ fn init_items() -> SutotonList {
     items.set_item("調", "System.KeyFlag"); // @ 調#(音符)//臨時記号を設定する。（例）調＃（ドファ）
     items.set_item("音階", "o"); // @ 音階(数値)//音階を数値で指定する。初期値は５。範囲は、0～10（例）音階５
     items.set_item("時間", "Time"); // @ 時間(小節数:拍数:ステップ数)//指定時間にポインタを移動する。範囲は、小節数・拍数が、１～。ステップ数は、０～。（例）時間（４：１：０）
-    items.set_item("読む", "Include"); // @ 読む(ファイル名)//外部定義ファイルを読み込む。（例）読む(chord2.h)
+    items.set_item("読む", "Include"); // @ 読む(ファイル名)//外部定義ファイルを読み込む。※Includeは未実装。（例）読む(chord2.h)
     items.set_item("予約", ".onNote="); // @ (コマンド)予約(v1,v2,v3...)//コマンドの値を予約しておく（例）音量予約120,50【ドレミファ】
     items.set_item("拍子", "System.TimeSignature="); // @ 拍子 分子,分母//拍子を設定する。（例）拍子4,4
     items.set_item("音色", "@"); // @ 音色（番号）//音色を設定する。
@@ -102,8 +102,8 @@ fn init_items() -> SutotonList {
     items.set_item("ド", "c"); // @ 音名
     items.set_item("レ", "d"); // @ 音名
     items.set_item("ミ", "e"); // @ 音名
-    items.set_item("フ", "f"); // @ 音名
-    items.set_item("ァ", ""); // @ 音名
+    items.set_item("フ", "f"); // @ 音名(「ファ」は「フ」+「ァ」で f になる)
+    items.set_item("ァ", ""); // @ 「ファ」の「ァ」。空文字に変換される
     items.set_item("ソ", "g"); // @ 音名
     items.set_item("ラ", "a"); // @ 音名
     items.set_item("シ", "b"); // @ 音名
@@ -113,7 +113,7 @@ fn init_items() -> SutotonList {
     items.set_item("れ", "d"); // @ 音名
     items.set_item("み", "e"); // @ 音名
     items.set_item("ふ", "f"); // @ 音名
-    items.set_item("ぁ", ""); // @ 音名
+    items.set_item("ぁ", ""); // @ 「ふぁ」の「ぁ」。空文字に変換される
     items.set_item("そ", "g"); // @ 音名
     items.set_item("ら", "a"); // @ 音名
     items.set_item("し", "b"); // @ 音名
@@ -138,22 +138,22 @@ fn init_items() -> SutotonList {
     items.set_item("む", "n47,"); // @ Midタム
     items.set_item("ろ", "n43,"); // @ Highタム
     items.set_item("く", "n44,"); // @ ドラム
-    items.set_item("大きく", "Cresc="); // @ 大きく(音長),(最終値)//音量(EP)をだんだん大きくする
-    items.set_item("小さく", "Decresc="); // @ 小さく(音長),(最終値)//音量(EP)をだんだん小さくする
-    items.set_item("クレッシェンド", "Cresc="); // @ 大きく(音長),(最終値)//音量(EP)をだんだん大きくする
-    items.set_item("デクレッシェンド", "Cresc="); // @ 小さく(音長),(最終値)//音量(EP)をだんだん小さくする
+    items.set_item("大きく", "Cresc="); // @ 大きく(音長),(開始値),(最終値)//音量(EP)をだんだん大きくする（例）大きく1,40,127
+    items.set_item("小さく", "Decresc="); // @ 小さく(音長),(開始値),(最終値)//音量(EP)をだんだん小さくする（例）小さく1,127,40
+    items.set_item("クレッシェンド", "Cresc="); // @ 大きく(音長),(開始値),(最終値)//音量(EP)をだんだん大きくする（例）大きく1,40,127
+    items.set_item("デクレッシェンド", "Decresc="); // @ 小さく(音長),(開始値),(最終値)//音量(EP)をだんだん小さくする（例）デクレッシェンド1,127,40
     items.set_item("音量戻す", "EP(127)"); // @ 音量(EP)を最大値に戻す
     items.set_item("方向左", "P(0)"); // @ ステレオの左から音が出るようにする
     items.set_item("方向左前", "P(32)"); // @ ステレオの左前から音が出るようにする
     items.set_item("方向前", "P(64)"); // @ ステレオの前から音が出るようにする
     items.set_item("方向右前", "P(96)"); // @ ステレオの右前から音が出るようにする
     items.set_item("方向右", "P(127)"); // @ ステレオの右から音が出るようにする
-    items.set_item("方向回す", "P.onNoteWaveEx(0,127,!1,127,0,!1);"); // @ ステレオの左右を回す
+    items.set_item("方向回す", "P.onNoteWaveEx(0,127,!1,127,0,!1);"); // @ ステレオの左右を回す ※onNoteWaveEx未対応のため現在は動作しない
     items.set_item("ビブラートオフ", "M(0)"); // @ ビブラートをやめる
     items.set_item("ペダル", "y64,127;"); // @ ペダルを踏む
     items.set_item("放す", "y64,0;"); // @ ペダルを放す
-    items.set_item("テンポ改", "TempoChange="); // @ テンポ改([[[t1],t2],len])//テンポを推移的に変更する。lenを省略すると、全音符の間に推移し、t1を省略すると、以前の値からt2へ推移する。
-    items.set_item("ビブラート", "M.onNoteWaveEx(0,0,!4,0,96,!8);"); // @ 推移的なビブラートをかける
+    items.set_item("テンポ改", "TempoChange="); // @ テンポ改(開始テンポ),(終了テンポ),(長さ)//テンポを推移的に変更する。長さはステップ数。省略すると全音符の間に推移する。（例）テンポ改80,120,384
+    items.set_item("ビブラート", "M.onNoteWaveEx(0,0,!4,0,96,!8);"); // @ 推移的なビブラートをかける ※onNoteWaveEx未対応のため現在は動作しない
     items.set_item("ここから演奏", "PlayFrom(Time);"); // @ 途中から演奏したいときに書く
     // </SUTOTON>
     items.sort_items();

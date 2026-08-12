@@ -120,7 +120,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                 result.push(read_upper_command(&mut cur, song));
             },
             // flag
-            '@' => result.push(read_voice(&mut cur, song)), // @ Voice select(音色の指定) range:1-128 (format) @(no),(Bank_LSB),(Bank_MSB)
+            '@' => result.push(read_voice(&mut cur, song)), // @ Voice select(音色の指定) range:1-128 (format) @(no),(Bank_MSB),(Bank_LSB)
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ Octave up (音階を1つ上げる)
             '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)), // @ Octave down (音階を1つ下げる)
             ')' => result.push(Token::new_value(TokenType::VelocityRel, song.v_add)), // @ velocity up - 音量をvAddの値だけ上げる

@@ -66,10 +66,10 @@ pub fn init_variables() -> HashMap<String, SValue> {
     // from v2::groove.h
     var.insert(String::from("RndTiming"), SValue::from_str("t.Random(#?1)")); // @ set random timing (ex) RndTiming(3)
     // tie/slur mode
-    var.insert(String::from("SLUR_PORT"), SValue::from_i(0)); // @ スラー定数。グリッサンド。ノートオンを、ポルタメントでつなぐ (例 Slur(SlurPort, !8) のように指定)
-    var.insert(String::from("SLUR_BEND"), SValue::from_i(1)); // @ スラー定数。ベンド。異音程をベンドで表現。ギターのハンマリングに近い。 (例 Slur(SlurPort, !8) のように指定)
-    var.insert(String::from("SLUR_GATE"), SValue::from_i(2)); // @ スラー定数。＆のついた音符のゲートを、valueにする
-    var.insert(String::from("SLUR_ALPE"), SValue::from_i(3)); // @ スラー定数。＆でつないだ音符の終わりまでゲートを伸ばす
+    var.insert(String::from("SLUR_PORT"), SValue::from_i(0)); // @ スラー定数。グリッサンド。ノートオンを、ポルタメントでつなぐ (例 Slur(SLUR_PORT) のように指定)
+    var.insert(String::from("SLUR_BEND"), SValue::from_i(1)); // @ スラー定数。ベンド。異音程をベンドで表現。ギターのハンマリングに近い。 (例 Slur(SLUR_BEND) のように指定)
+    var.insert(String::from("SLUR_GATE"), SValue::from_i(2)); // @ スラー定数。＆のついた音符のゲートを、第2引数のvalueにする (例 Slur(SLUR_GATE, 100))
+    var.insert(String::from("SLUR_ALPE"), SValue::from_i(3)); // @ スラー定数。＆でつないだ音符の終わりまでゲートを伸ばす (例 Slur(SLUR_ALPE))
     // Voice
     var.insert(String::from("GrandPiano"), SValue::from_i(1)); // @ 音色:GrandPiano
     var.insert(String::from("BrightPiano"), SValue::from_i(2)); // @ 音色:BrightPiano
@@ -406,9 +406,9 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "Sub", TokenType::Sub, '*'); // sub track / rewind time position (ex) Sub{ceg} egb
     sysfunc_add!(sf, "SUB", TokenType::Sub, '*'); // sub track / rewind time position (ex) Sub{ceg} egb
     sysfunc_add!(sf, "S", TokenType::Sub, '*'); // sub track / rewind time position (ex) Sub{ceg} egb
-    sysfunc_add!(sf, "System.KeyFlag", TokenType::KeyFlag, '*'); // set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
-    sysfunc_add!(sf, "KeyFlag", TokenType::KeyFlag, '*'); // set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
-    sysfunc_add!(sf, "KF", TokenType::KeyFlag, '*'); // set key flag to note (ex) KeyFlag=(a,b,c,d,e,f,g) KeyFlag[=][+|-](note)
+    sysfunc_add!(sf, "System.KeyFlag", TokenType::KeyFlag, '*'); // set key flag to note / 音名は区切らず並べる (ex) KeyFlag+(cf) / 数値指定は a,b,c,d,e,f,g の順 (ex) KeyFlag=(0,0,1,0,0,1,0)
+    sysfunc_add!(sf, "KeyFlag", TokenType::KeyFlag, '*'); // set key flag to note / 音名は区切らず並べる (ex) KeyFlag+(cf) / 数値指定は a,b,c,d,e,f,g の順 (ex) KeyFlag=(0,0,1,0,0,1,0)
+    sysfunc_add!(sf, "KF", TokenType::KeyFlag, '*'); // set key flag to note / 音名は区切らず並べる (ex) KeyFlag+(cf) / 数値指定は a,b,c,d,e,f,g の順 (ex) KeyFlag=(0,0,1,0,0,1,0)
     sysfunc_add!(sf, "KeyShift", TokenType::KeyShift, 'I'); // set key-shift (ex) KeyShift(3)
     sysfunc_add!(sf, "Key", TokenType::KeyShift, 'I'); // set key-shift (ex) Key(3)
     sysfunc_add!(sf, "KEY", TokenType::KeyShift, 'I'); // set key-shift (ex) KEY(3)
@@ -423,7 +423,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "PlayFrom", TokenType::PlayFrom, 'A'); // play from time position (ex) PlayFrom(5:1:0)
     sysfunc_add!(sf, "PLAY_FROM", TokenType::PlayFrom, 'A'); // play from time position (ex) PLAY_FROM(5:1:0)
     sysfunc_add!(sf, "PlayFromHere", TokenType::PlayFromHere, '_'); // play from current time pos (ex) PlayFromHere
-    sysfunc_add!(sf, "PLAY_FROM_HRER", TokenType::PlayFromHere, '_'); // play from current time pos (ex) PLAY_FROM_HERE
+    sysfunc_add!(sf, "PLAY_FROM_HRER", TokenType::PlayFromHere, '_'); // play from current time pos / 綴りミスだが互換性のため維持 (ex) PLAY_FROM_HRER
     sysfunc_add!(sf, "System.MeasureShift", TokenType::MeasureShift, 'I'); // set measure shift for time pointer (ex) System.MeasureShift(1)
     sysfunc_add!(sf, "MeasureShift", TokenType::MeasureShift, 'I'); // set measure shift for time pointer (ex) MeasureShift(1)
     sysfunc_add!(sf, "MEASURE_SHIFT", TokenType::MeasureShift, 'I'); // set measure shift for time pointer (ex) MeasureShift(1)
@@ -431,10 +431,10 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "TRACK_SYNC", TokenType::TrackSync, '_'); // synchronize time pointers for all tracks (ex) TrackSync
     sysfunc_add!(sf, "Slur", TokenType::TieMode, 'A'); // set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1)
     sysfunc_add!(sf, "SLUR", TokenType::TieMode, 'A'); // set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1)
-    sysfunc_add!(sf, "System.vAdd", TokenType::SongVelocityAdd, 'I'); // set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3)
-    sysfunc_add!(sf, "vAdd", TokenType::SongVelocityAdd, 'I'); // set relative velocity '(' or ')' or 'v++' or 'v--' command increment value (ex) vAdd(3)
-    sysfunc_add!(sf, "System.qAdd", TokenType::SongQAdd, 'I'); // set "q++" command value (ex) qAdd(3)
-    sysfunc_add!(sf, "qAdd", TokenType::SongQAdd, 'I'); // set "q++" command value (ex) qAdd(3)
+    sysfunc_add!(sf, "System.vAdd", TokenType::SongVelocityAdd, 'I'); // set relative velocity '(' or ')' or 'v++' or 'v--' command increment value / 小文字始まりの vAdd は v コマンドと解釈されるため System.vAdd と書く (ex) System.vAdd(3)
+    sysfunc_add!(sf, "vAdd", TokenType::SongVelocityAdd, 'I'); // set relative velocity '(' or ')' or 'v++' or 'v--' command increment value / 小文字始まりの vAdd は v コマンドと解釈されるため System.vAdd と書く (ex) System.vAdd(3)
+    sysfunc_add!(sf, "System.qAdd", TokenType::SongQAdd, 'I'); // set q++ command value / 小文字始まりの qAdd は q コマンドと解釈されるため System.qAdd と書く (ex) System.qAdd(3)
+    sysfunc_add!(sf, "qAdd", TokenType::SongQAdd, 'I'); // set q++ command value / 小文字始まりの qAdd は q コマンドと解釈されるため System.qAdd と書く (ex) System.qAdd(3)
     sysfunc_add!(sf, "System.q2Add", TokenType::Unimplemented, 'I'); // Unimplemented
     sysfunc_add!(sf, "q2Add", TokenType::Unimplemented, 'I'); // Unimplemented
     sysfunc_add!(sf, "SoundType", TokenType::SoundType, 'S'); // set sound type (ex) SoundType({pico})
@@ -474,8 +474,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_rpn_add!(sf, "FineTune", TokenType::RPNCommand, '*', 0, 1); // set fine tune range:0-64-127(-100 - 0 - +99.99セント）(ex) FineTune(64)
     sysfunc_rpn_add!(sf, "CoarseTune", TokenType::RPNCommand, '*', 0, 2); // set coarse tune 半音単位のチューニング 範囲:40-64-88 (-24 - 0 - 24半音) (ex) CoarseTune(64)
     sysfunc_rpn_add!(sf, "VibratoRate", TokenType::NRPNCommand, '*', 1, 8); // set VibratoRate range: 0-127
-    sysfunc_rpn_add!(sf, "VibratoDepth", TokenType::NRPNCommand, '*', 1, 9); // set VibratoRate range: 0-127
-    sysfunc_rpn_add!(sf, "VibratoDelay", TokenType::NRPNCommand, '*', 1, 10); // set VibratoRate range: 0-127
+    sysfunc_rpn_add!(sf, "VibratoDepth", TokenType::NRPNCommand, '*', 1, 9); // set VibratoDepth range: 0-127
+    sysfunc_rpn_add!(sf, "VibratoDelay", TokenType::NRPNCommand, '*', 1, 10); // set VibratoDelay range: 0-127
     sysfunc_rpn_add!(sf, "FilterCutoff", TokenType::NRPNCommand, '*', 1, 0x20); // set FilterCutoff range: 0-127
     sysfunc_rpn_add!(sf, "FilterResonance", TokenType::NRPNCommand, '*', 1, 0x21); // set FilterResonance range: 0-127
     sysfunc_rpn_add!(sf, "EGAttack", TokenType::NRPNCommand, '*', 1, 0x63); // set EGAttack range: 0-127
@@ -484,21 +484,21 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     //@ fadein
     sysfunc_cc_add!(sf, "Fadein", TokenType::FadeIO, '*', 1); // fadein 小節数を指定 (ex) Fadein(1)
     sysfunc_cc_add!(sf, "Fadeout", TokenType::FadeIO, '*', -1); // fadeout 小節数を指定 (ex) Fadeout(1)
-    sysfunc_cc_add!(sf, "Cresc", TokenType::Cresc, '*', 1); // cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1)
-    sysfunc_cc_add!(sf, "Decresc", TokenType::Cresc, '*', -1); // cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1)
-    sysfunc_cc_add!(sf, "CRESC", TokenType::Cresc, '*', 1); // cresc 小節数を指定 Cresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Cresc(1)
-    sysfunc_cc_add!(sf, "DECRESC", TokenType::Cresc, '*', -1); // cresc 小節数を指定 Decresc([[[len],v1],v2]) v1からv2へ変更する。lenを省略すると全音符の長さに (ex) Deresc(1)
+    sysfunc_cc_add!(sf, "Cresc", TokenType::Cresc, '*', 1); // だんだん大きくする Cresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Cresc=1,40,127
+    sysfunc_cc_add!(sf, "Decresc", TokenType::Cresc, '*', -1); // だんだん小さくする Decresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Decresc=1,127,40
+    sysfunc_cc_add!(sf, "CRESC", TokenType::Cresc, '*', 1); // だんだん大きくする Cresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Cresc=1,40,127
+    sysfunc_cc_add!(sf, "DECRESC", TokenType::Cresc, '*', -1); // だんだん小さくする Decresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Decresc=1,127,40
     //@ SysEx / Meta
     sysfunc_cc_add!(sf, "ResetGM", TokenType::SysexReset, 'I', 0); // ResetGM
     sysfunc_cc_add!(sf, "ResetGS", TokenType::SysexReset, 'I', 1); // ResetGS
     sysfunc_cc_add!(sf, "ResetXG", TokenType::SysexReset, 'I', 2); // ResetXG
     sysfunc_cc_add!(sf, "MasterVolume", TokenType::SysExCommand, 'I', 1); // master volume (range: 0-127) (ex) MasterVolume(100)
-    sysfunc_cc_add!(sf, "MasterBalance", TokenType::SysExCommand, 'I', 2); // master ballance (range: -8192 to 8191(ex) MasterBallance(0)
+    sysfunc_cc_add!(sf, "MasterBalance", TokenType::SysExCommand, 'I', 2); // master balance (range: -8192 to 8191) (ex) MasterBalance(0)
     sysfunc_add!(sf, "Tempo", TokenType::Tempo, 'I'); // set tempo (ex) Tempo(120)
     sysfunc_add!(sf, "TEMPO", TokenType::Tempo, 'I'); // set tempo (ex) TEMPO(120)
     sysfunc_add!(sf, "T", TokenType::Tempo, 'I'); // set tempo (ex) T(120)
     sysfunc_add!(sf, "BPM", TokenType::Tempo, 'I'); // set tempo (ex) BPM(120)
-    sysfunc_add!(sf, "TempoChange", TokenType::TempoChange, 'A'); // tempo change slowly TempoChange(start, end, !len) (ex) TempoChange(80,120,!1)
+    sysfunc_add!(sf, "TempoChange", TokenType::TempoChange, 'A'); // tempo change slowly TempoChange(start, end, len) / lenはステップ数で指定する (ex) TempoChange(80,120,384)
     sysfunc_add!(sf, "TimeSignature", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
     sysfunc_add!(sf, "System.TimeSignature", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
     sysfunc_add!(sf, "TimeSig", TokenType::TimeSignature, 'A'); // set time signature (ex) TimeSignature(4, 4)
@@ -521,7 +521,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     //@ GS System Exclusive
     sysfunc_cc_add!(sf, "GSEffect", TokenType::GSEffect, 'A', 0); // GSEffect(num, val) (ex) GSEffect($30, 0)
     sysfunc_cc_add!(sf, "GSReverbMacro", TokenType::GSEffect, 'I', 0x30); // GSReverbMacro(val) - 0:Room1 5:Hall 6:Delay (ex) GSReverbMacro(0)
-    sysfunc_cc_add!(sf, "GSReverbCharacter", TokenType::GSEffect, 'I', 0x31); // GSReverbCharacter(val) - 0:Room1 5:Hall 6:Delay (ex) GSReverbMacro(0)
+    sysfunc_cc_add!(sf, "GSReverbCharacter", TokenType::GSEffect, 'I', 0x31); // GSReverbCharacter(val) - リバーブのキャラクター (ex) GSReverbCharacter(0)
     sysfunc_cc_add!(sf, "GSReverbPRE_LPE", TokenType::GSEffect, 'I', 0x32); // GSReverbPRE_LPE(val) (ex) GSReverbPRE_LPE(0)
     sysfunc_cc_add!(sf, "GSReverbLevel", TokenType::GSEffect, 'I', 0x33); // GSReverbLevel(val) (ex) GSReverbLevel(0)
     sysfunc_cc_add!(sf, "GSReverbTime", TokenType::GSEffect, 'I', 0x34); // GSReverbTime(val) (ex) GSReverbTime(0)
@@ -536,15 +536,15 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "GSChorusDepth", TokenType::GSEffect, 'I', 0x3E); // GSChorusDepth(val) (ex) GSChorusDepth(0)
     sysfunc_cc_add!(sf, "GSChorusSendToReverb", TokenType::GSEffect, 'I', 0x3F); // GSChorusSendToReverb(val) (ex) GSChorusSendToReverb(0)
     sysfunc_cc_add!(sf, "GSChorusSendToDelay", TokenType::GSEffect, 'I', 0x40); // GSChorusSendToDelay(val) (ex) GSChorusSendToDelay(0)
-    sysfunc_cc_add!(sf, "GS_RHYTHM", TokenType::GSEffect, 'I', 0x15); // Change to rhythm part val=0:instrument/1:drum1/2:drum2 (ex) GSChorusSendToDelay(0)
+    sysfunc_cc_add!(sf, "GS_RHYTHM", TokenType::GSEffect, 'I', 0x15); // Change to rhythm part val=0:instrument/1:drum1/2:drum2 (ex) GS_RHYTHM(1)
     sysfunc_cc_add!(sf, "GSScaleTuning", TokenType::GSEffect, 'A', 0x11); // GS Scale Tuning. GSScaleTuning(C,Cp,D,Dp,E,F,Fp,G,Gp,A,Ap,B) (ex) GSScaleTuning(0,0,0,0,0,0,0,0,0,0,0,0)
     //@ Script command
     sysfunc_add!(sf, "Int", TokenType::DefInt, '*'); // define int variables (ex) Int A = 3
     sysfunc_add!(sf, "INT", TokenType::DefInt, '*'); // define int variables (ex) INT A = 3
     sysfunc_add!(sf, "Str", TokenType::DefStr, '*'); // define string variables (ex) Str A = {cde}
     sysfunc_add!(sf, "STR", TokenType::DefStr, '*'); // define string variables (ex) STR A = {cde}
-    sysfunc_add!(sf, "Array", TokenType::DefArray, '*'); // define string variables (ex) Str A = {cde}
-    sysfunc_add!(sf, "ARRAY", TokenType::DefArray, '*'); // define string variables (ex) STR A = {cde}
+    sysfunc_add!(sf, "Array", TokenType::DefArray, '*'); // define array variables (ex) Array A = (1,2,3)
+    sysfunc_add!(sf, "ARRAY", TokenType::DefArray, '*'); // define array variables (ex) ARRAY A = (1,2,3)
     sysfunc_add!(sf, "Print", TokenType::Print, 'S'); // print value (ex) Print({hello})
     sysfunc_add!(sf, "PRINT", TokenType::Print, 'S'); // print value (ex) PRINT({hello})
     sysfunc_add!(sf, "System.Include", TokenType::Include, '*'); // Unimplemented
@@ -594,8 +594,8 @@ pub fn init_system_calc_functions() -> HashMap<String, sakura_functions::Callbac
     syscalc_add!(sf, "RandomSelect", sakura_functions::calc_random_select); // RandomSelect(...) // return one item selected from the arguments (ex) RandomSelect({a}, {b}, {c})
     syscalc_add!(sf, "Chr", sakura_functions::calc_chr); // Chr(C) // convert code to char (ex) Chr(49)
     syscalc_add!(sf, "CHR", sakura_functions::calc_chr); // CHR(C) // convert code to char (ex) CHR(49)
-    syscalc_add!(sf, "Asc", sakura_functions::calc_asc); // Asc(S) // return char from code
-    syscalc_add!(sf, "ASC", sakura_functions::calc_asc); // ASC(S) // return char from code
+    syscalc_add!(sf, "Asc", sakura_functions::calc_asc); // Asc(S) // return character code of S (ex) Asc({A}) // => 65
+    syscalc_add!(sf, "ASC", sakura_functions::calc_asc); // ASC(S) // return character code of S (ex) ASC({A}) // => 65
     syscalc_add!(sf, "Mid", sakura_functions::calc_mid); // Mid(S, N, M) // extract M characters from string S starting at position N and return them (ex) Mid({abc}, 1,2) // => ab
     syscalc_add!(sf, "MID", sakura_functions::calc_mid); // MID(S, N, M) // extract M characters from string S starting at position N and return them (ex) MID({abc}, 1,2) // => ab
     syscalc_add!(sf, "Replace", sakura_functions::calc_replace); // Replace(S, A, B) // Replace A in string S with B (ex) Replace({abc}, {a}, {b}) // =>  bbc
