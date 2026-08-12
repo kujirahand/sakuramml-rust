@@ -318,7 +318,9 @@ pub(super) fn lex_calc(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> 
         }
         if lastpos == cur.index {
             let ch = cur.get_char();
-            println!("[skip]({}) {}", cur.line, ch);
+            if song.debug {
+                println!("[skip]({}) {}", cur.line, ch);
+            }
         }
     }
     result
