@@ -103,7 +103,11 @@ pub(super) fn exec_sys_function(song: &mut Song, t: &Token) -> bool {
         song.stack.push(result);
     } else {
         // macro ("=var_name")
-        let func_name2 = if func_name.len() >= 2 { func_name[1..].to_string() } else { func_name };
+        let func_name2 = if func_name.starts_with('=') && func_name.len() >= 2 {
+            func_name[1..].to_string()
+        } else {
+            func_name.clone()
+        };
         let args = t.children.clone().unwrap_or(vec![]);
         let args = exec_args(song, &args);
         let val = song.variables_get(&func_name2).unwrap_or(&SValue::new()).clone();
