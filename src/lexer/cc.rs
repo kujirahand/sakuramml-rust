@@ -197,7 +197,7 @@ pub(super) fn read_pitch_bend_small(cur: &mut SourceCursor, song: &mut Song) -> 
 }
 
 pub(super) fn read_cc(cur: &mut SourceCursor, song: &mut Song, ch: char) -> Token {
-    // red CC no
+    // read CC no
     cur.skip_space();
     let mut no = 0;
     if ch == 'C' {
