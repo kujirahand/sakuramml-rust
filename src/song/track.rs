@@ -339,7 +339,7 @@ impl Track {
         return l;
     }
     pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>) {
-        let freq = self.cc_on_time_freq;
+        let freq = self.cc_on_time_freq.max(1);
         for i in 0..ia.len() / 3 {
             let low = ia[i*3+0];
             let high = ia[i*3+1];
