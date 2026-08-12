@@ -22,7 +22,7 @@ use error::*;
 use note::*;
 use variable::*;
 
-/// prerpcess ... check user function
+/// preprocess ... check user function
 fn lex_preprocess(song: &mut Song, cur: &mut SourceCursor) -> bool {
     let tmp_lineno = cur.line;
     while !cur.is_eos() {
