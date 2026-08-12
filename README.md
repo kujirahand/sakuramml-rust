@@ -1,137 +1,111 @@
-# sakuramml-rust
+# Sakura Text Music (Rust Edition) / PicoSakura
 
-`sakuramml` is a MML to MIDI compiler.
+Sakura is a compiler that converts MML (Music Macro Language) into MIDI files.
+It converts musical text such as Japanese solfège (`ドレミ`) or `cde` into MIDI files.
+Written in Rust, it runs on multiple platforms: macOS, Windows, Linux, and WebAssembly.
 
-This compiler converts MML into MIDI files.
-MML is a notation system that represents sheet music using text such as `cde`.
-It is a tool that allows you to easily create music.
-It is made with Rust and works on multiple platforms (macOS/Windows/Linux/WebAssembly).
-
-`sakuramml` is a historic music production tool developed around the year 2000.
-It was recognized as an award-winning entry in the "Online Software Grand Prize 2001" in Japan, and was even featured in high school IT textbooks.
-
-- [README(日本語)](https://github.com/kujirahand/sakuramml-rust/blob/main/README_ja.md)
+Sakura is a long-standing music-production tool originally developed before 2000.
+MML is a notation for representing music as text, such as `cde`.
+It makes it easy to create music. Written in Rust, it runs on macOS, Windows, Linux, and WebAssembly.
+It received an award in Japan's Online Software Grand Prize 2001 and was featured in Japanese high-school information-technology textbooks.
 
 ## Samples
 
-Many users have composed music using `sakuramml`, and over 2,000 songs have been posted on this forum.
-Additionally, more than 100 songs are compatible with `sakuramml-rust`.
-
-- [mmlbbs6](https://sakuramml.com/mmlbbs6/index.php?action=pico)
+- [mmlbbs6](https://sakuramml.com/mmlbbs6/index.php?action=pico) --- Many songs have been posted to the Sakura MML Bulletin Board 6.
 
 ## Tutorial
 
-An online tutorial is available. You can learn the commands while listening to the music.
+An online tutorial is available. You can learn the commands while listening to the music in your browser.
 
-- [Tutorial](https://sakuramml.com/index.php?Tutorial)
+- [Tutorial](https://sakuramml.com/index.php?%E7%B0%A1%E5%8D%98%E3%81%AA%E4%BD%BF%E3%81%84%E6%96%B9)
 
-## Install
+## PicoSakura: Installation
 
-### Binary - command line tool
+The web version, [PicoSakura](https://sakuramml.com/go.php?15), lets you easily play MIDI files in your browser.
 
-- [Command line binary(win/mac)](https://github.com/kujirahand/sakuramml-rust/releases/)
+For local use, the command-line edition is also available. Download binaries for each operating system below.
 
-### Web Assembly - Web Player
+- [Command-line binaries (Windows/macOS)](https://github.com/kujirahand/sakuramml-rust/releases/)
 
-- [PicoSakura](https://sakuramml.com/picosakura/)
-  - [sakuramml.com(Web)](https://sakuramml.com)
+## Building the Latest Version (Rust)
 
-### Compile with Rust
+First, install [Rust](https://www.rust-lang.org/tools/install).
 
-Please install [Rust compiler](https://www.rust-lang.org/tools/install).
+```
+$ git clone https://github.com/kujirahand/sakuramml-rust.git
+$ cd sakuramml-rust
+$ cargo build --release
+```
+
+This creates `target/release/sakuramml`.
+
+## Usage
+
+### Command-line Edition
+
+Write the musical score as text, for example in a file named `test.mml`.
+To convert `test.mml` to `test.mid`, run the following command from the command line:
 
 ```sh
-git clone https://github.com/kujirahand/sakuramml-rust.git
-cd sakuramml-rust
-cargo build --release
+$ sakuramml test.mml
 ```
 
-When compiled, the executable file will be saved in `target/release/sakuramml`.
+### Basic Usage
 
-## CLI Usage
-
-Please make text file `test.mml`. And execute the following command to generate a MIDI file `test.mid`.
-
-```sh
-# Compile MML file to MIDI file
-./sakuramml test.mml test.mid
-# Compile MML file to MIDI file, can omit output file
-./sakuramml test.mml
-```
-
-You can test MML command easily with `--eval` option.
-
-```sh
-./sakuramml --eval "o4l4 cege c1"
-```
-
-You can check MIDI file with `--dump` option.
-
-```sh
-./sakuramml --dump test.mid
-```
-
-## MML Basic
-
-You can play the following text as a music.
-
-```
+```mml
+音階4 ドレミファソラシ↑ド↓シラソファミレド
 o4 cdefgab>c<bagfedc
 ```
 
-You can specify tracks(`TR`) and channels(`CH`), Voice(`@`).
-
-```
-TR(1) CH(1) @1 l1 ceg^
-TR(2) CH(2) @1 l1 egb^
+```mml
+トラック1 チャンネル1 音符1 ドミソー
+TR=1 CH=1 l1 ceg^
 ```
 
-## Harmony
+## Chords
 
-You can play chords.
-
-```
+```mml
+音符1「ドミソ」
 l4 'ceg' 'dfa'8 'egb'8 'ceg'
 ```
 
-Enclose the notes in single quotes. You can specify the length, gate and velocity after the closing quote, like `'ceg'4,90,120`.
+Enclose chords in single quotes. After the closing quote, you can specify the note length, gate time, and velocity, as in `'ceg'4,90,120`.
 
-## Time Pointer
+## Moving the Time Pointer
 
-You can specify the writing position using a time pointer(`TIME`).
+Use `TIME(measure:beat:step)` to move to any position in the score.
 
-```
-// top
+```mml
+// Move to the beginning
 TIME(1:1:0) cdef
 TIME(1:1:0) efga
 
-// 2mes
+// Move to the second measure
 TIME(2:1:0) cdef
 ```
 
-`SUB{...}` command let time pointer back.
+Use `SUB{...}` to return the time pointer to just before the `SUB`. This lets you play chords easily.
 
-```
+```mml
 SUB{ cdef  c }
 SUB{ efga  e }
      rrrr  g
 ```
 
-## Rhythm macro
+## Rhythm Macros
 
-In the rhythm macro, one character is treated as one instruction regardless of uppercase or lowercase letters.
-Rhythm macro definitions are described as "$(char){definition}".
+In a rhythm macro, each character is treated as one instruction, regardless of case.
+Define a rhythm macro in the form `$character{definition}`.
 
-
-```
-// define macro
+```mml
+// Define rhythm macros (the following are defined by default, but can be redefined)
 $b{n36,}
 $h{n42,}
 $o{n46,}
-// new macro
+// Define a new rhythm macro
 $S{n37,}
 CH(10)
-// sample
+// Rhythm sample
 Rhythm{
 　[4　l8
 　　　brSr bbsr r-1
@@ -140,138 +114,104 @@ Rhythm{
 }
 ```
 
+## Differences from Sakura v1/v2
 
-### How to specify tuplets
+This edition intentionally differs from Sakura v1/v2 in several respects.
 
-The tuplets are written as "DIV{...}", but "DIV" can be omitted and written as "{ceg}".
+### Specifying Step Mode
 
+This version uses a different method for specifying step mode. In v1/v2, specifying a note length such as `l%96` caused all subsequent notes to use step mode.
+However, since notes are rarely specified in step mode, this version allows a step specification only temporarily; it does not continue to affect subsequent notes.
+
+```mml
+// The following two lines have the same meaning
+l%96 cde
+c4d4e4
 ```
-l4 DIV{cde} f DIV{gab} >c<
+
+### Tuplet Notation
+
+Previously, tuplets were written as `Div{...}`. You can now omit `Div` and write them as `{ceg}`.
+
+```mml
+l4 Div{cde} f Div{gab} >c<
 l4 {cde} f {gab} >c<
 ```
 
+The sustain mark `^` also counts as one note, which is convenient.
 
-```
+```mml
 l4 {cde}c {gfe}d {c^d} e {d^e} f
 ```
 
-The tuplets can nest.
+Tuplets can be nested.
 
-```
+```mml
 l1 { c d {efe} d } c
 ```
 
-### Velocity
+### Relative Volume Notation
 
-Using the `v` command, you can specify the velocity. It can be set within the range of 0 to 127.
+`(` decreases velocity by 8, and `)` increases velocity by 8.
 
-```
-l8 v127 cdef v64 cdef v127 c^^^
-```
-
-"(" decreases the velocity by 8, and ")" increases the velocity by 8.
-
-```
-v127 c ( c ( c (( c )) c ) c ) c  
+```mml
+v127 c ( c ( c (( c )) c ) c ) c
 ```
 
-### Reservation notation
+### Chord Notation
 
-- v.onTime(low, high, len, ...)　OR v.T(low,high,len,...)
-  - The value that should be specified for `len` is the tick. When specifying the note length, it should be written as `!4`, for example.
-- v.onNote(v1, v2, v3, ...)　OR v.N(v1,v2,v3,...)
-- t.onNote(v1, v2, v3, ...)　OR t.N(v1,v2,v3,...)
-- (ControlChange or PB or p).onTime(low, high, len, ...)
+Chords using zero-valued notes, such as `c0e0g`, are not supported. Use ordinary chord notation instead.
 
+```mml
+'ceg' 'dfa' 'egb' 'ceg'
+「ドミソ」「レファラ」「ミソシ」「ドミソ」
 ```
-v.onTime(0,127,!1) l8cccccccc
+
+### Reservation Notation and Continuous CC/PB Writing
+
+Reservation notation is available.
+
+- `v.onTime(low, high, len, ...)` / abbreviated form: `v.T(low,high,len,...)`
+- `v.onNote(v1, v2, v3, ...)` / abbreviated form: `v.N(v1,v2,v3,...)`
+- `t.onNote(v1, v2, v3, ...)` / abbreviated form: `t.N(v1,v2,v3,...)`
+- `(ControlChange`, `PB`, or `p`).onTime(low, high, len, ...)
+
+```mml
+v.onTime(0,127,!1)l8cccccccc
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
 
-### Macro
+## Macros
 
-It can define Macro.
+Define macros as follows:
 
-```
-// define Macro
+```mml
+// Define macros
 STR P1 = {cdefg}
 #P1 = {cdefg}
-// expand Macro
+// Expand macros
 P1
 #P1
 ```
 
-The macro can replace with arguments. 
-It replaces `#?1` `#?2` `#?3` ...
+You can provide arguments to a macro and substitute them into its contents. Define `#?1`, `#?2`, `#?3`, and so on inside the macro; each placeholder is replaced with the corresponding argument written immediately after the macro.
 
-```
-// define macro
+```mml
+// Define a macro
 #Unison = { Key=#?2 Sub{ #?1 } Key=0 #?1 }
-// expand macro with arguments 
+// Expand the macro
 #Unison{cde},7
 ```
 
-### Script
+## References
 
-It can use IF/FOR/WHILE/FUNCTION script.
+- **MML syntax reference --- [docs/syntax.md](docs/syntax.md)**
+- Sakura (Rust Edition) command list --- [command.md](command.md)
+  - Sakura (v2 Edition) command list --- https://sakuramml.com/doc/command/index.htm
+- Instrument list --- [voice.md](voice.md)
 
-```
-// IF 
-INT A = 3
-INT B = 5
-IF (A == B) { PRINT({A == B}) } ELSE { PRINT({A != B}) }
+## Repository
 
-// FOR
-FOR (INT N=1; N < 5; N++) {
-  PRINT(N)
-}
-```
-
-### Variables
-
- It can define variables of INT, STR, and ARRAY types.
-
-```
-// define variables
-INT I1=30
-STR S1={abcd}
-ARRAY A1=(1,2,3)
-
-// use variables
-PRINT(I1) // 30
-PRINT(S1) // abcd
-PRINT(A1) // (1,2,3)
-PRINT(A1(2)) // 3
-```
-
-Replace `{i}` with `{c}` in the value of the string variable `S1` and `S2`.
-
-```
-// define variables
-STR S1={iiri iiri}
-// replace {i} to {c}
-S1.s({i}, {c})
-PRINT(S1) // ccrc ccrc
-
-// REPLACE function
-STR S2 = REPLACE({iiri iiri}, {i}, {c})
-PRINT(S2) // ccrc ccrc
-```
-
-## reference
-
-- **MML Syntax Reference (Japanese) --- [docs/syntax.md](docs/syntax.md)**
-- Command List --- [command.md](command.md)
-- Voice List - [voice.md](voice.md)
-
-### Related Repository
-
-- [GitHub/sakuramml-rust](https://github.com/kujirahand/sakuramml-rust)
-- [crate.io/sakuramml](https://crates.io/crates/sakuramml)
+- [GitHub](https://github.com/kujirahand/sakuramml-rust)
+- [crate.io](https://crates.io/crates/sakuramml)
 - [npm/sakuramml](https://www.npmjs.com/package/sakuramml)
-- Player
-  - [GitHub/picosakura](https://github.com/kujirahand/picosakura) ... web player
-  - [GitHub/picosakura-rust](https://github.com/kujirahand/picosakura-rust) ... local player
-- Sakura v2
-  - [GitHub/sakura2](https://github.com/kujirahand/sakuramml)
-  - [Command List](https://sakuramml.com/doc/command/index2.htm) / [Sorted](https://sakuramml.com/doc/command/index.htm)
