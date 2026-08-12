@@ -1,6 +1,17 @@
 //! runner: 音符と休符の実行
 use super::*;
 
+fn apply_v_sub_random(song: &mut Song, mut velocity: isize) -> isize {
+    let len = trk!(song).v_sub_rand.len();
+    for index in 0..len {
+        let random = trk!(song).v_sub_rand[index];
+        if random > 0 {
+            velocity = song.calc_rand_value(velocity, random);
+        }
+    }
+    velocity
+}
+
 pub(super) fn get_note_info_from_token(t: &Token) -> NoteInfo {
     let data = &t.data;
     if data.len() < 8 { // broken note
@@ -107,6 +118,8 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     } else {
         qlen
     };
+    let v = trk!(song).apply_v_sub(v);
+    let v = apply_v_sub_random(song, v);
     // note len
     let mut notelen = calc_length(&note.len_s, song.timebase, trk!(song).length);
     // note len onNote / onCycle
@@ -201,6 +214,8 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     } else {
         qlen
     };
+    let v = trk!(song).apply_v_sub(v);
+    let v = apply_v_sub_random(song, v);
     // calc
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // range

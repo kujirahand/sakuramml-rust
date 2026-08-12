@@ -377,3 +377,123 @@ mod test_review_94 {
         assert_eq!(e.data, Some(vec![0x07u8, 0xA1, 0x20]));
     }
 }
+
+#[cfg(test)]
+mod test_issue_102 {
+    use super::exec_easy;
+    use crate::song::EventType;
+
+    #[test]
+    fn test_sub_velocity_does_not_hang() {
+        let song = exec_easy("v__1(100) cde");
+
+        assert_eq!(song.tracks[0].v_sub, vec![0, 100]);
+        let notes = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .collect::<Vec<_>>();
+        assert_eq!(notes.len(), 3);
+        assert!(notes.iter().all(|event| event.v3 == 127));
+    }
+
+    #[test]
+    fn test_sub_velocity_layers_are_added_to_notes() {
+        let song = exec_easy("v70 v__1(-10) v__3(20) c n(60) v__1(0) d");
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(song.tracks[0].v_sub, vec![0, 0, 0, 20]);
+        assert_eq!(velocities, vec![80, 80, 90]);
+    }
+
+    #[test]
+    fn test_sub_velocity_on_note_and_cycle() {
+        let song = exec_easy(
+            "v.onCycle(70,80) v__1.onCycle(10,20) cde v__1.onNote(-10,-20) fga",
+        );
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(velocities, vec![80, 100, 80, 70, 50, 60]);
+    }
+
+    #[test]
+    fn test_sub_velocity_on_time_and_scalar_reset() {
+        let song = exec_easy("TimeBase=96 v70 v__1.onTime(0,20,!4) l8 ccc v__1(5) de");
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(velocities, vec![70, 80, 70, 75, 75]);
+    }
+
+    #[test]
+    fn test_sub_velocity_random_and_reset() {
+        let song = exec_easy("v70 v__1.Random(20) [8 c] v__1.Random(0) d");
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(velocities.len(), 9);
+        assert!(velocities[..8]
+            .iter()
+            .all(|velocity| 60 <= *velocity && *velocity <= 79));
+        assert_eq!(velocities[8], 70);
+        assert_eq!(song.tracks[0].v_sub_rand, vec![0, 0]);
+    }
+
+    #[test]
+    fn test_sub_velocity_layer_zero_is_distinct_from_base_velocity() {
+        let song = exec_easy("v70 v__0(10) c v__0.onCycle(20,-20) def");
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(song.tracks[0].velocity, 70);
+        assert_eq!(velocities, vec![80, 90, 50, 90]);
+    }
+
+    #[test]
+    fn test_single_underscore_still_targets_base_velocity() {
+        let song = exec_easy("v70 v_.onCycle(80,60) cd");
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(velocities, vec![80, 60]);
+    }
+
+    #[test]
+    fn test_sub_velocity_on_time_ignores_non_positive_lengths() {
+        let song = exec_easy("v70 v__1.onTime(10,20,0,20,30,-1) cd");
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+
+        assert_eq!(velocities, vec![70, 70]);
+    }
+}

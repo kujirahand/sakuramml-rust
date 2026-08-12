@@ -148,26 +148,25 @@ pub(super) fn read_velocity(cur: &mut SourceCursor, song: &mut Song) -> Token {
     } else if cur.eq("_") {
         cur.next();
         cur.get_int(0);
-        ino = 0;
     }
     if cur.eq_char('.') {
         cur.next(); // skip '.'
         let cmd = cur.get_word();
         if cmd == "Random" {
             let r = read_arg_value(cur, song);
-            return Token::new(TokenType::VelocityRandom, 0, vec![r]);
+            return Token::new(TokenType::VelocityRandom, 0, vec![r, SValue::from_i(ino)]);
         }
         if cmd == "onTime" || cmd == "T" {
             let av = read_arg_int_array(cur, song);
-            return Token::new(TokenType::VelocityOnTime, 0, vec![av]);
+            return Token::new(TokenType::VelocityOnTime, 0, vec![av, SValue::from_i(ino)]);
         }
         if cmd == "onNote" || cmd == "N" {
             let av = read_arg_int_array(cur, song);
-            return Token::new(TokenType::VelocityOnNote, 0, vec![av]);
+            return Token::new(TokenType::VelocityOnNote, 0, vec![av, SValue::from_i(ino)]);
         }
         if cmd == "onCycle" || cmd == "C" {
             let av = read_arg_int_array(cur, song);
-            return Token::new(TokenType::VelocityOnCycle, 0, vec![av]);
+            return Token::new(TokenType::VelocityOnCycle, 0, vec![av, SValue::from_i(ino)]);
         }
     }
     // v(no)
