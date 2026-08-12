@@ -1,8 +1,8 @@
-use sakuramml::compile;
+use sakuramml::{compile, SAKURA_DEBUG_NONE};
 use sha2::{Digest, Sha256};
 
 fn assert_midi_golden(name: &str, source: &str, expected_sha256: &str) {
-    let result = compile(source, 0);
+    let result = compile(source, SAKURA_DEBUG_NONE);
     assert!(
         result.log.is_empty(),
         "{name}: compilation produced diagnostics:\n{}",
