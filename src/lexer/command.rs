@@ -83,7 +83,7 @@ pub(super) fn read_upper_command(cur: &mut SourceCursor, song: &mut Song) -> Tok
                     },
                     TokenType::DefUserFunction => return read_def_user_function(cur, song),
                     _ => {
-                        println!("[SYSTEM_ERROR] FUNCTION NOT SET : {}", cmd);
+                        song.add_log(format!("[SYSTEM_ERROR] FUNCTION NOT SET : {}", cmd));
                     },
                 }
             }
