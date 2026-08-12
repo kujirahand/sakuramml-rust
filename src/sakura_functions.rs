@@ -8,12 +8,17 @@ pub type CallbackCalcFn = fn (&mut Song, Vec<SValue>) -> SValue;
 pub fn calc_randomint(song: &mut Song, args: Vec<SValue>) -> SValue {
     let arg_count = args.len();
     if arg_count >= 2 {
-        let min = args[0].to_i();
-        let max = args[1].to_i();
+        let a = args[0].to_i();
+        let b = args[1].to_i();
+        let min = a.min(b);
+        let max = a.max(b);
         let rnd = (song.rand() & 0x7FFFFFFF) as isize % (max - min + 1) + min;
         SValue::from_i(rnd)
     } else if arg_count == 1 {
         let m = args[0].to_i();
+        if m <= 0 {
+            return SValue::from_i(0);
+        }
         let v = ((song.rand() & 0x7FFFFFFF) as isize) % m;
         SValue::from_i(v)
     } else {
@@ -25,6 +30,9 @@ pub fn calc_randomint(song: &mut Song, args: Vec<SValue>) -> SValue {
 /// RandomSelect
 pub fn calc_random_select(song: &mut Song, args: Vec<SValue>) -> SValue {
     let arg_count = args.len();
+    if arg_count == 0 {
+        return SValue::None;
+    }
     /*
     if arg_count == 1 {
         let a = args[0].to_array();
@@ -50,12 +58,12 @@ pub fn calc_chr(_: &mut Song, args: Vec<SValue>) -> SValue {
 }
 
 // mid function
-fn vb_mid(input: &str, start: usize, length: usize) -> Option<&str> {
-    let input_len = input.len();
-    let start = if start >= 1 { start - 1 } else { 0 };
-    let mut end = start + length;
-    if end >= input_len { end = input_len; }
-    Some(&input[start..end])
+fn vb_mid(input: &str, start: isize, length: isize) -> String {
+    if length <= 0 {
+        return String::new();
+    }
+    let start = start.max(1) as usize - 1;
+    input.chars().skip(start).take(length as usize).collect()
 }
 
 /// Mid
@@ -63,10 +71,9 @@ pub fn calc_mid(_: &mut Song, args: Vec<SValue>) -> SValue {
     let arg_count = args.len();
     if arg_count >= 3 {
         let val = args[0].to_s();
-        let i_from = args[1].to_i() as usize;
-        let i_len = args[2].to_i() as usize;
-        let s = vb_mid(&val, i_from, i_len).unwrap_or("");
-        SValue::from_str(s)
+        let i_from = args[1].to_i();
+        let i_len = args[2].to_i();
+        SValue::from_s(vb_mid(&val, i_from, i_len))
     } else {
         SValue::from_str("(MID:ERROR)")
     }
@@ -184,4 +191,41 @@ pub fn calc_pos(_: &mut Song, args: Vec<SValue>) -> SValue {
         return SValue::from_i((prefix.chars().count() + 1) as isize);
     }
     SValue::from_i(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn random_functions_handle_empty_or_invalid_ranges() {
+        let mut song = Song::new();
+        assert_eq!(calc_randomint(&mut song, vec![SValue::from_i(0)]).to_i(), 0);
+        assert!(calc_random_select(&mut song, vec![]).is_none());
+
+        for _ in 0..8 {
+            let value = calc_randomint(
+                &mut song,
+                vec![SValue::from_i(5), SValue::from_i(3)],
+            ).to_i();
+            assert!((3..=5).contains(&value));
+        }
+    }
+
+    #[test]
+    fn string_functions_support_unicode_character_positions() {
+        let mut song = Song::new();
+        let mid = calc_mid(
+            &mut song,
+            vec![SValue::from_str("あいうえ"), SValue::from_i(2), SValue::from_i(2)],
+        );
+        assert_eq!(mid.to_s(), "いう");
+        assert_eq!(
+            calc_pos(
+                &mut song,
+                vec![SValue::from_str("う"), SValue::from_str("あいうえ")],
+            ).to_i(),
+            3,
+        );
+    }
 }

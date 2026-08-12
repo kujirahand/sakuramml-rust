@@ -330,6 +330,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
                 if args.len() < 2 {
                     runtime_error(song, "[TimeSignature] argument must be 2");
+                    pos += 1;
                     continue;
                 }
                 song.timesig_frac = value_range(2, args[0].to_i(), 64);
@@ -365,6 +366,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 let mut args: Vec<SValue> = exec_args(song, &t.children.clone().unwrap_or(vec![]));
                 if args.len() == 0 {
                     runtime_error(song, &format!("SysEx : {}", song.get_message(MessageKind::ErrorWrongArguments)));
+                    pos += 1;
                     continue;
                 }
                 // check leading 0xF0
@@ -571,7 +573,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::TrackKey => trk!(song).track_key = exec_value_int_by_token(song, t),
             TokenType::DefInt => {
                 match &t.value_s {
-                    None => { runtime_error(song, "[SYSTEM ERROR][DefInt] variable name is empty"); continue; },
+                    None => { runtime_error(song, "[SYSTEM ERROR][DefInt] variable name is empty"); pos += 1; continue; },
                     Some(var_name) => {
                         let val = exec_value(song, &t.children.clone().unwrap_or(vec![]));
                         if val.is_array() {
@@ -586,7 +588,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::DefStr => {
                 match &t.value_s {
-                    None => { runtime_error(song, "[SYSTEM ERROR][DefStr] variable name is empty"); continue; },
+                    None => { runtime_error(song, "[SYSTEM ERROR][DefStr] variable name is empty"); pos += 1; continue; },
                     Some(var_name) => {
                         let val = exec_value(song, &t.children.clone().unwrap_or(vec![]));
                         song.variables_insert(var_name, val);
@@ -595,7 +597,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::DefArray => {
                 match &t.value_s {
-                    None => { runtime_error(song, "[SYSTEM ERROR][DefArray] variable name is empty"); continue; },
+                    None => { runtime_error(song, "[SYSTEM ERROR][DefArray] variable name is empty"); pos += 1; continue; },
                     Some(var_name) => {
                         let val = exec_value(song, &t.children.clone().unwrap_or(vec![]));
                         song.variables_insert(var_name, val);
@@ -606,6 +608,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 match &t.value_s {
                     None => {
                         runtime_error(song, "[SYSTEM ERROR][GetVariable] variable name is empty");
+                        pos += 1;
                         continue;
                     },
                     Some(var_name) => {
@@ -873,6 +876,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
                 match &t.children {
                     None => {
                         song.stack.push(SValue::Array(vec![]));
+                        pos += 1;
                         continue;
                     },
                     Some(tokens) => {

@@ -103,4 +103,57 @@ mod note_tests {
         // TODO: 引数の省略 (#37)
         // assert_eq!(&test_mml_log("FUNCTION ADD(INT A, INT B=0){ PRINT(A+B) }; ADD(3)"), "3"); // 値の省略
     }
+
+    #[test]
+    fn normalize_adds_note_off_before_the_next_note_at_the_same_time() {
+        let mut track = Track::new(96, 0);
+        track.events.push(Event::note(0, 0, 60, 96, 100));
+        track.events.push(Event::note(96, 0, 62, 96, 100));
+
+        track.normalize();
+        track.events_sort();
+
+        assert_eq!(track.events.len(), 4);
+        assert_eq!(track.events[1].time, 96);
+        assert_eq!(track.events[1].etype, EventType::NoteOff);
+        assert_eq!(track.events[2].time, 96);
+        assert_eq!(track.events[2].etype, EventType::NoteOn);
+    }
+
+    #[test]
+    fn play_from_restores_voice_and_control_change() {
+        let mut track = Track::new(96, 2);
+        track.events.push(Event::voice(0, 2, 10));
+        track.events.push(Event::cc(24, 2, 7, 80));
+        track.events.push(Event::note(40, 2, 60, 24, 100));
+        track.events.push(Event::note(72, 2, 62, 24, 100));
+
+        track.play_from(48);
+
+        assert!(track.events.iter().any(|e|
+            e.etype == EventType::Voice && e.time == 0 && e.channel == 2 && e.v1 == 10));
+        assert!(track.events.iter().any(|e|
+            e.etype == EventType::ControllChange && e.time == 0 && e.v1 == 7 && e.v2 == 80));
+        let notes: Vec<_> = track.events.iter()
+            .filter(|e| e.etype == EventType::NoteOn)
+            .collect();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].time, 24);
+        assert_eq!(notes[0].v1, 62);
+    }
+
+    #[test]
+    fn on_note_values_stop_or_cycle_as_configured() {
+        let mut track = Track::new(96, 0);
+        track.v_on_note = Some(vec![10, 20]);
+        assert_eq!(track.calc_v_on_note(99), 10);
+        assert_eq!(track.calc_v_on_note(99), 20);
+        assert_eq!(track.calc_v_on_note(99), 99);
+
+        track.v_on_note = Some(vec![30, 40]);
+        track.v_on_note_is_cycle = true;
+        assert_eq!(track.calc_v_on_note(99), 30);
+        assert_eq!(track.calc_v_on_note(99), 40);
+        assert_eq!(track.calc_v_on_note(99), 30);
+    }
 }
