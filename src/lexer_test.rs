@@ -94,6 +94,39 @@ mod tests {
     }
 
     #[test]
+    fn test_lex_debug_comment() {
+        use crate::token::{TokenType, COMMENT_DEBUG};
+        let mut song = Song::new();
+        // 「///」だけデバッグ用コメントとして残る (「//」は消える)
+        let tokens = lex(&mut song, "// aaa\ncd\n/// bbb\n", 0);
+        let comments: Vec<_> = tokens.iter().filter(|t| t.ttype == TokenType::Comment).collect();
+        assert_eq!(comments.len(), 1);
+        assert_eq!(comments[0].value_i, COMMENT_DEBUG);
+        assert_eq!(comments[0].value_s.as_deref(), Some("bbb"));
+        assert_eq!(comments[0].lineno, 2);
+        // コメント記号「///」だけを除去する (本文先頭の「/」は残す)
+        let tokens = lex(&mut song, "/// /path/to", 0);
+        let comments: Vec<_> = tokens.iter().filter(|t| t.ttype == TokenType::Comment).collect();
+        assert_eq!(comments[0].value_s.as_deref(), Some("/path/to"));
+    }
+
+    #[test]
+    fn test_lex_comment_lineno() {
+        use crate::token::TokenType;
+        let mut song = Song::new();
+        // コメント行は改行ごと読み飛ばすので、LineNoトークンで行番号を補う
+        for src in ["// a\nc", "/// a\nc", "## a\nc", "/* a\na */c"] {
+            let tokens = lex(&mut song, src, 0);
+            let last_lineno = tokens
+                .iter()
+                .filter(|t| t.ttype == TokenType::LineNo)
+                .last()
+                .map(|t| t.lineno);
+            assert_eq!(last_lineno, Some(1), "src={:?}", src);
+        }
+    }
+
+    #[test]
     fn test_timebase() {
         let mut song = Song::new();
         let tokens = lex(&mut song, "TIMEBASE(48)", 0);

@@ -216,6 +216,21 @@ mod tests {
         assert!(log.contains("Tempo=120"));
     }
     #[test]
+    fn test_debug_comment() {
+        // 「///」はMetaText(Text)として埋め込まれる #79
+        let log = mml_dump("// fuga\n/// hoge\ncdef\n/// あいう\ng");
+        assert!(log.contains("TEXT{L2: hoge};"));
+        assert!(log.contains("TEXT{L4: あいう};"));
+        // 通常のコメントは何も埋め込まない
+        assert!(!log.contains("fuga"));
+        let log = mml_dump("// aaa\n/* bbb */\n/** ccc */\n");
+        assert!(!log.contains("TEXT{"));
+        // タイやブロックをまたいでも行番号がずれない
+        let log = mml_dump("l4 c^^^\n/// after tie\nd\nSUB{/// in sub\ne}\nf");
+        assert!(log.contains("TEXT{L2: after tie};"));
+        assert!(log.contains("TEXT{L4: in sub};"));
+    }
+    #[test]
     fn test_sysex() {
         // SysEx normal
         let log = mml_dump("SysEx$=F0,43,10,4C,00,00,00,30,F0,60,F7;");

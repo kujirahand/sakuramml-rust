@@ -24,7 +24,7 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | ) | velocity up - 音量をvAddの値だけ上げる |
 | ( | velocity down - 音量をvAddの値だけ下げる |
 | "\/\*" ... "\*\/" | range comment (範囲コメント) |
-| "///" | line comment for debug(デバッグ用一行コメント) |
+| "///" | line comment for debug(デバッグ用一行コメント/行番号と内容をMetaTextとしてMIDIに埋め込む) |
 | "//" | line comment (一行コメント) |
 | "##" | line comment (一行コメント) |
 | "# " | line comment (一行コメント) |
