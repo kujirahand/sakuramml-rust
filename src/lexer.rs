@@ -4,7 +4,7 @@ use crate::note_length::calc_length;
 use crate::sakura_message::MessageKind;
 use crate::song::{Song, SFunction};
 use crate::svalue::SValue;
-use crate::token::{zen2han, Token, TokenType, TokenValueType};
+use crate::token::{zen2han, Token, TokenType, TokenValueType, COMMENT_DEBUG, COMMENT_NORMAL};
 
 const LEX_MAX_ERROR: usize = 30;
 
@@ -127,7 +127,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             // comment
             /*
             "\/\*" ... "\*\/" => // @ range comment (範囲コメント)
-            "///" => // @ line comment for debug(デバッグ用一行コメント)
+            "///" => // @ line comment for debug(デバッグ用一行コメント/行番号と内容をMetaTextとしてMIDIに埋め込む)
             "//" => // @ line comment (一行コメント)
             "##" => // @ line comment (一行コメント)
             "# " => // @ line comment (一行コメント)
@@ -136,9 +136,12 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '/' => {
                 cur.prev();
                 if cur.eq("///") {
+                    let lineno = cur.line;
                     let line_comment = cur.get_token_ch('\n');
-                    let mut tok = Token::new_const(TokenType::Comment, 0, Some(line_comment), TokenValueType::VOID);
-                    tok.lineno = cur.line;
+                    // 「///」を取り除いた本文をMetaTextとして埋め込む (see: runner.rs)
+                    let body = line_comment.trim_start_matches('/').trim().to_string();
+                    let mut tok = Token::new_const(TokenType::Comment, COMMENT_DEBUG, Some(body), TokenValueType::VOID);
+                    tok.lineno = lineno;
                     result.push(tok);
                     continue;
                 } else if cur.eq("//") {
@@ -146,7 +149,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                     continue;
                 } else if cur.eq("/**") {
                     let range_comment = cur.get_token_s("*/");
-                    let mut tok = Token::new_const(TokenType::Comment, 0, Some(range_comment), TokenValueType::VOID);
+                    let mut tok = Token::new_const(TokenType::Comment, COMMENT_NORMAL, Some(range_comment), TokenValueType::VOID);
                     tok.lineno = cur.line;
                     result.push(tok);
                     continue;
@@ -1472,8 +1475,9 @@ fn read_sysex(cur: &mut SourceCursor, _song: &mut Song) -> Token {
 
 fn read_command_sub(cur: &mut SourceCursor, song: &mut Song) -> Token {
     cur.skip_space();
+    let lineno = cur.line; // ブロックを読む前の行番号が本体の先頭行
     let block = cur.get_token_nest('{', '}');
-    let tokens = lex(song, &block, cur.line);
+    let tokens = lex(song, &block, lineno);
     let mut tok = Token::new(TokenType::Sub, 0, vec![]);
     tok.children = Some(tokens);
     tok
@@ -1490,9 +1494,10 @@ fn read_command_div(cur: &mut SourceCursor, song: &mut Song, need2back: bool) ->
     } else {
         cur.skip_space();
     }
+    let lineno = cur.line; // ブロックを読む前の行番号が本体の先頭行
     let block = cur.get_token_nest('{', '}');
     let len_s = cur.get_note_length();
-    let tokens = lex(song, &block, cur.line);
+    let tokens = lex(song, &block, lineno);
     // count note
     let mut cnt = 0;
     for t in tokens.iter() {

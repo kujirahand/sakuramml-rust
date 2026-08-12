@@ -94,6 +94,19 @@ mod tests {
     }
 
     #[test]
+    fn test_lex_debug_comment() {
+        use crate::token::{TokenType, COMMENT_DEBUG};
+        let mut song = Song::new();
+        // 「///」だけデバッグ用コメントとして残る (「//」は消える)
+        let tokens = lex(&mut song, "// aaa\ncd\n/// bbb\n", 0);
+        let comments: Vec<_> = tokens.iter().filter(|t| t.ttype == TokenType::Comment).collect();
+        assert_eq!(comments.len(), 1);
+        assert_eq!(comments[0].value_i, COMMENT_DEBUG);
+        assert_eq!(comments[0].value_s.as_deref(), Some("bbb"));
+        assert_eq!(comments[0].lineno, 2);
+    }
+
+    #[test]
     fn test_timebase() {
         let mut song = Song::new();
         let tokens = lex(&mut song, "TIMEBASE(48)", 0);

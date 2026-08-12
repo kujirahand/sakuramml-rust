@@ -4,7 +4,7 @@ use crate::token::TokenValueType;
 use super::lexer::lex;
 use super::song::{Event, NoteInfo, Song};
 use super::svalue::SValue;
-use super::token::{Token, TokenType};
+use super::token::{Token, TokenType, COMMENT_DEBUG};
 use super::sakura_message::MessageKind;
 use super::note_length::calc_length;
 
@@ -70,6 +70,21 @@ pub fn exec_value_int_by_token(song: &mut Song, tok: &Token) -> isize {
 }
 
 
+/// MetaTextに書き込める文字列は127バイトまでなので、文字境界を保ったまま切り詰める
+fn trim_meta_text(txt_raw: &str) -> String {
+    let mut txt = String::from("");
+    let mut cnt = 0;
+    for c in txt_raw.chars() {
+        cnt += c.len_utf8();
+        if cnt < 128 {
+            txt.push(c);
+            continue;
+        }
+        break;
+    }
+    txt
+}
+
 /// run tokens
 pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
     let mut pos = 0;
@@ -83,7 +98,21 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
         match t.ttype {
             TokenType::Unimplemented => {},
             TokenType::Empty => {},
-            TokenType::Comment => {},
+            TokenType::Comment => {
+                // 「/// xxx」形式のコメントは、行番号付きでMetaTextに埋め込む (デバッグ用) #79
+                if t.value_i == COMMENT_DEBUG {
+                    let body = t.value_s.clone().unwrap_or(String::from(""));
+                    let txt = trim_meta_text(&format!("L{}: {}", t.lineno + 1, body));
+                    let e = Event::meta(
+                        trk!(song).timepos,
+                        0xFF,
+                        1, // Meta type = Text
+                        txt.len() as isize,
+                        txt.into_bytes(),
+                    );
+                    song.add_event(e);
+                }
+            },
             TokenType::LineNo => {
                 song.lineno = t.lineno;
             },
@@ -275,16 +304,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             },
             TokenType::MetaText => {
                 let txt_raw = exec_args(song, &t.children.clone().unwrap_or(vec![]))[0].to_s();
-                let mut txt = String::from("");
-                let mut cnt = 0;
-                for c in txt_raw.chars() {
-                    cnt += c.len_utf8();
-                    if cnt < 128 {
-                        txt.push(c);
-                        continue;
-                    }
-                    break;
-                }
+                let txt = trim_meta_text(&txt_raw);
                 let e = Event::meta(
                     trk!(song).timepos,
                     0xFF,

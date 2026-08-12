@@ -230,14 +230,17 @@ impl SourceCursor {
                 },
                 '\n' => { // 改行があっても続く部分に"^"か数値があれば続行
                     let tmp_index = self.index;
+                    let tmp_line = self.line;
                     self.next(); // skip '\n'
+                    self.line += 1;
                     self.skip_space_ret();
                     let ch2 = self.peek_n(0);
                     if ch2 == '^' {
                         continue;
                     }
-                    // rollback
+                    // rollback (行番号も戻す)
                     self.index = tmp_index;
+                    self.line = tmp_line;
                     break;
                 }
                 _ => { break; }

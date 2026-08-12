@@ -2,6 +2,11 @@ use std::vec;
 
 use super::svalue::SValue;
 
+/// TokenType::Comment の value_i - 通常のコメント (MIDIには何も出力しない)
+pub const COMMENT_NORMAL: isize = 0;
+/// TokenType::Comment の value_i - デバッグ用コメント「/// xxx」(MetaTextとして埋め込む)
+pub const COMMENT_DEBUG: isize = 1;
+
 /// TokenType
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq)]
