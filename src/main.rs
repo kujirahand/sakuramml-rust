@@ -72,7 +72,11 @@ fn main() {
         }
         else if arg == "--eval" || arg == "-e" || arg == "eval" || arg == "e" {
             i += 1;
-            eval_mml = if i < args.len() { String::from(&args[i]) } else { String::new() };
+            if i >= args.len() {
+                eprintln!("[ERROR](0): --eval requires MML text");
+                std::process::exit(1);
+            }
+            eval_mml = String::from(&args[i]);
             outfile = String::from("eval.mid");
         }
         else if arg == "--dump" || arg == "dump" || arg == "-m" {
@@ -106,7 +110,7 @@ fn main() {
             },
             Err(_e) => {
                 println!("[ERROR](0): File not found : {}", filename);
-                return;
+                std::process::exit(1);
             }
         }
     }
@@ -119,7 +123,7 @@ fn main() {
             Ok(s) => s,
             Err(_e) => {
                 println!("[ERROR](0): File not found : {}", filename);
-                return;
+                std::process::exit(1);
             }
         };
     }

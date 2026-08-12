@@ -205,6 +205,12 @@ mod test_for_runner {
         // mid
         let song = exec_easy("STR A={abcd};PRINT(MID(A,1,2))");
         assert_eq!(song.get_logs_str(), "[PRINT](0) ab");
+        // 文字位置はUTF-8のバイト位置ではなく文字単位で扱う
+        let song = exec_easy("STR A={あいうえ};PRINT(MID(A,2,2))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) いう");
+        // 範囲外や負数を指定してもパニックしない
+        let song = exec_easy("STR A={abc};PRINT(MID(A,99,2));PRINT(MID(A,-1,2))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) \n[PRINT](0) ab");
     }
     #[test]
     fn test_exec_sys_func_replace() {
