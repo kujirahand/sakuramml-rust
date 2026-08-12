@@ -40,8 +40,9 @@ pub(super) fn tempo_change_a_to_b(song: &mut Song, a: isize, b: isize, len: isiz
 }
 
 pub(super) fn tempo_change(song: &mut Song, tempo: isize) {
+    let tempo = if tempo > 0 { tempo } else { 120 };
     song.tempo = tempo;
-    let mpq = if tempo > 0 { 60000000 / tempo } else { 120 };
+    let mpq = 60000000 / tempo;
     let e = Event::meta(
         trk!(song).timepos,
         0xFF,
