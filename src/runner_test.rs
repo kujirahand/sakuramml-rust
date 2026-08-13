@@ -762,4 +762,28 @@ mod test_issue_78 {
         // タイの音符と次の音符で、2回分の波形が書き込まれる
         assert_eq!(bends.len(), 32 * 2);
     }
+
+    #[test]
+    fn test_slur_second_arg_accepts_note_length_notation() {
+        // Slur(type, value) の value に音長記法(!8)を書けること (#112)
+        // 以前は計算式パーサが "!" を比較演算子として扱っていたため解釈に失敗し、
+        // 残った文字が後続のコマンドとして読まれてベロシティが化けていた
+        let song = exec_easy("TimeBase=96 BR(2) Slur(0,!8) l4 c&d");
+        assert_eq!(song.get_logs_str(), "");
+        let notes = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .collect::<Vec<_>>();
+        // ベロシティが既定値(100)のまま変化しないこと
+        assert_eq!(notes[0].v3, 100);
+        // !8 が48ステップとして解釈され、数値で 48 と書いた場合と同じ結果になること
+        let bends = pitch_bends(&song);
+        let expected = pitch_bends(&exec_easy("TimeBase=96 BR(2) Slur(0,48) l4 c&d"));
+        assert_eq!(bends, expected);
+        // グリッサンドは音符の48ステップ手前(96-48=48)から始まる。
+        // ただし開始時点のベンド値は0で直前の値と同じため出力されず、
+        // 最初に書き込まれるイベントは49ステップ目になる
+        assert_eq!(bends.first().unwrap().0, 49);
+    }
 }

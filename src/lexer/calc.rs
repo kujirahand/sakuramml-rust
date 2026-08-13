@@ -100,6 +100,13 @@ pub(super) fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Toke
             let num = cur.get_int(0);
             return Some(Token::new_const(TokenType::ConstInt, num, None, TokenValueType::INT));
         },
+        '!' => {
+            // note length notation (e.g. !8, !4.)
+            cur.next(); // skip '!'
+            let len_str = cur.get_note_length();
+            let num = calc_length(&len_str, song.timebase, song.timebase);
+            return Some(Token::new_const(TokenType::ConstInt, num, None, TokenValueType::INT));
+        },
         '{' => {
             let str = cur.get_token_nest('{', '}');
             return Some(Token::new_const(TokenType::ConstStr, str.len() as isize, Some(str), TokenValueType::STR));
