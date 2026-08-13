@@ -1,7 +1,7 @@
 //! MIDI file generator and analizer
 
-/// midi 
-use super::song::{Song, Track, EventType};
+/// midi
+use super::song::{EventType, Song, Track};
 
 /// MIDI Event
 const MIDI_RPN_MSB: u8 = 0x65;
@@ -23,8 +23,8 @@ fn array_push_u16(res: &mut Vec<u8>, v: isize) {
 fn array_push_u32(res: &mut Vec<u8>, v: isize) {
     res.push(((v >> 24) & 0xFF) as u8);
     res.push(((v >> 16) & 0xFF) as u8);
-    res.push(((v >>  8) & 0xFF) as u8);
-    res.push(((v >>  0) & 0xFF) as u8);
+    res.push(((v >> 8) & 0xFF) as u8);
+    res.push(((v >> 0) & 0xFF) as u8);
 }
 
 fn array_push_delta(res: &mut Vec<u8>, time: isize) {
@@ -58,7 +58,7 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 res.push(0x90 + e.channel as u8);
                 res.push(note_no as u8); // note_no
                 res.push(note_vel as u8); // velocity
-            },
+            }
             EventType::NoteOff => {
                 let note_no = e.v1;
                 // note_len = e.v2 // not use
@@ -68,20 +68,20 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 res.push(0x80 + e.channel as u8);
                 res.push(note_no as u8);
                 res.push(note_vel as u8);
-            },
+            }
             EventType::Voice => {
                 array_push_delta(&mut res, e.time - timepos);
                 timepos = e.time;
                 res.push(0xC0 + e.channel as u8);
                 res.push(e.v1 as u8);
-            },
+            }
             EventType::ControllChange => {
                 array_push_delta(&mut res, e.time - timepos);
                 timepos = e.time;
                 res.push(0xB0 + e.channel as u8);
                 res.push(e.v1 as u8);
                 res.push(e.v2 as u8);
-            },
+            }
             EventType::Meta => {
                 array_push_delta(&mut res, e.time - timepos);
                 timepos = e.time;
@@ -92,24 +92,29 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 for b in data.iter() {
                     res.push(*b);
                 }
-            },
-            EventType::SysEx => { // SysEx の書き込み処理
+            }
+            EventType::SysEx => {
+                // SysEx の書き込み処理
                 let data = e.data.clone().unwrap();
-                if data.len() == 0 { continue; }
+                if data.len() == 0 {
+                    continue;
+                }
                 let delta_time = e.time - timepos;
                 array_push_delta(&mut res, delta_time);
                 timepos = e.time;
                 let size = data.len() - 1;
                 // 1st byte must be 0xF0
                 res.push(0xF0); // SysEx Event
-                // 2nd byte must be length
+                                // 2nd byte must be length
                 array_push_delta(&mut res, size as isize);
                 // write data
                 for (i, b) in data.iter().enumerate() {
-                    if i == 0 && *b == 0xF0 { continue; }
+                    if i == 0 && *b == 0xF0 {
+                        continue;
+                    }
                     res.push(*b);
                 }
-            },
+            }
             EventType::PitchBend => {
                 let v = e.v1;
                 let msb = ((v >> 7) & 0x7F) as u8;
@@ -120,11 +125,16 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 res.push(0xE0 + e.channel as u8);
                 res.push(lsb);
                 res.push(msb);
-            },
-            EventType::PitchBendRange => { // RPN
+            }
+            EventType::PitchBendRange => {
+                // RPN
                 // Pitch Bend Sensitivity (3 events)
                 let range = e.v1;
-                let range = if range >= 0 && range <= 24 { range as u8 } else { 0 };
+                let range = if range >= 0 && range <= 24 {
+                    range as u8
+                } else {
+                    0
+                };
                 // RPN MSB
                 array_push_delta(&mut res, e.time - timepos);
                 timepos = e.time;
@@ -141,10 +151,12 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 res.push(0xB0 + e.channel as u8);
                 res.push(MIDI_DATA_ENTRY_MSB);
                 res.push(range);
-            },
+            }
             EventType::DirectSMF => {
                 let data = e.data.clone().unwrap();
-                if data.len() == 0 { continue; }
+                if data.len() == 0 {
+                    continue;
+                }
                 let delta_time = e.time - timepos;
                 array_push_delta(&mut res, delta_time);
                 timepos = e.time;
@@ -152,7 +164,7 @@ fn generate_track(track: &Track) -> Vec<u8> {
                 for b in data.iter() {
                     res.push(*b);
                 }
-            },
+            }
         }
     }
     // end of track
@@ -180,11 +192,12 @@ pub fn generate(song: &mut Song) -> Vec<u8> {
         let block = generate_track(&trk);
         array_push_str(&mut res, "MTrk");
         array_push_u32(&mut res, block.len() as isize);
-        for b in block { res.push(b); }
+        for b in block {
+            res.push(b);
+        }
     }
     res
 }
-
 
 // midi reader
 pub struct MidiReaderInfo {
@@ -226,24 +239,32 @@ pub fn array_read_str(a: &[u8], pos: usize, len: usize) -> String {
     }
 }
 
-pub fn array_read_u16(a: &[u8], pos: usize) ->u16 {
+pub fn array_read_u16(a: &[u8], pos: usize) -> u16 {
     let mut v: u16 = 0;
     if pos < a.len() {
         v = a[pos] as u16;
     }
     if (pos + 1) < a.len() {
         v = v << 8;
-        v = v | a[pos+1] as u16;
+        v = v | a[pos + 1] as u16;
     }
     v
 }
 
-pub fn array_read_u32(a: &[u8], pos: usize) ->u32 {
+pub fn array_read_u32(a: &[u8], pos: usize) -> u32 {
     let mut v: u32 = 0;
-    if pos < a.len() { v = a[pos] as u32; }
-    if (pos + 1) < a.len() { v = v << 8 | a[pos+1] as u32; }
-    if (pos + 2) < a.len() { v = v << 8 | a[pos+2] as u32; }
-    if (pos + 3) < a.len() { v = v << 8 | a[pos+3] as u32; }
+    if pos < a.len() {
+        v = a[pos] as u32;
+    }
+    if (pos + 1) < a.len() {
+        v = v << 8 | a[pos + 1] as u32;
+    }
+    if (pos + 2) < a.len() {
+        v = v << 8 | a[pos + 2] as u32;
+    }
+    if (pos + 3) < a.len() {
+        v = v << 8 | a[pos + 3] as u32;
+    }
     v
 }
 
@@ -256,7 +277,7 @@ pub fn array_readl_delta_time(a: &[u8], pos: &mut usize) -> usize {
             v = v << 7 | cv;
             break;
         }
-        v = v << 7 | (cv & 0x7F); 
+        v = v << 7 | (cv & 0x7F);
     }
     v
 }
@@ -270,7 +291,7 @@ pub fn dump_midi_event_meta(bin: &[u8], pos: &mut usize, info: &mut MidiReaderIn
     let mtype = bin[p];
     match mtype {
         0xFF => {
-            let meta_type = bin[p+1] as usize;
+            let meta_type = bin[p + 1] as usize;
             let mut data_pos = p + 2;
             let meta_len = array_readl_delta_time(bin, &mut data_pos);
             let data_end = match data_pos.checked_add(meta_len) {
@@ -281,27 +302,30 @@ pub fn dump_midi_event_meta(bin: &[u8], pos: &mut usize, info: &mut MidiReaderIn
                 }
             };
             let msg = match meta_type {
-                0x2F => { // end of track
+                0x2F => {
+                    // end of track
                     info.is_eot = true;
                     String::from("/* __END_OF_TRACK__ */")
-                },
-                0x51 => { // tempo
+                }
+                0x51 => {
+                    // tempo
                     if meta_len < 3 {
                         *pos = data_end;
                         return String::from("// [ERROR] Truncated tempo event");
                     }
                     // mpq = 60000000 / tempo || mpq * tempo = 60000000 || tempo = 60000000 / mpq
                     let mpq = (bin[data_pos] as usize) << 16
-                        | (bin[data_pos+1] as usize) << 8
-                        | bin[data_pos+2] as usize;
+                        | (bin[data_pos + 1] as usize) << 8
+                        | bin[data_pos + 2] as usize;
                     if mpq == 0 {
                         *pos = data_end;
                         return String::from("// [ERROR] Tempo value is zero");
                     }
                     let tempo = 60000000 / mpq;
                     format!("Tempo={}", tempo)
-                },
-                0x58 => { // TimeSig
+                }
+                0x58 => {
+                    // TimeSig
                     if meta_len < 2 {
                         *pos = data_end;
                         return String::from("// [ERROR] Truncated time-signature event");
@@ -311,26 +335,30 @@ pub fn dump_midi_event_meta(bin: &[u8], pos: &mut usize, info: &mut MidiReaderIn
                     info.frac = nn;
                     info.deno = (2i32.pow(dd as u32)) as usize;
                     format!("TimeSig={}/{}", info.frac, info.deno)
-                },
-                _ => { // text
+                }
+                _ => {
+                    // text
                     let txt = array_read_str(bin, data_pos, meta_len);
                     let meta_name = match meta_type {
-                        0x01 => { "TEXT".to_string() },
-                        0x02 => { "COPYRIGHT".to_string() },
-                        0x03 => { "TRACK_NAME".to_string() },
-                        0x04 => { "INSTRUMENT_NAME".to_string() },
-                        0x05 => { "LYRIC".to_string() },
-                        0x06 => { "MARKER".to_string() },
-                        0x07 => { "CUE_POINT".to_string() },
-                        _ => { format!("// Meta Type=${:02x} Length={} Text=", meta_type, meta_len) }
+                        0x01 => "TEXT".to_string(),
+                        0x02 => "COPYRIGHT".to_string(),
+                        0x03 => "TRACK_NAME".to_string(),
+                        0x04 => "INSTRUMENT_NAME".to_string(),
+                        0x05 => "LYRIC".to_string(),
+                        0x06 => "MARKER".to_string(),
+                        0x07 => "CUE_POINT".to_string(),
+                        _ => {
+                            format!("// Meta Type=${:02x} Length={} Text=", meta_type, meta_len)
+                        }
                     };
                     format!("{}{{{}}};", meta_name, txt)
                 }
             };
             *pos = data_end;
             msg
-        },
-        0xF0 => { // SysEx = 0xF0 ... 0xF7
+        }
+        0xF0 => {
+            // SysEx = 0xF0 ... 0xF7
             let mut data_pos = p + 1;
             let data_len = array_readl_delta_time(bin, &mut data_pos);
             let data_end = match data_pos.checked_add(data_len) {
@@ -349,7 +377,7 @@ pub fn dump_midi_event_meta(bin: &[u8], pos: &mut usize, info: &mut MidiReaderIn
             }
             *pos = data_end;
             format!("SysEx$={};", m)
-        },
+        }
         _ => {
             format!("// [ERROR] Unknown meta event...={:02x}", mtype)
         }
@@ -357,7 +385,8 @@ pub fn dump_midi_event_meta(bin: &[u8], pos: &mut usize, info: &mut MidiReaderIn
 }
 
 pub fn note_no_dec(no: u8) -> String {
-    format!("o{}{}",
+    format!(
+        "o{}{}",
         no / 12,
         match no % 12 {
             0 => "c",
@@ -372,7 +401,7 @@ pub fn note_no_dec(no: u8) -> String {
             9 => "a",
             10 => "a#",
             11 => "b",
-            _ => ""
+            _ => "",
         }
     )
 }
@@ -393,48 +422,80 @@ pub fn dump_midi_event(bin: &[u8], pos: &mut usize, info: &mut MidiReaderInfo) -
         return String::from("// [ERROR] Truncated MIDI event");
     }
     match event_type {
-        0x80 => { // note on
-            let msg = format!("NoteOff(${:02x},${:02x}) // {}", bin[p+1], bin[p+2], note_no_dec(bin[p+1]));
+        0x80 => {
+            // note on
+            let msg = format!(
+                "NoteOff(${:02x},${:02x}) // {}",
+                bin[p + 1],
+                bin[p + 2],
+                note_no_dec(bin[p + 1])
+            );
             *pos += 3;
             msg
-        },
-        0x90 => { // note off
-            let msg = format!("NoteOn(${:02x},${:02x})  // {},,{}", bin[p+1], bin[p+2], note_no_dec(bin[p+1]), bin[p+2]);
+        }
+        0x90 => {
+            // note off
+            let msg = format!(
+                "NoteOn(${:02x},${:02x})  // {},,{}",
+                bin[p + 1],
+                bin[p + 2],
+                note_no_dec(bin[p + 1]),
+                bin[p + 2]
+            );
             *pos += 3;
             msg
-        },
+        }
         0xA0 => {
-            let msg = format!("DirectSMF(${:02x},${:02x},${:02x})", bin[p], bin[p+1], bin[p+2]);
+            let msg = format!(
+                "DirectSMF(${:02x},${:02x},${:02x})",
+                bin[p],
+                bin[p + 1],
+                bin[p + 2]
+            );
             *pos += 3;
             msg
-        },
-        0xB0 => { // CC
-            let msg = format!("CC(${:02x},${:02x})", bin[p+1], bin[p+2]);
+        }
+        0xB0 => {
+            // CC
+            let msg = format!("CC(${:02x},${:02x})", bin[p + 1], bin[p + 2]);
             *pos += 3;
             msg
-        },
-        0xC0 => { // Voice
-            let msg = format!("Voice({}) // ${:02x},${:02x}", bin[p+1] + 1, bin[p], bin[p+1]);
+        }
+        0xC0 => {
+            // Voice
+            let msg = format!(
+                "Voice({}) // ${:02x},${:02x}",
+                bin[p + 1] + 1,
+                bin[p],
+                bin[p + 1]
+            );
             *pos += 2;
             msg
-        },
-        0xD0 => { // Channel after touch
-            let msg = format!("DirectSMF(${:02x},${:02x}) // Channel after touch", bin[p], bin[p+1]);
+        }
+        0xD0 => {
+            // Channel after touch
+            let msg = format!(
+                "DirectSMF(${:02x},${:02x}) // Channel after touch",
+                bin[p],
+                bin[p + 1]
+            );
             *pos += 2;
             msg
-        },
-        0xE0 => { // PitchBend
+        }
+        0xE0 => {
+            // PitchBend
             // PichBend is Little Endian!!
-            let vv: isize = (((bin[p+2] as isize) << 7) | bin[p+1] as isize) - 8192;
+            let vv: isize = (((bin[p + 2] as isize) << 7) | bin[p + 1] as isize) - 8192;
             let vv2 = vv + 8192;
             let pb: isize = (vv2 >> 7) & 0x7F;
             let msg = format!("PitchBend({}) /* p{} */", vv, pb);
             *pos += 3;
             msg
-        },
-        0xF0 => { // Meta
+        }
+        0xF0 => {
+            // Meta
             dump_midi_event_meta(bin, pos, info)
-        },
+        }
         _ => {
             format!("// [ERROR] Unknown event...={:02x}", event_type)
         }
@@ -478,7 +539,9 @@ pub fn dump_midi(bin: &[u8], flag_stdout: bool) -> String {
     let mut log = |s: &str| {
         res.push_str(s);
         res.push('\n');
-        if flag_stdout { println!("{}", s); }
+        if flag_stdout {
+            println!("{}", s);
+        }
     };
     if bin.len() < 14 {
         log("[ERROR] Truncated MIDI header");
@@ -554,7 +617,7 @@ pub fn dump_midi(bin: &[u8], flag_stdout: bool) -> String {
             let beat_base = if beat_base == 0 { timebase } else { beat_base }; // for divisor of zero
             let tick = time % beat_base;
             let base = time / beat_base;
-            let beat = base %  info.frac + 1;
+            let beat = base % info.frac + 1;
             let mes = base / info.frac + 1;
             //
             let event_channel = midi_event_channel(bin, pos);
@@ -563,11 +626,14 @@ pub fn dump_midi(bin: &[u8], flag_stdout: bool) -> String {
                 Some(channel) if current_channel != Some(channel) => {
                     current_channel = Some(channel);
                     format!("CH({}) {}", channel, desc)
-                },
+                }
                 _ => desc,
             };
             // log(&format!("{:5}|TIME({:03}:{:03}:{:03}) {}", time, mes, beat, tick, desc));
-            log(&format!("TIME({:03}:{:03}:{:03}) {}", mes, beat, tick, desc));
+            log(&format!(
+                "TIME({:03}:{:03}:{:03}) {}",
+                mes, beat, tick, desc
+            ));
         }
         if !info.is_eot {
             log("// [ERROR] MIDI track has no end-of-track event");
@@ -577,7 +643,6 @@ pub fn dump_midi(bin: &[u8], flag_stdout: bool) -> String {
     }
     res
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -626,7 +691,10 @@ mod tests {
 
         for bin in cases {
             let result = std::panic::catch_unwind(|| dump_midi(&bin, false));
-            assert!(result.is_ok(), "次のMIDIデータでパニックしました: {bin:02X?}");
+            assert!(
+                result.is_ok(),
+                "次のMIDIデータでパニックしました: {bin:02X?}"
+            );
             assert!(result.unwrap().contains("ERROR"));
         }
     }
@@ -646,6 +714,8 @@ mod tests {
 
         let dump = dump_midi(&bin, false);
         assert!(dump.contains(&format!("TEXT{{{text}}}")), "{dump}");
-        assert!(bin.windows(4).any(|bytes| bytes == [0xFF, 0x01, 0x81, 0x0C]));
+        assert!(bin
+            .windows(4)
+            .any(|bytes| bytes == [0xFF, 0x01, 0x81, 0x0C]));
     }
 }

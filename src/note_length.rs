@@ -23,14 +23,18 @@ pub fn calc_length(len_str: &str, timebase: isize, def_len: isize) -> isize {
     if cur.peek_n(0) == '.' {
         if cur.eq("....") {
             cur.next_n(4);
-            res += (res as f32 / 2.0 + res as f32 / 4.0 + res as f32 / 8.0 + res as f32 / 16.0) as isize;
-        } else if cur.eq("...") { // triple dotted note (三付点音符)
+            res += (res as f32 / 2.0 + res as f32 / 4.0 + res as f32 / 8.0 + res as f32 / 16.0)
+                as isize;
+        } else if cur.eq("...") {
+            // triple dotted note (三付点音符)
             cur.next_n(3);
             res += (res as f32 / 2.0 + res as f32 / 4.0 + res as f32 / 8.0) as isize;
-        } else if cur.eq("..") { // double dotted note (複付点音符)
+        } else if cur.eq("..") {
+            // double dotted note (複付点音符)
             cur.next_n(2);
             res += (res as f32 / 2.0 + res as f32 / 4.0) as isize;
-        } else { // dotted note
+        } else {
+            // dotted note
             cur.next();
             res += (res as f32 / 2.0) as isize;
         }
@@ -100,13 +104,13 @@ mod calc_length_tests {
         // check default length
         assert_eq!(calc_length("", timebase, timebase), timebase);
         assert_eq!(calc_length("", timebase, t1), t1);
-        assert_eq!(calc_length("", timebase, t1/4), t1/4);
+        assert_eq!(calc_length("", timebase, t1 / 4), t1 / 4);
         // '^' length
         assert_eq!(calc_length("^", timebase, t4), t4 + t4);
         assert_eq!(calc_length("^^", timebase, t4), t4 + t4 + t4);
         assert_eq!(calc_length("^^^", timebase, t4), t1);
-        assert_eq!(calc_length("^8", timebase, t4), t4 + t4/2);
-        assert_eq!(calc_length("^8.", timebase, t4), t4 + t1/8 + t1/16);
+        assert_eq!(calc_length("^8", timebase, t4), t4 + t4 / 2);
+        assert_eq!(calc_length("^8.", timebase, t4), t4 + t1 / 8 + t1 / 16);
     }
     #[test]
     fn calc_length_dot_test() {
@@ -115,14 +119,15 @@ mod calc_length_tests {
         let t4: isize = t1 / 4;
         let t8: isize = t1 / 8;
         let t16: isize = t1 / 16;
-        assert_eq!(calc_length("1.", timebase, t1), t1 + t1/2);
-        assert_eq!(calc_length("2.", timebase, t1), t1/2 + t4);
+        assert_eq!(calc_length("1.", timebase, t1), t1 + t1 / 2);
+        assert_eq!(calc_length("2.", timebase, t1), t1 / 2 + t4);
         assert_eq!(calc_length("4.", timebase, t1), t4 + t8);
         assert_eq!(calc_length("8.", timebase, t1), t8 + t16);
         assert_eq!(calc_length("16.", timebase, t1), t16 + t16 / 2);
     }
     #[test]
-    fn calc_length_double_dotted_note_test() { // double dotted note (複付点音符)
+    fn calc_length_double_dotted_note_test() {
+        // double dotted note (複付点音符)
         let timebase: isize = 480;
         let t1: isize = timebase * 4;
         let t2: isize = t1 / 2;
@@ -136,11 +141,20 @@ mod calc_length_tests {
         assert_eq!(calc_length("4..^4..", timebase, t4), (t4 + t8 + t16) * 2);
         // triple
         assert_eq!(calc_length("1...", timebase, t4), t1 + t2 + t4 + t8);
-        assert_eq!(calc_length("1...^1...", timebase, t4), (t1 + t2 + t4 + t8) * 2);
-        assert_eq!(calc_length("1...^1...^1...", timebase, t4), (t1 + t2 + t4 + t8) * 3);
+        assert_eq!(
+            calc_length("1...^1...", timebase, t4),
+            (t1 + t2 + t4 + t8) * 2
+        );
+        assert_eq!(
+            calc_length("1...^1...^1...", timebase, t4),
+            (t1 + t2 + t4 + t8) * 3
+        );
         // dot * 4
         assert_eq!(calc_length("1....", timebase, t4), t1 + t2 + t4 + t8 + t16);
-        assert_eq!(calc_length("1....^1....", timebase, t4), (t1 + t2 + t4 + t8 + t16) * 2);
+        assert_eq!(
+            calc_length("1....^1....", timebase, t4),
+            (t1 + t2 + t4 + t8 + t16) * 2
+        );
     }
     #[test]
     fn calc_length_calc_test() {

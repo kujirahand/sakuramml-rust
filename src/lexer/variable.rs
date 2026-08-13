@@ -25,7 +25,9 @@ pub(super) fn read_def_user_function(cur: &mut SourceCursor, song: &mut Song) ->
         let mut type_sf = 'I';
         let mut def_v = SValue::from_i(0);
         let mut name = acur.get_word();
-        if name.len() == 0 { break; }
+        if name.len() == 0 {
+            break;
+        }
         // get type
         if acur.eq_char(' ') {
             acur.skip_space(); // skip space
@@ -33,16 +35,13 @@ pub(super) fn read_def_user_function(cur: &mut SourceCursor, song: &mut Song) ->
             name = acur.get_word();
             if type_s == "Int" || type_s == "INT" || type_s == "I" {
                 type_sf = 'I';
-            }
-            else if type_s == "Str" || type_s == "STR" || type_s == "S" {
+            } else if type_s == "Str" || type_s == "STR" || type_s == "S" {
                 type_sf = 'S';
                 def_v = SValue::from_str("");
-            }
-            else if type_s == "Array" || type_s == "ARRAY" || type_s == "A" {
+            } else if type_s == "Array" || type_s == "ARRAY" || type_s == "A" {
                 type_sf = 'A';
                 def_v = SValue::from_int_array(vec![]);
-            }
-            else {
+            } else {
                 let msg = format!("Invalid type: {}", type_s);
                 return read_error_cmd(cur, song, &msg);
             }
@@ -55,7 +54,7 @@ pub(super) fn read_def_user_function(cur: &mut SourceCursor, song: &mut Song) ->
             // check def type
             match def_v {
                 SValue::Int(_) => type_sf = 'I',
-                SValue::Str(_,_) => type_sf = 'S',
+                SValue::Str(_, _) => type_sf = 'S',
                 SValue::Array(_) => type_sf = 'A',
                 _ => {}
             }
@@ -81,13 +80,20 @@ pub(super) fn read_def_user_function(cur: &mut SourceCursor, song: &mut Song) ->
     let body_s = cur.get_token_nest('{', '}');
     let body_tok = lex(song, &body_s, lineno);
     song.variables_stack_pop(); // destroy local variables
-    // register variables
-    let func_val = song.variables_get(&func_name).unwrap_or(&SValue::new()).clone();
+                                // register variables
+    let func_val = song
+        .variables_get(&func_name)
+        .unwrap_or(&SValue::new())
+        .clone();
     let func_id = match func_val {
         SValue::UserFunc(func_id) => func_id,
         _ => {
             // system error to analyze function in preprocess
-            read_error_cmd(cur, song, &format!("(System error) Define Function: {}", func_name));
+            read_error_cmd(
+                cur,
+                song,
+                &format!("(System error) Define Function: {}", func_name),
+            );
             0
         }
     };
@@ -100,15 +106,29 @@ pub(super) fn read_def_user_function(cur: &mut SourceCursor, song: &mut Song) ->
     Token::new_empty(&format!("DefineFunction::{}", func_name), lineno)
 }
 
-pub(super) fn check_variables(cur: &mut SourceCursor, song: &mut Song, cmd: String) -> Option<Token> {
+pub(super) fn check_variables(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    cmd: String,
+) -> Option<Token> {
     // increment variable?
     if cur.eq("++") {
         cur.next_n(2);
-        return Some(Token::new_const(TokenType::ValueInc, 1, Some(cmd), TokenValueType::VARIABLE));
+        return Some(Token::new_const(
+            TokenType::ValueInc,
+            1,
+            Some(cmd),
+            TokenValueType::VARIABLE,
+        ));
     }
     if cur.eq("--") {
         cur.next_n(2);
-        return Some(Token::new_const(TokenType::ValueInc, -1, Some(cmd), TokenValueType::VARIABLE));
+        return Some(Token::new_const(
+            TokenType::ValueInc,
+            -1,
+            Some(cmd),
+            TokenValueType::VARIABLE,
+        ));
     }
     // let?
     cur.skip_space();
@@ -117,7 +137,11 @@ pub(super) fn check_variables(cur: &mut SourceCursor, song: &mut Song, cmd: Stri
         cur.skip_space();
         // check reserved words
         if song.reserved_words.contains_key(&cmd) {
-            let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), cmd);
+            let msg = format!(
+                "{}: \"{}\"",
+                song.get_message(MessageKind::ErrorDefineVariableIsReserved),
+                cmd
+            );
             return Some(read_error(cur, song, &msg));
         }
         // let str
@@ -143,9 +167,11 @@ pub(super) fn check_variables(cur: &mut SourceCursor, song: &mut Song, cmd: Stri
         // let calc
         let body_tokens = read_calc_tokens(cur, song).unwrap_or(vec![]);
         let tok = Token::new_data_tokens(
-            TokenType::LetVar, 0, 
+            TokenType::LetVar,
+            0,
             vec![SValue::from_str(&cmd)],
-            body_tokens);
+            body_tokens,
+        );
         song.variables_insert(&cmd, SValue::None);
         return Some(tok);
     }
@@ -168,7 +194,12 @@ pub(super) fn check_variables(cur: &mut SourceCursor, song: &mut Song, cmd: Stri
     None
 }
 
-pub(super) fn read_variables(cur: &mut SourceCursor, song: &mut Song, name: &str, sval: SValue) -> Token {
+pub(super) fn read_variables(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    name: &str,
+    sval: SValue,
+) -> Token {
     match sval {
         SValue::Str(_src_org, _line_no) => {
             // replace macro?
@@ -181,12 +212,20 @@ pub(super) fn read_variables(cur: &mut SourceCursor, song: &mut Song, name: &str
                 tok.lineno = cur.line;
                 return tok;
             } else {
-                let tok = Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_s(format!("={}", name))]);
+                let tok = Token::new(
+                    TokenType::Value,
+                    LEX_VALUE,
+                    vec![SValue::from_s(format!("={}", name))],
+                );
                 return tok;
             }
         }
-        SValue::UserFunc(func_id) => { return read_call_function(cur, song, func_id); },
-        _ => { return Token::new_empty(&format!("Could not execute: {}", name), cur.line); }
+        SValue::UserFunc(func_id) => {
+            return read_call_function(cur, song, func_id);
+        }
+        _ => {
+            return Token::new_empty(&format!("Could not execute: {}", name), cur.line);
+        }
     }
 }
 
@@ -200,7 +239,11 @@ pub(super) fn read_call_function(cur: &mut SourceCursor, song: &mut Song, func_i
     call_func_tok
 }
 
-pub(super) fn read_def_var(cur: &mut SourceCursor, song: &mut Song, value_type: TokenValueType) -> Token {
+pub(super) fn read_def_var(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    value_type: TokenValueType,
+) -> Token {
     cur.skip_space();
     let var_name = cur.get_word();
     if var_name == "" {
@@ -212,7 +255,11 @@ pub(super) fn read_def_var(cur: &mut SourceCursor, song: &mut Song, value_type: 
     }
     // check reserved words
     if song.reserved_words.contains_key(&var_name) {
-        let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), var_name);
+        let msg = format!(
+            "{}: \"{}\"",
+            song.get_message(MessageKind::ErrorDefineVariableIsReserved),
+            var_name
+        );
         read_error(cur, song, &msg);
         return Token::new_empty("Failed to def INT", cur.line);
     }
@@ -221,54 +268,45 @@ pub(super) fn read_def_var(cur: &mut SourceCursor, song: &mut Song, value_type: 
     let tok = match value_type {
         TokenValueType::INT => {
             let mut val_tokens = None;
-            if cur.eq_char('=') { // 代入文がある場合
+            if cur.eq_char('=') {
+                // 代入文がある場合
                 cur.next(); // skip '='
                 val_tokens = read_calc_tokens(cur, song);
             }
             // register variable
             song.variables_insert(&var_name, SValue::from_i(0));
             // token
-            Token::new_variable(
-                TokenType::DefInt,
-                var_name,
-                val_tokens,
-            )
-        },
+            Token::new_variable(TokenType::DefInt, var_name, val_tokens)
+        }
         TokenValueType::STR => {
             // 初期値に空をセット
             let mut val_tokens = None;
-            if cur.eq_char('=') { // 代入文がある場合
+            if cur.eq_char('=') {
+                // 代入文がある場合
                 cur.next(); // skip '='
                 val_tokens = read_calc_tokens(cur, song);
             }
             // register variable
             song.variables_insert(&var_name, SValue::from_str(""));
             // token
-            Token::new_variable(
-                TokenType::DefStr,
-                var_name,
-                val_tokens,
-            )
-        },
+            Token::new_variable(TokenType::DefStr, var_name, val_tokens)
+        }
         TokenValueType::ARRAY => {
             let mut val_tokens = None;
-            if cur.eq_char('=') { // 代入文がある場合
+            if cur.eq_char('=') {
+                // 代入文がある場合
                 cur.next(); // skip '='
                 val_tokens = read_calc_tokens(cur, song);
             }
             // register variable
             song.variables_insert(&var_name, SValue::Array(vec![]));
             // token
-            Token::new_variable(
-                TokenType::DefArray,
-                var_name,
-                val_tokens,
-            )
-        },
+            Token::new_variable(TokenType::DefArray, var_name, val_tokens)
+        }
         _ => {
             song.add_log(format!("[ERROR]({}): Invalid value type.", cur.line));
             return Token::new_empty("Failed to def INT", cur.line);
-        },
+        }
     };
     tok
 }

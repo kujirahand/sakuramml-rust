@@ -1,6 +1,6 @@
 //! mml_def: 予約語の定義
-use std::collections::HashMap;
 use super::*;
+use std::collections::HashMap;
 
 pub fn init_reserved_words(sys_funcs: &HashMap<String, SystemFunction>) -> HashMap<String, u8> {
     let mut var = HashMap::new();
@@ -27,7 +27,7 @@ pub fn init_reserved_words(sys_funcs: &HashMap<String, SystemFunction>) -> HashM
     var.insert(String::from("Function"), 6); // @ FUNCTION
     var.insert(String::from("RETURN"), 7); // @ RETURN
     var.insert(String::from("Return"), 7); // @ RETURN
-    // var.insert(String::from("Result"), 8); // @ Set Function Result (代入は可能)
+                                           // var.insert(String::from("Result"), 8); // @ Set Function Result (代入は可能)
     var.insert(String::from("INT"), 9); // @ Define INT Variable
     var.insert(String::from("Int"), 9); // @ Define INT Variable
     var.insert(String::from("STR"), 10); // @ Define STR Variable
@@ -76,6 +76,6 @@ pub fn init_reserved_words(sys_funcs: &HashMap<String, SystemFunction>) -> HashM
 
     var.insert(String::from("END"), 255); // @ End
     var.insert(String::from("End"), 255); // @ End
-    //<RESERVED>
+                                          //<RESERVED>
     var
 }

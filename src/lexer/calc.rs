@@ -25,7 +25,12 @@ pub(super) fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Toke
             if token_opt.is_none() {
                 if cur.eq_char(')') {
                     cur.next(); // skip ')'
-                    return Some(Token::new_data_tokens(TokenType::MakeArray, 0, vec![], vec![]));
+                    return Some(Token::new_data_tokens(
+                        TokenType::MakeArray,
+                        0,
+                        vec![],
+                        vec![],
+                    ));
                 }
                 let msg = song.get_message(MessageKind::MissingParenthesis);
                 read_error(cur, song, msg);
@@ -57,7 +62,12 @@ pub(super) fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Toke
                     let msg = song.get_message(MessageKind::MissingParenthesis);
                     read_error(cur, song, msg);
                 }
-                return Some(Token::new_data_tokens(TokenType::MakeArray, 0, vec![], array_tokens));
+                return Some(Token::new_data_tokens(
+                    TokenType::MakeArray,
+                    0,
+                    vec![],
+                    array_tokens,
+                ));
             }
             if cur.eq_char(')') {
                 cur.next();
@@ -68,13 +78,18 @@ pub(super) fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Toke
             // ( calc )
             let token = Token::new_calc_token('(', LEX_PAREN, vec![token]);
             return Some(token);
-        },
+        }
         '-' => {
             // is negative number ?
             cur.next();
             if cur.is_numeric() {
                 let num = cur.get_int(0);
-                return Some(Token::new_const(TokenType::ConstInt, -1 * num, None, TokenValueType::INT));
+                return Some(Token::new_const(
+                    TokenType::ConstInt,
+                    -1 * num,
+                    None,
+                    TokenValueType::INT,
+                ));
             }
             // '-' * value
             let token_opt = read_value(cur, song);
@@ -86,39 +101,69 @@ pub(super) fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Toke
                 }
             };
             // -1 * value
-            let token_tree = Token::new_calc_token('*', LEX_VALUE, vec![
+            let token_tree = Token::new_calc_token(
+                '*',
+                LEX_VALUE,
+                vec![
                     Token::new_const(TokenType::ConstInt, -1, None, TokenValueType::INT),
                     token,
-            ]);
+                ],
+            );
             return Some(token_tree);
-        },
+        }
         '0'..='9' => {
             let num = cur.get_int(0);
-            return Some(Token::new_const(TokenType::ConstInt, num, None, TokenValueType::INT));
-        },
-        '$' => { // v2 compatible hex number
+            return Some(Token::new_const(
+                TokenType::ConstInt,
+                num,
+                None,
+                TokenValueType::INT,
+            ));
+        }
+        '$' => {
+            // v2 compatible hex number
             let num = cur.get_int(0);
-            return Some(Token::new_const(TokenType::ConstInt, num, None, TokenValueType::INT));
-        },
+            return Some(Token::new_const(
+                TokenType::ConstInt,
+                num,
+                None,
+                TokenValueType::INT,
+            ));
+        }
         '!' => {
             // note length notation (e.g. !8, !4.)
             cur.next(); // skip '!'
             let len_str = cur.get_note_length();
             let num = calc_length(&len_str, song.timebase, song.timebase);
-            return Some(Token::new_const(TokenType::ConstInt, num, None, TokenValueType::INT));
-        },
+            return Some(Token::new_const(
+                TokenType::ConstInt,
+                num,
+                None,
+                TokenValueType::INT,
+            ));
+        }
         '{' => {
             let str = cur.get_token_nest('{', '}');
-            return Some(Token::new_const(TokenType::ConstStr, str.len() as isize, Some(str), TokenValueType::STR));
-        },
+            return Some(Token::new_const(
+                TokenType::ConstStr,
+                str.len() as isize,
+                Some(str),
+                TokenValueType::STR,
+            ));
+        }
         '"' => {
             cur.next();
             let str = cur.get_token_ch('"');
-            return Some(Token::new_const(TokenType::ConstStr, str.len() as isize, Some(str), TokenValueType::STR));
-        },
+            return Some(Token::new_const(
+                TokenType::ConstStr,
+                str.len() as isize,
+                Some(str),
+                TokenValueType::STR,
+            ));
+        }
         'A'..='Z' | '_' | '#' | 'a'..='z' => {
             return Some(read_value_word(cur, song));
-        },
+        }
         _ => {}
     }
     None
@@ -194,17 +239,7 @@ pub(super) fn read_value_word(cur: &mut SourceCursor, song: &mut Song) -> Token 
 fn is_mml_state_name(name: &str) -> bool {
     matches!(
         name,
-        "l"
-            | "v"
-            | "o"
-            | "q"
-            | "t"
-            | "@"
-            | "BR"
-            | "p%"
-            | "Key"
-            | "TimeKey"
-            | "Port"
+        "l" | "v" | "o" | "q" | "t" | "@" | "BR" | "p%" | "Key" | "TimeKey" | "Port"
     )
 }
 
@@ -224,7 +259,9 @@ fn is_raw_mml_note(arg: &str) -> bool {
 
 pub(super) fn is_operator_char(c: char) -> bool {
     match c {
-        '+' | '-' | '*' | '/' | '|' | '&' | '%' | '≠' | '=' | '>' | '<' | '≧' | '≦' | '!' => true,
+        '+' | '-' | '*' | '/' | '|' | '&' | '%' | '≠' | '=' | '>' | '<' | '≧' | '≦' | '!' => {
+            true
+        }
         _ => false,
     }
 }
@@ -232,35 +269,33 @@ pub(super) fn is_operator_char(c: char) -> bool {
 pub(super) fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
     cur.skip_space();
     let mut ch = cur.peek_n(0);
-    if !is_operator_char(ch) { return None; }
-    if cur.eq("//") || cur.eq("/*"){
+    if !is_operator_char(ch) {
+        return None;
+    }
+    if cur.eq("//") || cur.eq("/*") {
         return None;
     }
     if cur.eq(">=") {
         cur.next_n(2);
         ch = '≧';
-    }
-    else if cur.eq("<=") {
+    } else if cur.eq("<=") {
         cur.next_n(2);
         ch = '≦';
-    }
-    else if cur.eq("<>") || cur.eq("!=") {
+    } else if cur.eq("<>") || cur.eq("!=") {
         cur.next_n(2);
         ch = '≠';
-    }
-    else if cur.eq("==") {
+    } else if cur.eq("==") {
         cur.next_n(2);
         ch = '=';
-    }
-    else if cur.eq("&&") { // logical and
+    } else if cur.eq("&&") {
+        // logical and
         cur.next_n(2);
         ch = '&';
-    }
-    else if cur.eq("||") { // logical or
+    } else if cur.eq("||") {
+        // logical or
         cur.next_n(2);
         ch = '|';
-    }
-    else {
+    } else {
         cur.next();
     }
     let priority = match ch {
@@ -278,7 +313,7 @@ pub(super) fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
         '≧' => LEX_COMPARE,
         '≦' => LEX_COMPARE,
         '!' => LEX_COMPARE,
-        _ => { -1 }
+        _ => -1,
     };
     if priority < 0 {
         return None;
@@ -288,7 +323,7 @@ pub(super) fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
 
 pub(super) fn read_calc_tokens(cur: &mut SourceCursor, song: &mut Song) -> Option<Vec<Token>> {
     match read_calc(cur, song) {
-        Some(tok) => { Some(vec![tok]) },
+        Some(tok) => Some(vec![tok]),
         None => None,
     }
 }
@@ -314,13 +349,11 @@ pub(super) fn read_calc(cur: &mut SourceCursor, song: &mut Song) -> Option<Token
             read_error(cur, song, msg);
         }
         let right_val = right_val_o.unwrap_or(Token::new_empty("ERROR", cur.line));
-        
+
         // replace left_val to CalcTree
         if left_val.ttype != TokenType::CalcTree {
-            left_val = Token::new_calc_token(
-                operator_ch,
-                operator_priority,
-                vec![left_val, right_val]);
+            left_val =
+                Token::new_calc_token(operator_ch, operator_priority, vec![left_val, right_val]);
             continue;
         }
         // check priority
@@ -331,30 +364,34 @@ pub(super) fn read_calc(cur: &mut SourceCursor, song: &mut Song) -> Option<Token
             let left_operator = left_val.operator_flag;
             let left_priority = left_val.value_i;
             let mut left_val_children = left_val.children.clone().unwrap_or(vec![]);
-            if left_val_children.len() < 2 { // 括弧や値の場合
+            if left_val_children.len() < 2 {
+                // 括弧や値の場合
                 // example (1) + 2
                 left_val = Token::new_calc_token(
                     operator_ch,
                     operator_priority,
-                    vec![left_val, right_val]);
+                    vec![left_val, right_val],
+                );
                 continue;
             }
-            let val2 = left_val_children.pop().unwrap_or(Token::new_const(TokenType::ConstInt, 0, None, TokenValueType::INT));
-            let val1 = left_val_children.pop().unwrap_or(Token::new_const(TokenType::ConstInt, 0, None, TokenValueType::INT));
+            let val2 = left_val_children.pop().unwrap_or(Token::new_const(
+                TokenType::ConstInt,
+                0,
+                None,
+                TokenValueType::INT,
+            ));
+            let val1 = left_val_children.pop().unwrap_or(Token::new_const(
+                TokenType::ConstInt,
+                0,
+                None,
+                TokenValueType::INT,
+            ));
             let val3 = right_val;
-            let new_right = Token::new_calc_token(
-                operator_ch,
-                operator_priority,
-                vec![val2, val3]);
-            left_val = Token::new_calc_token(
-                left_operator,
-                left_priority,
-                vec![val1, new_right]);
+            let new_right = Token::new_calc_token(operator_ch, operator_priority, vec![val2, val3]);
+            left_val = Token::new_calc_token(left_operator, left_priority, vec![val1, new_right]);
         } else {
-            left_val = Token::new_calc_token(
-                operator_ch,
-                operator_priority,
-                vec![left_val, right_val]);
+            left_val =
+                Token::new_calc_token(operator_ch, operator_priority, vec![left_val, right_val]);
         }
     }
     // println!("@@@read_calc={:?}", left_val.to_debug_str(0));
@@ -403,10 +440,15 @@ pub(super) fn read_while(cur: &mut SourceCursor, song: &mut Song) -> Token {
     let body_s = cur.get_token_nest('{', '}');
     let body_tok = lex(song, &body_s, lineno);
     // while
-    let while_tok = Token::new_tokens_lineno(TokenType::While, 0, vec![
-        Token::new_tokens(TokenType::Tokens, 0, cond_tok),
-        Token::new_tokens(TokenType::Tokens, 0, body_tok),
-    ], lineno);
+    let while_tok = Token::new_tokens_lineno(
+        TokenType::While,
+        0,
+        vec![
+            Token::new_tokens(TokenType::Tokens, 0, cond_tok),
+            Token::new_tokens(TokenType::Tokens, 0, body_tok),
+        ],
+        lineno,
+    );
     while_tok
 }
 
@@ -430,7 +472,7 @@ pub(super) fn read_for(cur: &mut SourceCursor, song: &mut Song) -> Token {
     }
     let body_s = cur.get_token_nest('{', '}');
     // もし、String型のinit_sが"Int "から始まっていなければ"Int "を足す
-    let init_s = if init_s == "" || (init_s.starts_with("Int ") || init_s.starts_with("INT "))  {
+    let init_s = if init_s == "" || (init_s.starts_with("Int ") || init_s.starts_with("INT ")) {
         init_s
     } else {
         format!("Int {}", init_s)
@@ -439,12 +481,17 @@ pub(super) fn read_for(cur: &mut SourceCursor, song: &mut Song) -> Token {
     let cond_tok = lex_calc(song, &cond_s, lineno);
     let inc_tok = lex(song, &inc_s, lineno);
     let body_tok = lex(song, &body_s, lineno);
-    let for_tok = Token::new_tokens_lineno(TokenType::For, 0, vec![
-        Token::new_tokens(TokenType::Tokens, 0, init_tok),
-        Token::new_tokens(TokenType::Tokens, 0, cond_tok),
-        Token::new_tokens(TokenType::Tokens, 0, inc_tok),
-        Token::new_tokens(TokenType::Tokens, 0, body_tok),
-    ], lineno);
+    let for_tok = Token::new_tokens_lineno(
+        TokenType::For,
+        0,
+        vec![
+            Token::new_tokens(TokenType::Tokens, 0, init_tok),
+            Token::new_tokens(TokenType::Tokens, 0, cond_tok),
+            Token::new_tokens(TokenType::Tokens, 0, inc_tok),
+            Token::new_tokens(TokenType::Tokens, 0, body_tok),
+        ],
+        lineno,
+    );
     for_tok
 }
 
@@ -482,9 +529,14 @@ pub(super) fn read_if(cur: &mut SourceCursor, song: &mut Song) -> Token {
     }
     // println!("cond: {:?}", cond_tok);
     // token
-    Token::new_tokens_lineno(TokenType::If, 0, vec![
-        Token::new_tokens(TokenType::Tokens, 0, cond_tok),
-        Token::new_tokens(TokenType::Tokens, 0, then_tok),
-        Token::new_tokens(TokenType::Tokens, 0, else_tok),
-    ], lineno)
+    Token::new_tokens_lineno(
+        TokenType::If,
+        0,
+        vec![
+            Token::new_tokens(TokenType::Tokens, 0, cond_tok),
+            Token::new_tokens(TokenType::Tokens, 0, then_tok),
+            Token::new_tokens(TokenType::Tokens, 0, else_tok),
+        ],
+        lineno,
+    )
 }

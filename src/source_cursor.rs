@@ -20,19 +20,23 @@ impl SourceCursor {
     }
     /// is eos
     pub fn is_eos(&self) -> bool {
-        self.src.len() <=  self.index
+        self.src.len() <= self.index
     }
     pub fn has_next(&self) -> bool {
         self.index < self.src.len()
     }
     pub fn get_char(&mut self) -> char {
-        if self.is_eos() { return '\0'; }
+        if self.is_eos() {
+            return '\0';
+        }
         let ch = self.src[self.index];
         self.index += 1;
         return ch;
     }
     pub fn next(&mut self) {
-        if self.is_eos() { return }
+        if self.is_eos() {
+            return;
+        }
         self.index += 1;
     }
     pub fn next_n(&mut self, n: usize) {
@@ -46,42 +50,56 @@ impl SourceCursor {
         }
     }
     pub fn peek(&mut self) -> Option<char> {
-        if self.is_eos() { return None; }
+        if self.is_eos() {
+            return None;
+        }
         let c = self.src[self.index];
         Some(c)
     }
     /// peek [index+n] char
     pub fn peek_n(&self, n: usize) -> char {
         let idx = self.index + n;
-        if self.src.len() <= idx { return '\0'; }
+        if self.src.len() <= idx {
+            return '\0';
+        }
         self.src[idx]
     }
     pub fn peek_str_n(&self, n: usize) -> String {
         let mut s = String::new();
         for i in 0..n {
             let idx = self.index + i;
-            if idx >= self.src.len() { return s; }
+            if idx >= self.src.len() {
+                return s;
+            }
             s.push(self.src[idx]);
         }
         s
     }
     /// replace current char
     pub fn replace_char(&mut self, ch: char) {
-        if self.is_eos() { return; }
+        if self.is_eos() {
+            return;
+        }
         self.src[self.index] = ch;
     }
     pub fn is_numeric(&self) -> bool {
-        if self.is_eos() { return false; }
+        if self.is_eos() {
+            return false;
+        }
         let c = self.src[self.index];
         return ('0' <= c) && (c <= '9');
     }
     pub fn is_upper(&self) -> bool {
-        if self.is_eos() { return false; }
+        if self.is_eos() {
+            return false;
+        }
         let c = self.src[self.index];
         return ('A' <= c) && (c <= 'Z');
     }
     pub fn is_lower(&self) -> bool {
-        if self.is_eos() { return false; }
+        if self.is_eos() {
+            return false;
+        }
         let c = self.src[self.index];
         return ('a' <= c) && (c <= 'z');
     }
@@ -89,7 +107,9 @@ impl SourceCursor {
         let s2: Vec<char> = s.chars().collect();
         for i in 0..s2.len() {
             let idx = self.index + i;
-            if idx >= self.src.len() { return false; }
+            if idx >= self.src.len() {
+                return false;
+            }
             if self.src[idx] != s2[i] {
                 return false;
             }
@@ -97,7 +117,9 @@ impl SourceCursor {
         true
     }
     pub fn eq_char(&self, ch1: char) -> bool {
-        if self.is_eos() { return false; }
+        if self.is_eos() {
+            return false;
+        }
         let ch2 = self.peek_n(0);
         return ch2 == ch1;
     }
@@ -119,9 +141,11 @@ impl SourceCursor {
         let mut s = String::new();
         while !self.is_eos() {
             let ch = self.get_char();
-            if ch == '\n' { self.line += 1; }
+            if ch == '\n' {
+                self.line += 1;
+            }
             if ch == splitter {
-                break
+                break;
             }
             s.push(ch);
         }
@@ -131,13 +155,19 @@ impl SourceCursor {
         let mut s = String::new();
         while !self.is_eos() {
             let ch = self.get_char();
-            if ch == '\n' { self.line += 1; }
+            if ch == '\n' {
+                self.line += 1;
+            }
             if ch == '\\' {
                 let ch2 = self.get_char();
-                if ch2 != '\0' { s.push(ch2); }
+                if ch2 != '\0' {
+                    s.push(ch2);
+                }
                 continue;
             }
-            if ch == '"' { break; }
+            if ch == '"' {
+                break;
+            }
             s.push(ch);
         }
         s
@@ -152,16 +182,19 @@ impl SourceCursor {
         }
         while !self.is_eos() {
             let ch = self.get_char();
-            if ch == '\n' { self.line += 1; }
+            if ch == '\n' {
+                self.line += 1;
+            }
             if ch == open_ch {
                 level += 1;
-            }
-            else if ch == close_ch {
+            } else if ch == close_ch {
                 if level > 0 {
                     level -= 1;
                 }
                 // last?
-                if level == 0 { break; }
+                if level == 0 {
+                    break;
+                }
             }
             s.push(ch);
         }
@@ -179,9 +212,11 @@ impl SourceCursor {
             let ch = self.peek_n(0);
             match ch {
                 '\r' | '\n' | '\t' | ' ' => {
-                    if ch == '\n' { self.line += 1; }
+                    if ch == '\n' {
+                        self.line += 1;
+                    }
                     self.index += 1;
-                },
+                }
                 '/' => {
                     if self.eq("//") {
                         self.get_token_ch('\n');
@@ -192,8 +227,10 @@ impl SourceCursor {
                         continue;
                     }
                     break;
-                },
-                _ => { break; }
+                }
+                _ => {
+                    break;
+                }
             }
         }
     }
@@ -203,15 +240,17 @@ impl SourceCursor {
             match ch {
                 '\t' | ' ' => {
                     self.index += 1;
-                },
+                }
                 '/' => {
                     if self.eq("/*") {
                         self.get_token_s("*/");
                         continue;
                     }
                     break;
-                },
-                _ => { break; }
+                }
+                _ => {
+                    break;
+                }
             }
         }
     }
@@ -224,11 +263,12 @@ impl SourceCursor {
                     res.push(ch);
                     self.index += 1;
                     continue;
-                },
+                }
                 ' ' | '|' | '\t' => {
                     self.next();
-                },
-                '\n' => { // 改行があっても続く部分が"^"で始まれば続行
+                }
+                '\n' => {
+                    // 改行があっても続く部分が"^"で始まれば続行
                     let tmp_index = self.index;
                     let tmp_line = self.line;
                     self.next(); // skip '\n'
@@ -243,7 +283,9 @@ impl SourceCursor {
                     self.line = tmp_line;
                     break;
                 }
-                _ => { break; }
+                _ => {
+                    break;
+                }
             }
         }
         res
@@ -262,7 +304,9 @@ impl SourceCursor {
                     self.index += 1;
                     continue;
                 }
-                _ => { break; }
+                _ => {
+                    break;
+                }
             }
         }
         res
@@ -287,8 +331,10 @@ impl SourceCursor {
         // Hex chars?
         let ch = self.peek_n(0);
         match ch {
-            '0'..='9' | 'a'..='f' | 'A'..='F' => {},
-            _ => { return def; }
+            '0'..='9' | 'a'..='f' | 'A'..='F' => {}
+            _ => {
+                return def;
+            }
         }
         // calc number
         while !self.is_eos() {
@@ -298,18 +344,20 @@ impl SourceCursor {
                     no = no << 4 | ch as isize - '0' as isize;
                     self.next();
                     continue;
-                },
+                }
                 'a'..='f' => {
                     no = (no << 4) | (0x0a + (ch as isize - 'a' as isize));
                     self.next();
                     continue;
-                },
+                }
                 'A'..='F' => {
                     no = (no << 4) | (0x0a + (ch as isize - 'A' as isize));
                     self.next();
                     continue;
-                },
-                _ => { break; }
+                }
+                _ => {
+                    break;
+                }
             }
         }
         return no * flag;
@@ -329,11 +377,13 @@ impl SourceCursor {
         // Oct integer?
         if self.eq("0o") {
             self.index += 2; // skip 0o
-            // Oct chars?
+                             // Oct chars?
             let ch = self.peek_n(0);
             match ch {
-                '0'..='8' => {},
-                _ => { return def; }
+                '0'..='8' => {}
+                _ => {
+                    return def;
+                }
             }
             // calc number
             while !self.is_eos() {
@@ -343,21 +393,25 @@ impl SourceCursor {
                         no = no * 8 + (ch as isize - '0' as isize);
                         self.next();
                         continue;
-                    },
-                    _ => { break; }
+                    }
+                    _ => {
+                        break;
+                    }
                 }
             }
             return no * flag;
         }
         // check numeric
-        if !self.is_numeric() { return def; }
+        if !self.is_numeric() {
+            return def;
+        }
         while !self.is_eos() {
             let ch = self.peek_n(0);
             match ch {
                 '0'..='9' => {
                     no = no * 10 + (ch as isize - '0' as isize);
                     self.next();
-                },
+                }
                 _ => break,
             }
         }
@@ -370,7 +424,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_basic() {
-        // 
+        //
         let mut cur = SourceCursor::from("l16cde");
         assert_eq!(cur.is_eos(), false);
         assert_eq!(cur.get_char(), 'l');

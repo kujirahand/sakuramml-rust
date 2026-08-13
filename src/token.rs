@@ -187,7 +187,6 @@ pub enum TokenValueType {
     VARIABLE,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Token {
     pub ttype: TokenType,
@@ -241,7 +240,12 @@ impl Token {
             lineno: 0,
         }
     }
-    pub fn new_const(ttype: TokenType, value_i: isize, value_s: Option<String>, value_type: TokenValueType) -> Self {
+    pub fn new_const(
+        ttype: TokenType,
+        value_i: isize,
+        value_s: Option<String>,
+        value_type: TokenValueType,
+    ) -> Self {
         Self {
             ttype,
             value_i,
@@ -254,7 +258,11 @@ impl Token {
             lineno: 0,
         }
     }
-    pub fn new_variable(ttype: TokenType, var_name: String, init_tokens: Option<Vec<Token>>) -> Self {
+    pub fn new_variable(
+        ttype: TokenType,
+        var_name: String,
+        init_tokens: Option<Vec<Token>>,
+    ) -> Self {
         Self {
             ttype,
             value_i: 0,
@@ -319,7 +327,12 @@ impl Token {
             lineno: 0,
         }
     }
-    pub fn new_tokens_lineno(ttype: TokenType, value: isize, tokens: Vec<Token>, lineno: isize) -> Self {
+    pub fn new_tokens_lineno(
+        ttype: TokenType,
+        value: isize,
+        tokens: Vec<Token>,
+        lineno: isize,
+    ) -> Self {
         Self {
             ttype,
             value_i: value,
@@ -332,7 +345,12 @@ impl Token {
             lineno,
         }
     }
-    pub fn new_data_tokens(ttype: TokenType, value: isize, data: Vec<SValue>, tokens: Vec<Token>) -> Self {
+    pub fn new_data_tokens(
+        ttype: TokenType,
+        value: isize,
+        data: Vec<SValue>,
+        tokens: Vec<Token>,
+    ) -> Self {
         Self {
             ttype,
             value_i: value,
@@ -380,26 +398,28 @@ impl Token {
         }
         match self.ttype {
             TokenType::Comment => {
-                let line = format!("[{:?}#{}]", self.ttype, self.value_s.as_ref().unwrap_or(&String::from("")));
+                let line = format!(
+                    "[{:?}#{}]",
+                    self.ttype,
+                    self.value_s.as_ref().unwrap_or(&String::from(""))
+                );
                 return line;
-            },
+            }
             TokenType::CalcTree => {
                 if let Some(children) = &self.children {
                     let mut s = String::new();
                     for t in children.iter() {
-                        s.push_str(&t.to_debug_str(level+1));
+                        s.push_str(&t.to_debug_str(level + 1));
                     }
                     return format!(
                         "[{:?} {}({}){{{}}}]",
-                        self.ttype,
-                        self.operator_flag,
-                        self.value_i,
-                        s);
+                        self.ttype, self.operator_flag, self.value_i, s
+                    );
                 }
                 let line = format!("[{:?},{}]", self.ttype, self.value_i);
                 return line;
-            },
-            _ => {},
+            }
+            _ => {}
         }
         let line = format!("[{:?},{}]", self.ttype, self.value_i);
         line
@@ -412,7 +432,7 @@ fn indent_line(src: &str, level: isize) -> String {
     let part1 = " ├──";
     let mut s = String::new();
     for i in 0..level {
-        if i == level-1 {
+        if i == level - 1 {
             s.push_str(part1);
             continue;
         }
@@ -444,10 +464,16 @@ pub fn tokens_to_debug_str(tokens: &[Token], level: isize) -> String {
         if t.ttype == TokenType::LineNo {
             lineno = t.lineno;
         }
-        let line = format!("[{:?}](i:{}{},line:{})\n", t.ttype, t.value_i, opt_str_short(&t.value_s, ",s:"), lineno);
+        let line = format!(
+            "[{:?}](i:{}{},line:{})\n",
+            t.ttype,
+            t.value_i,
+            opt_str_short(&t.value_s, ",s:"),
+            lineno
+        );
         s.push_str(&indent_line(&line, level));
         if let Some(children) = &t.children {
-            s.push_str(&tokens_to_debug_str(children, level+1));
+            s.push_str(&tokens_to_debug_str(children, level + 1));
         }
     }
     s

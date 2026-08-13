@@ -13,7 +13,7 @@
 - 機能を実装したら、必ずテストコードを追加してください。
 - 機能を実装したら、`docs/*.md`にドキュメントを追加してください。ドキュメントは日本語で書いて。
 - 実装で迷ったらオリジナル実装のPascal/Delphi版を参考にしてください。`sakuramml/`ディレクトリにソースコードがあります。
-- `command.md`は、コマンドの一覧をまとめたもので、`make doc`コマンドで自動生成されます。手動で編集せず、ソースコードにコメントを追加して、`make doc`で更新してください。
+- `command.md`は、コマンドの一覧をまとめたもので、`make doc`コマンドで`scripts/extract_command.py`から自動生成されます。手動で編集せず、ソースコードにコメントを追加して、`make doc`で更新してください。
 
 ### 技術スタック
 
@@ -78,9 +78,10 @@ sakuramml-rust/
 │   ├── lexer_test.rs      # 字句解析器のテスト
 │   ├── runner_test.rs     # 実行エンジンのテスト
 │   ├── song_test.rs       # 曲・MIDIイベントのテスト
-│   ├── batch_extract_command.nako3 # コマンド情報抽出スクリプト
 │   ├── batch_gen_voice_var.nako3   # 音色変数生成スクリプト
 │   └── batch_version.nako3         # バージョン更新スクリプト
+├── scripts/
+│   └── extract_command.py      # コマンド情報抽出スクリプト
 ├── pkg/                   # WebAssemblyパッケージ
 ├── samples/               # サンプルMMLファイル
 ├── target/                # ビルド出力

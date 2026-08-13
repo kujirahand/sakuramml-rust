@@ -73,10 +73,7 @@ fn eval_creates_a_midi_file() {
 fn dump_outputs_midi_channels() {
     let dir = TestDir::new("dump-channel");
     let compile = run(
-        &[
-            "--eval",
-            "TR(1) o4 CH(1) c CH(2) d TR(2) CH(10) CC(1,100)",
-        ],
+        &["--eval", "TR(1) o4 CH(1) c CH(2) d TR(2) CH(10) CC(1,100)"],
         &dir,
     );
     assert!(
@@ -97,7 +94,10 @@ fn dump_outputs_midi_channels() {
     assert!(lines.contains(&"TR(1) CH(1)"), "{stdout}");
     assert!(stdout.contains("CH(2) NoteOn($32,$64)"), "{stdout}");
     assert!(lines.contains(&"TR(2) CH(10)"), "{stdout}");
-    assert!(!lines.iter().any(|line| line.starts_with("TR(3)")), "{stdout}");
+    assert!(
+        !lines.iter().any(|line| line.starts_with("TR(3)")),
+        "{stdout}"
+    );
     assert_eq!(stdout.matches("CH(1)").count(), 1, "{stdout}");
     assert_eq!(stdout.matches("CH(2)").count(), 1, "{stdout}");
     assert_eq!(stdout.matches("CH(10)").count(), 1, "{stdout}");
@@ -171,16 +171,21 @@ fn max_event_bytes_stops_compilation_and_writes_a_partial_file() {
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr)
         .contains("MIDI event data exceeds max_event_bytes (64)"));
-    assert!(fs::read(dir.0.join("eval.mid")).unwrap().starts_with(b"MThd"));
+    assert!(fs::read(dir.0.join("eval.mid"))
+        .unwrap()
+        .starts_with(b"MThd"));
 }
 
 #[test]
 fn max_event_bytes_accepts_a_custom_cli_limit() {
     let dir = TestDir::new("event-limit-custom");
-    let output = run(
-        &["--max-event-bytes", "16", "--eval", "y1,64 y2,64"],
-        &dir,
+    let output = run(&["--max-event-bytes", "16", "--eval", "y1,64 y2,64"], &dir);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
     );
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
-    assert!(fs::read(dir.0.join("eval.mid")).unwrap().starts_with(b"MThd"));
+    assert!(fs::read(dir.0.join("eval.mid"))
+        .unwrap()
+        .starts_with(b"MThd"));
 }

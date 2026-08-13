@@ -1,6 +1,5 @@
-
 #[allow(dead_code)]
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum SValue {
     Int(isize),
     Str(String, isize),
@@ -55,7 +54,13 @@ impl SValue {
         match self {
             Self::Int(i) => *i,
             Self::Str(s, _) => s.parse().unwrap_or(0),
-            Self::Bool(b) => if *b { 1 } else { 0 },
+            Self::Bool(b) => {
+                if *b {
+                    1
+                } else {
+                    0
+                }
+            }
             Self::UserFunc(id) => *id as isize,
             Self::None => 0,
             _ => 0,
@@ -65,11 +70,21 @@ impl SValue {
         match self {
             Self::Int(i) => i.to_string(),
             Self::Str(s, _) => s.clone(),
-            Self::Bool(b) => if *b { "TRUE".to_string() } else { "FALSE".to_string() },
+            Self::Bool(b) => {
+                if *b {
+                    "TRUE".to_string()
+                } else {
+                    "FALSE".to_string()
+                }
+            }
             Self::Array(a) => {
-                let s = a.iter().map(|v| v.to_s()).collect::<Vec<String>>().join(",");
+                let s = a
+                    .iter()
+                    .map(|v| v.to_s())
+                    .collect::<Vec<String>>()
+                    .join(",");
                 format!("({})", s)
-            },
+            }
             Self::None => String::new(),
             _ => String::new(),
         }
@@ -77,7 +92,7 @@ impl SValue {
     pub fn get_str_and_tag(&self) -> (String, isize) {
         match self {
             Self::Int(i) => (i.to_string(), 0),
-            Self::Str(s, no) => { (s.clone(), *no) },
+            Self::Str(s, no) => (s.clone(), *no),
             Self::None => (String::new(), 0),
             _ => (String::new(), 0),
         }
@@ -96,14 +111,14 @@ impl SValue {
                                 let a3 = v2.to_int_array();
                                 res.extend(a3);
                             }
-                        },
+                        }
                         _ => {
                             res.push(v.to_i());
                         }
                     }
                 }
                 res
-            },
+            }
             Self::IntArray(a) => a.clone(),
             _ => {
                 vec![self.to_i()]
@@ -119,7 +134,7 @@ impl SValue {
                     res.push(SValue::from_i(*v));
                 }
                 res
-            },
+            }
             _ => {
                 vec![self.clone()]
             }
@@ -136,15 +151,15 @@ impl SValue {
             Self::Int(vi) => {
                 let si = self.to_i();
                 return si == vi;
-            },
+            }
             Self::Str(vs, _) => {
                 let ss = self.to_s();
                 return ss == vs;
-            },
+            }
             Self::None => {
                 return self.is_none();
-            },
-            _ => {},
+            }
+            _ => {}
         }
         false
     }
@@ -155,11 +170,11 @@ impl SValue {
         match self {
             Self::Int(i) => {
                 return i > &v.to_i();
-            },
+            }
             Self::Str(s, _) => {
                 return s > &v.to_s();
-            },
-            _ => {},
+            }
+            _ => {}
         }
         false
     }
@@ -167,11 +182,11 @@ impl SValue {
         match self {
             Self::Int(i) => {
                 return i >= &v.to_i();
-            },
+            }
             Self::Str(s, _) => {
                 return s >= &v.to_s();
-            },
-            _ => {},
+            }
+            _ => {}
         }
         false
     }
@@ -179,11 +194,11 @@ impl SValue {
         match self {
             Self::Int(i) => {
                 return i < &v.to_i();
-            },
+            }
             Self::Str(s, _) => {
                 return s < &v.to_s();
-            },
-            _ => {},
+            }
+            _ => {}
         }
         false
     }
@@ -199,11 +214,11 @@ impl SValue {
         match self {
             Self::Int(i) => {
                 return i <= &v.to_i();
-            },
+            }
             Self::Str(s, _) => {
                 return s <= &v.to_s();
-            },
-            _ => {},
+            }
+            _ => {}
         }
         false
     }
@@ -238,8 +253,8 @@ impl SValue {
             Self::Int(vi) => {
                 let si = self.to_i();
                 return Self::Int(si + vi);
-            },
-            _ => {},
+            }
+            _ => {}
         }
         // others
         let i1 = self.to_i();
@@ -253,7 +268,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_basic() {
-        // 
+        //
         let si = SValue::from_i(100);
         assert_eq!(si.to_i(), 100);
     }
@@ -272,10 +287,7 @@ mod tests {
             SValue::Array(vec![
                 SValue::from_i(4),
                 SValue::from_i(5),
-                SValue::Array(vec![
-                    SValue::from_i(6),
-                    SValue::from_i(7)
-                ])
+                SValue::Array(vec![SValue::from_i(6), SValue::from_i(7)]),
             ]),
         ]);
         // to string
@@ -283,7 +295,11 @@ mod tests {
         assert_eq!(sb, "(1,2,3,(4,5,(6,7)))");
         // to int array (flatten)
         let b = a.to_int_array();
-        let sb = b.iter().map(|v| v.to_string()).collect::<Vec<String>>().join(",");
+        let sb = b
+            .iter()
+            .map(|v| v.to_string())
+            .collect::<Vec<String>>()
+            .join(",");
         assert_eq!(sb, "1,2,3,4,5,6,7");
     }
 }

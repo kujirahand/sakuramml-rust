@@ -22,7 +22,11 @@ pub(super) fn exec_length(song: &mut Song, t: &Token) {
 /// オクターブの指定 (o)
 pub(super) fn exec_octave(song: &mut Song, t: &Token) {
     trk!(song).o_opt.clear_reserve();
-    let value = t.data.first().map(|v| var_extract(v, song).to_i()).unwrap_or(t.value_i);
+    let value = t
+        .data
+        .first()
+        .map(|v| var_extract(v, song).to_i())
+        .unwrap_or(t.value_i);
     trk!(song).octave = value_range(0, value, 10);
 }
 
@@ -39,7 +43,11 @@ pub(super) fn exec_octave_once(song: &mut Song, t: &Token) {
 
 /// ベロシティの指定 (v)
 pub(super) fn exec_velocity(song: &mut Song, t: &Token) {
-    let value = t.data.first().map(|v| var_extract(v, song).to_i()).unwrap_or(t.value_i);
+    let value = t
+        .data
+        .first()
+        .map(|v| var_extract(v, song).to_i())
+        .unwrap_or(t.value_i);
     let ino = t.data.get(1).map(|v| v.to_i()).unwrap_or(-1);
     if ino >= 0 {
         let index = ino as usize;
@@ -62,7 +70,11 @@ pub(super) fn exec_velocity_rel(song: &mut Song, t: &Token) {
 pub(super) fn exec_qlen(song: &mut Song, t: &Token) {
     trk!(song).q_opt.clear_reserve();
     let max = trk!(song).q_opt.max_or(100);
-    let value = t.data.first().map(|v| var_extract(v, song).to_i()).unwrap_or(t.value_i);
+    let value = t
+        .data
+        .first()
+        .map(|v| var_extract(v, song).to_i())
+        .unwrap_or(t.value_i);
     trk!(song).qlen = value_range(0, value, max);
 }
 
@@ -74,7 +86,11 @@ pub(super) fn exec_qlen_rel(song: &mut Song, t: &Token) {
 /// 発音タイミングの指定 (t)
 pub(super) fn exec_timing(song: &mut Song, t: &Token) {
     trk!(song).t_opt.clear_reserve();
-    trk!(song).timing = t.data.first().map(|v| var_extract(v, song).to_i()).unwrap_or(t.value_i);
+    trk!(song).timing = t
+        .data
+        .first()
+        .map(|v| var_extract(v, song).to_i())
+        .unwrap_or(t.value_i);
 }
 
 /// 音符属性のランダム変化 (.Random)

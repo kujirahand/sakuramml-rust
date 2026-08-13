@@ -1,26 +1,41 @@
 //! mml_def: 予約変数の初期定義
-use std::collections::HashMap;
 use crate::sakura_version;
 use crate::svalue::SValue;
+use std::collections::HashMap;
 
 pub fn init_variables() -> HashMap<String, SValue> {
     let mut var = HashMap::new();
     //<VARIABLES>
-    var.insert(String::from("SAKURA_VERSION"), SValue::from_s(sakura_version::SAKURA_VERSION.to_string())); // @ サクラのバージョン情報を得る
+    var.insert(
+        String::from("SAKURA_VERSION"),
+        SValue::from_s(sakura_version::SAKURA_VERSION.to_string()),
+    ); // @ サクラのバージョン情報を得る
     var.insert(String::from("FALSE"), SValue::from_b(false)); // @ bool型(false)
     var.insert(String::from("TRUE"), SValue::from_b(true)); // @ bool型(true)
-    var.insert(String::from("OctaveUnison"), SValue::from_str("Sub{> #?1 <} #?1")); // @ オクターブユニゾンを演奏 (例 OctaveUnison{cde})
-    var.insert(String::from("Unison5th"), SValue::from_str("Sub{ Key=7 #?1 Key=0 } #?1")); // @ 5度のユニゾンを演奏 (例 Unison5th{cde})
-    var.insert(String::from("Unison3th"), SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1")); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})
-    var.insert(String::from("Unison"), SValue::from_str("Sub{ Key=#?2 #?1 Key=0 } #?1")); // @ N度のユニゾンを演奏 (例 Unison{cde},7)
-    // from v2::groove.h
+    var.insert(
+        String::from("OctaveUnison"),
+        SValue::from_str("Sub{> #?1 <} #?1"),
+    ); // @ オクターブユニゾンを演奏 (例 OctaveUnison{cde})
+    var.insert(
+        String::from("Unison5th"),
+        SValue::from_str("Sub{ Key=7 #?1 Key=0 } #?1"),
+    ); // @ 5度のユニゾンを演奏 (例 Unison5th{cde})
+    var.insert(
+        String::from("Unison3th"),
+        SValue::from_str("Sub{ Key=4 #?1 Key=0 } #?1"),
+    ); // @ 3度のユニゾンを演奏 (例 Unison3th{cde})
+    var.insert(
+        String::from("Unison"),
+        SValue::from_str("Sub{ Key=#?2 #?1 Key=0 } #?1"),
+    ); // @ N度のユニゾンを演奏 (例 Unison{cde},7)
+       // from v2::groove.h
     var.insert(String::from("RndTiming"), SValue::from_str("t.Random(#?1)")); // @ set random timing (ex) RndTiming(3)
-    // tie/slur mode
+                                                                              // tie/slur mode
     var.insert(String::from("SLUR_PORT"), SValue::from_i(0)); // @ スラー定数。グリッサンド。ノートオンを、ポルタメントでつなぐ (例 Slur(SLUR_PORT) のように指定)
     var.insert(String::from("SLUR_BEND"), SValue::from_i(1)); // @ スラー定数。ベンド。異音程をベンドで表現。ギターのハンマリングに近い。 (例 Slur(SLUR_BEND) のように指定)
     var.insert(String::from("SLUR_GATE"), SValue::from_i(2)); // @ スラー定数。＆のついた音符のゲートを、第2引数のvalueにする (例 Slur(SLUR_GATE, 100))
     var.insert(String::from("SLUR_ALPE"), SValue::from_i(3)); // @ スラー定数。＆でつないだ音符の終わりまでゲートを伸ばす (例 Slur(SLUR_ALPE))
-    // Voice
+                                                              // Voice
     var.insert(String::from("GrandPiano"), SValue::from_i(1)); // @ 音色:GrandPiano
     var.insert(String::from("BrightPiano"), SValue::from_i(2)); // @ 音色:BrightPiano
     var.insert(String::from("ElectricGrandPiano"), SValue::from_i(3)); // @ 音色:ElectricGrandPiano
@@ -224,6 +239,6 @@ pub fn init_variables() -> HashMap<String, SValue> {
     var.insert(String::from("Castanets"), SValue::from_i(85)); // @ 音色:Castanets
     var.insert(String::from("MuteSurdo"), SValue::from_i(86)); // @ 音色:MuteSurdo
     var.insert(String::from("OpenSurdo"), SValue::from_i(87)); // @ 音色:OpenSurdo
-    //</VARIABLES>
+                                                               //</VARIABLES>
     var
 }

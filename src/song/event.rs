@@ -37,29 +37,63 @@ impl Event {
         match self.etype {
             EventType::NoteOn => EVENT_OVERHEAD * 2,
             EventType::PitchBendRange => EVENT_OVERHEAD * 2,
-            EventType::NoteOff | EventType::ControllChange | EventType::PitchBend |
-            EventType::Voice => EVENT_OVERHEAD,
+            EventType::NoteOff
+            | EventType::ControllChange
+            | EventType::PitchBend
+            | EventType::Voice => EVENT_OVERHEAD,
             EventType::Meta | EventType::SysEx => {
                 12usize.saturating_add(self.data.as_ref().map_or(0, Vec::len))
-            },
+            }
             EventType::DirectSMF => {
                 EVENT_OVERHEAD.saturating_add(self.data.as_ref().map_or(0, Vec::len))
-            },
+            }
         }
     }
 
     pub fn note(time: isize, channel: isize, note_no: isize, len: isize, vel: isize) -> Self {
-        Self { etype: EventType::NoteOn, time, channel, v1: note_no, v2: len, v3: vel, data: None }
+        Self {
+            etype: EventType::NoteOn,
+            time,
+            channel,
+            v1: note_no,
+            v2: len,
+            v3: vel,
+            data: None,
+        }
     }
     pub fn voice(time: isize, channel: isize, value: isize) -> Self {
-        Self { etype: EventType::Voice, time, channel, v1: value, v2: 0, v3: 0, data: None }
+        Self {
+            etype: EventType::Voice,
+            time,
+            channel,
+            v1: value,
+            v2: 0,
+            v3: 0,
+            data: None,
+        }
     }
     pub fn meta(time: isize, v1: isize, v2: isize, v3: isize, data_v: Vec<u8>) -> Self {
-        Self { etype: EventType::Meta, time, channel: 0, v1, v2, v3, data: Some(data_v) }
+        Self {
+            etype: EventType::Meta,
+            time,
+            channel: 0,
+            v1,
+            v2,
+            v3,
+            data: Some(data_v),
+        }
     }
     /// generate SMF event type
     pub fn direct_smf(time: isize, data_v: Vec<u8>) -> Self {
-        Self { etype: EventType::DirectSMF, time, channel:0, v1: 0 , v2: 0, v3: 0, data: Some(data_v) }
+        Self {
+            etype: EventType::DirectSMF,
+            time,
+            channel: 0,
+            v1: 0,
+            v2: 0,
+            v3: 0,
+            data: Some(data_v),
+        }
     }
     pub fn sysex(time: isize, data_v: &[SValue], checksum_mode: bool) -> Self {
         // convert to u8 without checksum
@@ -68,7 +102,15 @@ impl Event {
             for v in data_v.iter() {
                 a.push(v.to_i() as u8);
             }
-            return Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(a) };
+            return Self {
+                etype: EventType::SysEx,
+                time,
+                channel: 0,
+                v1: 0,
+                v2: 0,
+                v3: 0,
+                data: Some(a),
+            };
         }
         // calc checksum
         let mut a: Vec<u8> = vec![];
@@ -92,22 +134,62 @@ impl Event {
             }
             a.push(n as u8);
         }
-        Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(a) }
+        Self {
+            etype: EventType::SysEx,
+            time,
+            channel: 0,
+            v1: 0,
+            v2: 0,
+            v3: 0,
+            data: Some(a),
+        }
     }
-    
+
     pub fn sysex_raw(time: isize, data_v: Vec<u8>) -> Self {
-        Self { etype: EventType::SysEx, time, channel: 0, v1: 0, v2: 0, v3: 0, data: Some(data_v) }
+        Self {
+            etype: EventType::SysEx,
+            time,
+            channel: 0,
+            v1: 0,
+            v2: 0,
+            v3: 0,
+            data: Some(data_v),
+        }
     }
     /// ControllChange
     pub fn cc(time: isize, channel: isize, no: isize, value: isize) -> Self {
-        Self { etype: EventType::ControllChange, time, channel, v1: no, v2: value, v3:0, data: None }
+        Self {
+            etype: EventType::ControllChange,
+            time,
+            channel,
+            v1: no,
+            v2: value,
+            v3: 0,
+            data: None,
+        }
     }
     /// pitch_bend : 0..16383 (-8192 .. 0 .. 8191)
     pub fn pitch_bend(time: isize, channel: isize, value: isize) -> Self {
-        Self { etype: EventType::PitchBend, time, channel, v1: value, v2: 0, v3: 0, data: None }
+        Self {
+            etype: EventType::PitchBend,
+            time,
+            channel,
+            v1: value,
+            v2: 0,
+            v3: 0,
+            data: None,
+        }
     }
     pub fn pitch_bend_range(time: isize, channel: isize, value: isize) -> Self {
-        Self { etype: EventType::PitchBendRange, time, channel, v1: value, v2: 0, v3: 0, data: None }
+        Self {
+            etype: EventType::PitchBendRange,
+            time,
+            channel,
+            v1: value,
+            v2: 0,
+            v3: 0,
+            data: None,
+        }
     }
     /// dump data
     pub fn dump_data_to_hexstr(&self) -> String {

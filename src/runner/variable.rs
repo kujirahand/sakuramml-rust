@@ -4,13 +4,18 @@ use super::*;
 /// Int変数の定義
 pub(super) fn exec_def_int(song: &mut Song, t: &Token) {
     match &t.value_s {
-        None => { runtime_error(song, "[SYSTEM ERROR][DefInt] variable name is empty"); return; },
+        None => {
+            runtime_error(song, "[SYSTEM ERROR][DefInt] variable name is empty");
+            return;
+        }
         Some(var_name) => {
             let val = exec_value(song, t.children.as_deref().unwrap_or(&[]));
             if val.is_array() {
-                let msg = format!("{}: {}",
+                let msg = format!(
+                    "{}: {}",
                     song.get_message(MessageKind::ErrorTypeMismatch),
-                    var_name);
+                    var_name
+                );
                 runtime_error(song, &msg);
             }
             song.variables_insert(var_name, val);
@@ -21,7 +26,10 @@ pub(super) fn exec_def_int(song: &mut Song, t: &Token) {
 /// Str変数の定義
 pub(super) fn exec_def_str(song: &mut Song, t: &Token) {
     match &t.value_s {
-        None => { runtime_error(song, "[SYSTEM ERROR][DefStr] variable name is empty"); return; },
+        None => {
+            runtime_error(song, "[SYSTEM ERROR][DefStr] variable name is empty");
+            return;
+        }
         Some(var_name) => {
             let val = exec_value(song, t.children.as_deref().unwrap_or(&[]));
             song.variables_insert(var_name, val);
@@ -32,7 +40,10 @@ pub(super) fn exec_def_str(song: &mut Song, t: &Token) {
 /// Array変数の定義
 pub(super) fn exec_def_array(song: &mut Song, t: &Token) {
     match &t.value_s {
-        None => { runtime_error(song, "[SYSTEM ERROR][DefArray] variable name is empty"); return; },
+        None => {
+            runtime_error(song, "[SYSTEM ERROR][DefArray] variable name is empty");
+            return;
+        }
         Some(var_name) => {
             let val = exec_value(song, t.children.as_deref().unwrap_or(&[]));
             song.variables_insert(var_name, val);
@@ -46,7 +57,7 @@ pub(super) fn exec_get_variable(song: &mut Song, t: &Token) {
         None => {
             runtime_error(song, "[SYSTEM ERROR][GetVariable] variable name is empty");
             return;
-        },
+        }
         Some(var_name) => {
             let reference = SValue::from_s(format!("={}", var_name));
             let val = var_extract(&reference, song);
@@ -91,7 +102,8 @@ pub(super) fn exec_const_int(song: &mut Song, t: &Token) {
 
 /// 文字列定数をスタックに積む
 pub(super) fn exec_const_str(song: &mut Song, t: &Token) {
-    song.stack.push(SValue::from_s(t.value_s.clone().unwrap_or(String::new())));
+    song.stack
+        .push(SValue::from_s(t.value_s.clone().unwrap_or(String::new())));
 }
 
 /// 配列リテラルの生成
@@ -100,7 +112,7 @@ pub(super) fn exec_make_array(song: &mut Song, t: &Token) {
         None => {
             song.stack.push(SValue::Array(vec![]));
             return;
-        },
+        }
         Some(tokens) => {
             let mut a: Vec<SValue> = vec![];
             for tok in tokens {
@@ -136,7 +148,7 @@ pub(super) fn exec_value_token(song: &mut Song, t: &Token) {
                 exec_sys_function(song, t);
                 song.stack.pop().unwrap_or(SValue::None)
             }
-        },
+        }
     };
     if song.flags.function_needs_return_value {
         song.stack.push(val);
@@ -145,12 +157,13 @@ pub(super) fn exec_value_token(song: &mut Song, t: &Token) {
 
 /// 計算木の実行
 pub(super) fn exec_calc_tree(song: &mut Song, t: &Token) {
-    if t.operator_flag == '\0' { // dummy calc
+    if t.operator_flag == '\0' {
+        // dummy calc
         match &t.children {
             Some(tokens) => {
                 exec(song, tokens);
-            },
-            None => {},
+            }
+            None => {}
         }
         return;
     }
@@ -158,18 +171,31 @@ pub(super) fn exec_calc_tree(song: &mut Song, t: &Token) {
     let flag = t.operator_flag;
     let values = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     // only 1 value
-    if flag == '!' { // flag "!(val)"
-        let v = if values.len() >= 1 { values[0].to_b() } else { false };
+    if flag == '!' {
+        // flag "!(val)"
+        let v = if values.len() >= 1 {
+            values[0].to_b()
+        } else {
+            false
+        };
         song.stack.push(SValue::from_b(!v));
         return;
     }
     // 2 values
     // println!("[calc_tree]{}({:?})", flag, values);
-    let a = if values.len() >= 1 { values[0].clone() } else { SValue::None };
-    let b = if values.len() >= 2 { values[1].clone() } else { SValue::None };
+    let a = if values.len() >= 1 {
+        values[0].clone()
+    } else {
+        SValue::None
+    };
+    let b = if values.len() >= 2 {
+        values[1].clone()
+    } else {
+        SValue::None
+    };
     let mut c = SValue::None;
     match flag {
-        '(' => c = a.clone(), // nop
+        '(' => c = a.clone(),                            // nop
         '&' => c = SValue::from_b(a.to_b() && b.to_b()), // logical and
         '|' => c = SValue::from_b(a.to_b() || b.to_b()), // logical or
         '=' => c = SValue::from_b(a.eq(b)),

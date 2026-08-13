@@ -68,13 +68,7 @@ pub(super) fn exec_meta_text(song: &mut Song, t: &Token) {
 pub(super) fn exec_port(song: &mut Song, t: &Token) {
     let port = exec_args(song, t.children.as_deref().unwrap_or(&[]))[0].to_i();
     trk!(song).port = port;
-    let e = Event::meta(
-        trk!(song).timepos,
-        0xFF,
-        0x21,
-        0x01,
-        vec![port as u8],
-    );
+    let e = Event::meta(trk!(song).timepos, 0xFF, 0x21, 0x01, vec![port as u8]);
     song.add_event(e);
 }
 

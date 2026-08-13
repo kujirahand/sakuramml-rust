@@ -2,12 +2,12 @@ use crate::lexer::lex;
 use crate::runner::function::var_extract;
 use crate::runner::note::{get_note_info_from_token, set_note_info_with_default_value};
 use crate::runner::value_range;
-use crate::song::{Song};
-use crate::svalue::{SValue};
+use crate::song::Song;
+use crate::svalue::SValue;
 use crate::token::{Token, TokenType};
 
 /// Callback function
-pub type CallbackCalcFn = fn (&mut Song, Vec<SValue>) -> SValue;
+pub type CallbackCalcFn = fn(&mut Song, Vec<SValue>) -> SValue;
 
 /// Random
 pub fn calc_randomint(song: &mut Song, args: Vec<SValue>) -> SValue {
@@ -106,7 +106,7 @@ pub fn calc_sizeof(_: &mut Song, args: Vec<SValue>) -> SValue {
             SValue::Str(s, _) => s.len(),
             SValue::IntArray(a) => a.len(),
             SValue::StrArray(a) => a.len(),
-            _ => 0
+            _ => 0,
         };
         return SValue::from_i(v as isize);
     }
@@ -121,7 +121,7 @@ pub fn calc_strlen(_: &mut Song, args: Vec<SValue>) -> SValue {
             SValue::Str(s, _) => s.len(),
             SValue::IntArray(a) => a.len(),
             SValue::StrArray(a) => a.len(),
-            _ => 0
+            _ => 0,
         };
         return SValue::from_i(v as isize);
     }
@@ -203,14 +203,16 @@ fn find_note_no(song: &mut Song, tokens: &[Token]) -> Option<isize> {
     for t in tokens.iter() {
         match t.ttype {
             TokenType::Octave => {
-                let value = t.data.first()
+                let value = t
+                    .data
+                    .first()
                     .map(|v| var_extract(v, song).to_i())
                     .unwrap_or(t.value_i);
                 octave = value_range(0, value, 10);
-            },
+            }
             TokenType::OctaveRel | TokenType::OctaveOnce => {
                 octave = value_range(0, octave + t.value_i, 10);
-            },
+            }
             TokenType::Note => {
                 let mut note = get_note_info_from_token(t);
                 // 音符自身にオクターブ指定(c,,,,5 など)がなければ、直前のオクターブを使う
@@ -219,13 +221,15 @@ fn find_note_no(song: &mut Song, tokens: &[Token]) -> Option<isize> {
                 }
                 set_note_info_with_default_value(&mut note, song);
                 return Some(note.no);
-            },
+            }
             TokenType::NoteN => {
                 // n コマンドは音符番号を直接指定する
-                if t.data.is_empty() { return Some(0); }
+                if t.data.is_empty() {
+                    return Some(0);
+                }
                 return Some(var_extract(&t.data[0], song).to_i());
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
     None
@@ -243,7 +247,7 @@ pub fn calc_noteno(song: &mut Song, args: Vec<SValue>) -> SValue {
         None => {
             song.add_log(format!("[WARN] NoteNo: 音符が見つかりません: {}", mml));
             SValue::from_i(0)
-        },
+        }
     }
 }
 
@@ -281,10 +285,8 @@ mod tests {
         assert!(calc_random_select(&mut song, vec![]).is_none());
 
         for _ in 0..8 {
-            let value = calc_randomint(
-                &mut song,
-                vec![SValue::from_i(5), SValue::from_i(3)],
-            ).to_i();
+            let value =
+                calc_randomint(&mut song, vec![SValue::from_i(5), SValue::from_i(3)]).to_i();
             assert!((3..=5).contains(&value));
         }
     }
@@ -294,14 +296,19 @@ mod tests {
         let mut song = Song::new();
         let mid = calc_mid(
             &mut song,
-            vec![SValue::from_str("あいうえ"), SValue::from_i(2), SValue::from_i(2)],
+            vec![
+                SValue::from_str("あいうえ"),
+                SValue::from_i(2),
+                SValue::from_i(2),
+            ],
         );
         assert_eq!(mid.to_s(), "いう");
         assert_eq!(
             calc_pos(
                 &mut song,
                 vec![SValue::from_str("う"), SValue::from_str("あいうえ")],
-            ).to_i(),
+            )
+            .to_i(),
             3,
         );
     }

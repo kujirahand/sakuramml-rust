@@ -87,7 +87,12 @@ pub struct WriteOption {
 
 impl WriteOption {
     pub fn new() -> Self {
-        WriteOption { delay: 0, random: 0, range: None, repeat: false }
+        WriteOption {
+            delay: 0,
+            random: 0,
+            range: None,
+            repeat: false,
+        }
     }
 }
 
@@ -121,7 +126,9 @@ impl<'a> WriteCtx<'a> {
         val + r
     }
     fn reserve_event(&mut self, event: &Event) -> bool {
-        let next = self.event_bytes.saturating_add(event.estimated_midi_bytes());
+        let next = self
+            .event_bytes
+            .saturating_add(event.estimated_midi_bytes());
         if next > self.max_event_bytes {
             self.event_limit_exceeded = true;
             return false;
@@ -320,8 +327,8 @@ impl NoteParam {
             }
             let area_time_to = area_time + len;
             if area_time <= cur_time && cur_time < area_time_to {
-                let v = (high - low) as f32 * ((cur_time - area_time) as f32 / len as f32)
-                    + low as f32;
+                let v =
+                    (high - low) as f32 * ((cur_time - area_time) as f32 / len as f32) + low as f32;
                 result = v as isize;
             }
             area_time = area_time_to;
@@ -428,7 +435,13 @@ pub struct Track {
 
 impl Track {
     pub fn new(timebase: isize, channel: isize) -> Self {
-        let channel = if channel < 0 { 0 } else if channel > 15 { 15 } else { channel };
+        let channel = if channel < 0 {
+            0
+        } else if channel > 15 {
+            15
+        } else {
+            channel
+        };
         Track {
             timepos: 0,
             length: timebase,
@@ -477,7 +490,7 @@ impl Track {
                     noteoff.etype = EventType::NoteOff;
                     noteoff.time = e.time + e.v2;
                     events.push(noteoff);
-                },
+                }
                 _ => {
                     events.push(e.clone());
                 }
@@ -499,21 +512,27 @@ impl Track {
         let mut cc_values: Vec<isize> = vec![];
         let mut voice: isize = -1;
         let mut ch: isize = 0;
-        for _ in 0..128 { cc_values.push(-1); }
+        for _ in 0..128 {
+            cc_values.push(-1);
+        }
         for e in self.events.iter() {
             match e.etype {
                 EventType::Meta | EventType::SysEx => {
                     let mut e2 = e.clone();
                     e2.time -= timepos;
-                    if e2.time < 0 { e2.time = 0; }
+                    if e2.time < 0 {
+                        e2.time = 0;
+                    }
                     events.push(e2);
-                },
+                }
                 EventType::NoteOn => {
                     let mut e2 = e.clone();
                     e2.time -= timepos;
-                    if e2.time < 0 { continue; }
+                    if e2.time < 0 {
+                        continue;
+                    }
                     events.push(e2);
-                },
+                }
                 EventType::Voice => {
                     let mut e2 = e.clone();
                     e2.time -= timepos;
@@ -523,7 +542,7 @@ impl Track {
                         continue;
                     }
                     events.push(e2);
-                },
+                }
                 EventType::ControllChange => {
                     let mut e2 = e.clone();
                     e2.time -= timepos;
@@ -533,16 +552,18 @@ impl Track {
                         continue;
                     }
                     events.push(e2);
-                },
-                EventType::NoteOff => {},
-                EventType::PitchBend => {}, // TODO: #8
-                EventType::PitchBendRange => {}, // TODO: #8
-                EventType::DirectSMF => {},
+                }
+                EventType::NoteOff => {}
+                EventType::PitchBend => {}      // TODO: #8
+                EventType::PitchBendRange => {} // TODO: #8
+                EventType::DirectSMF => {}
             }
         }
         // add cc
         for no in 0..128 {
-            if cc_values[no] < 0 { continue; }
+            if cc_values[no] < 0 {
+                continue;
+            }
             events.push(Event::cc(0, ch, no as isize, cc_values[no as usize]));
         }
         // voice
@@ -755,8 +776,10 @@ impl Track {
     fn calc_on_time_length(ia: &[isize]) -> isize {
         let mut total: isize = 0;
         for i in 0..ia.len() / 3 {
-            let len = ia[i*3+2];
-            if len <= 0 { continue; }
+            let len = ia[i * 3 + 2];
+            if len <= 0 {
+                continue;
+            }
             total = total.saturating_add(len);
         }
         total
@@ -764,11 +787,17 @@ impl Track {
     /// これから波形を書き込む時間範囲にある、古い書き込みを削除する (#78)
     /// 先行指定が重なったとき、あとから指定した波形を優先させるため
     fn remove_events_in_range(&mut self, etype: EventType, cc_no: isize, start: isize, end: isize) {
-        if start >= end { return; }
+        if start >= end {
+            return;
+        }
         self.events.retain(|e| {
-            if e.etype != etype || e.time < start || end <= e.time { return true; }
+            if e.etype != etype || e.time < start || end <= e.time {
+                return true;
+            }
             // コントロールチェンジは同じ番号のときだけ削除する
-            if etype == EventType::ControllChange && e.v1 != cc_no { return true; }
+            if etype == EventType::ControllChange && e.v1 != cc_no {
+                return true;
+            }
             false
         });
     }
@@ -822,12 +851,18 @@ impl Track {
                 Event::cc(time, ch, no, v)
             }
             WriteTarget::PitchBend(is_big) => {
-                let v = if is_big == 0 { v.saturating_mul(128) } else { v.saturating_add(8192) };
+                let v = if is_big == 0 {
+                    v.saturating_mul(128)
+                } else {
+                    v.saturating_add(8192)
+                };
                 let v = value_range(0, v, 0x7f7f);
                 Event::pitch_bend(time, ch, v)
             }
         };
-        if !ctx.reserve_event(&event) { return false; }
+        if !ctx.reserve_event(&event) {
+            return false;
+        }
         self.events.push(event);
         true
     }
@@ -840,30 +875,41 @@ impl Track {
         let skip_same = opt.random <= 0;
         // 重なった古い書き込みを削除する (#78)
         let total = Self::calc_on_time_length(&ia);
-        let cc_no = match target { WriteTarget::CC(no) => no, _ => 0 };
+        let cc_no = match target {
+            WriteTarget::CC(no) => no,
+            _ => 0,
+        };
         let start = self.timepos.saturating_add(delay);
         self.remove_events_in_range(
-            Self::target_event_type(target), cc_no, start, start.saturating_add(total),
+            Self::target_event_type(target),
+            cc_no,
+            start,
+            start.saturating_add(total),
         );
         let mut elapsed = 0;
         let mut steps_left = ctx.safe_iteration_limit();
         let mut last_v: Option<isize> = None;
         for i in 0..ia.len() / 3 {
-            let low = ia[i*3+0];
-            let high = ia[i*3+1];
-            let len = ia[i*3+2];
-            if len <= 0 { continue; }
+            let low = ia[i * 3 + 0];
+            let high = ia[i * 3 + 1];
+            let len = ia[i * 3 + 2];
+            if len <= 0 {
+                continue;
+            }
             let safe_len = len.min(steps_left);
             for j in 0..safe_len {
                 if (j % freq) == 0 {
-                    let v = high.saturating_sub(low) as f32
-                        * (j as f32 / len as f32) + low as f32;
+                    let v = high.saturating_sub(low) as f32 * (j as f32 / len as f32) + low as f32;
                     let v = v as isize;
                     // 直前と同じ値なら書き込まない (#78)
-                    if skip_same && last_v == Some(v) { continue; }
+                    if skip_same && last_v == Some(v) {
+                        continue;
+                    }
                     last_v = Some(v);
                     let time = self.timepos.saturating_add(elapsed).saturating_add(j);
-                    if !self.push_value_event(target, time, v, ctx) { return; }
+                    if !self.push_value_event(target, time, v, ctx) {
+                        return;
+                    }
                 }
             }
             if safe_len < len {
@@ -886,7 +932,9 @@ impl Track {
         times: isize,
         ctx: &mut WriteCtx,
     ) {
-        if len <= 0 { return; }
+        if len <= 0 {
+            return;
+        }
         let times = if times <= 0 { 1 } else { times };
         let freq = self.target_freq(target, ctx.timebase);
         let opt = self.get_write_opt(target);
@@ -896,37 +944,49 @@ impl Track {
         let total = len.saturating_mul(times);
         let safe_total = total.min(ctx.safe_iteration_limit());
         let truncated = safe_total < total;
-        let cc_no = match target { WriteTarget::CC(no) => no, _ => 0 };
+        let cc_no = match target {
+            WriteTarget::CC(no) => no,
+            _ => 0,
+        };
         let start = self.timepos.saturating_add(delay);
         self.remove_events_in_range(
-            Self::target_event_type(target), cc_no, start, start.saturating_add(total),
+            Self::target_event_type(target),
+            cc_no,
+            start,
+            start.saturating_add(total),
         );
         let center = (low as f64 + high as f64) as f32 / 2.0;
         let amp = (high as f64 - low as f64) as f32 / 2.0;
         let mut last_v: Option<isize> = None;
         for j in 0..safe_total {
-            if (j % freq) != 0 { continue; }
+            if (j % freq) != 0 {
+                continue;
+            }
             let rate = (j % len) as f32 / len as f32;
             let v = match stype {
                 // 0: 1周期の正弦波 (low → high → low)
-                SineType::Sine => {
-                    center - amp * (rate * std::f32::consts::PI * 2.0).cos()
-                }
+                SineType::Sine => center - amp * (rate * std::f32::consts::PI * 2.0).cos(),
                 // 1: 1/4周期で low から high へ上がる
                 SineType::UpSine => {
-                    low as f32 + high.saturating_sub(low) as f32
-                        * (rate * std::f32::consts::PI / 2.0).sin()
+                    low as f32
+                        + high.saturating_sub(low) as f32
+                            * (rate * std::f32::consts::PI / 2.0).sin()
                 }
                 // 2: 1/4周期で high から low へ下がる
                 SineType::DownSine => {
-                    low as f32 + high.saturating_sub(low) as f32
-                        * (rate * std::f32::consts::PI / 2.0).cos()
+                    low as f32
+                        + high.saturating_sub(low) as f32
+                            * (rate * std::f32::consts::PI / 2.0).cos()
                 }
             };
             let v = v.round() as isize;
-            if skip_same && last_v == Some(v) { continue; }
+            if skip_same && last_v == Some(v) {
+                continue;
+            }
             last_v = Some(v);
-            if !self.push_value_event(target, self.timepos.saturating_add(j), v, ctx) { return; }
+            if !self.push_value_event(target, self.timepos.saturating_add(j), v, ctx) {
+                return;
+            }
         }
         if truncated {
             ctx.event_limit_exceeded = true;
@@ -944,8 +1004,10 @@ impl Track {
     /// 先行指定(.onNote/.onNoteWave/.onCycle など)をすべて解除する
     pub fn remove_reserve(&mut self, target: WriteTarget) {
         self.cc_on_note.retain(|it| !it.target.is_same(&target));
-        self.cc_on_note_wave.retain(|it| !it.target.is_same(&target));
-        self.cc_on_note_sine.retain(|it| !it.target.is_same(&target));
+        self.cc_on_note_wave
+            .retain(|it| !it.target.is_same(&target));
+        self.cc_on_note_sine
+            .retain(|it| !it.target.is_same(&target));
         self.cc_on_cycle.retain(|it| !it.target.is_same(&target));
     }
     /// .onNote の値をくり返すかどうかを設定する (.Repeat)
@@ -962,12 +1024,21 @@ impl Track {
     pub fn set_on_note(&mut self, target: WriteTarget, ia: Vec<isize>) {
         self.remove_reserve(target);
         let is_cycle = self.get_write_opt(target).repeat;
-        self.cc_on_note.push(OnNoteValues { target, data: ia, index: 0, is_cycle });
+        self.cc_on_note.push(OnNoteValues {
+            target,
+            data: ia,
+            index: 0,
+            is_cycle,
+        });
     }
     /// 音符ごとの波形の先行指定を予約する (.onNoteWave/.onNoteWaveEx/.onNoteWaveR)
     pub fn set_on_note_wave(&mut self, target: WriteTarget, ia: Vec<isize>, mode: WaveMode) {
         self.remove_reserve(target);
-        self.cc_on_note_wave.push(OnNoteWave { target, data: ia, mode });
+        self.cc_on_note_wave.push(OnNoteWave {
+            target,
+            data: ia,
+            mode,
+        });
     }
     /// 音符ごとの正弦波の先行指定を予約する (.onNoteSine)
     pub fn set_on_note_sine(&mut self, target: WriteTarget, sine: OnNoteSine) {
@@ -977,23 +1048,37 @@ impl Track {
     /// 一定時間ごとの値の先行指定を予約する (.onCycle)
     pub fn set_on_cycle(&mut self, target: WriteTarget, len: isize, data: Vec<isize>) {
         self.remove_reserve(target);
-        if len <= 0 || data.len() == 0 { return; }
+        if len <= 0 || data.len() == 0 {
+            return;
+        }
         // .Delay は書き込み時に push_value_event が適用するので、ここでは足さない
         let next_time = self.timepos;
-        self.cc_on_cycle.push(OnCycleValues { target, len, data, next_time, index: 0 });
+        self.cc_on_cycle.push(OnCycleValues {
+            target,
+            len,
+            data,
+            next_time,
+            index: 0,
+        });
     }
 
     /// 音符の発音開始時に、予約した値を書き出す (.onNote)
     pub fn write_cc_on_note(&mut self, start_pos: isize, ctx: &mut WriteCtx) {
         for item in self.cc_on_note.clone().iter_mut() {
-            if item.data.len() == 0 { continue; }
+            if item.data.len() == 0 {
+                continue;
+            }
             let mut index = item.index;
             if index >= item.data.len() as isize {
-                if !item.is_cycle { continue; }
+                if !item.is_cycle {
+                    continue;
+                }
                 index = 0;
             }
             let v = item.data[index as usize];
-            if !self.push_value_event(item.target, start_pos, v, ctx) { return; }
+            if !self.push_value_event(item.target, start_pos, v, ctx) {
+                return;
+            }
             // 予約の状態を更新する
             for it in self.cc_on_note.iter_mut() {
                 if it.target.is_same(&item.target) {
@@ -1007,12 +1092,16 @@ impl Track {
     }
     /// 音符の発音開始時に、予約した波形を書き出す (.onNoteWave系)
     pub fn write_cc_on_note_wave(&mut self, start_pos: isize, ctx: &mut WriteCtx) {
-        if self.cc_on_note_wave.len() == 0 && self.cc_on_note_sine.len() == 0 { return; }
+        if self.cc_on_note_wave.len() == 0 && self.cc_on_note_sine.len() == 0 {
+            return;
+        }
         let end_pos = self.timepos;
         let note_len = (end_pos - start_pos).max(0);
         self.timepos = start_pos;
         for wave in self.cc_on_note_wave.clone().iter() {
-            if ctx.event_limit_exceeded { break; }
+            if ctx.event_limit_exceeded {
+                break;
+            }
             let safe_note_len = note_len.min(ctx.safe_iteration_limit());
             let mut truncated = false;
             let data = match wave.mode {
@@ -1021,13 +1110,13 @@ impl Track {
                 WaveMode::Expand => {
                     truncated = note_len > safe_note_len;
                     Self::expand_wave(&wave.data, safe_note_len)
-                },
+                }
                 // 音符が鳴っている間くり返す
                 WaveMode::Repeat => {
                     // 巨大な音長から、予算検査前に巨大な一時配列を作らない。
                     truncated = note_len > safe_note_len;
                     Self::repeat_wave(&wave.data, safe_note_len)
-                },
+                }
             };
             self.write_on_time(wave.target, data, ctx);
             if truncated {
@@ -1036,9 +1125,17 @@ impl Track {
             }
         }
         for sine in self.cc_on_note_sine.clone().iter() {
-            if ctx.event_limit_exceeded { break; }
+            if ctx.event_limit_exceeded {
+                break;
+            }
             self.write_sine(
-                sine.target, sine.stype, sine.low, sine.high, sine.len, sine.times, ctx,
+                sine.target,
+                sine.stype,
+                sine.low,
+                sine.high,
+                sine.len,
+                sine.times,
+                ctx,
             );
         }
         self.timepos = end_pos;
@@ -1046,7 +1143,9 @@ impl Track {
     /// 波形(low,high,len...)を、合計が note_len になるように伸縮させる (.onNoteWaveEx)
     fn expand_wave(ia: &[isize], note_len: isize) -> Vec<isize> {
         let total = Self::calc_on_time_length(ia);
-        if total <= 0 || note_len <= 0 { return ia.to_vec(); }
+        if total <= 0 || note_len <= 0 {
+            return ia.to_vec();
+        }
         let mut result: Vec<isize> = vec![];
         let mut wrote = 0; // 端数の誤差を最後の区間で吸収する
         let count = ia.len() / 3;
@@ -1067,14 +1166,20 @@ impl Track {
     /// 波形(low,high,len...)を note_len の長さになるまでくり返す (.onNoteWaveR)
     fn repeat_wave(ia: &[isize], note_len: isize) -> Vec<isize> {
         let total = Self::calc_on_time_length(ia);
-        if total <= 0 || note_len <= 0 { return ia.to_vec(); }
+        if total <= 0 || note_len <= 0 {
+            return ia.to_vec();
+        }
         let mut result: Vec<isize> = vec![];
         let mut rest = note_len;
         while rest > 0 {
             for i in 0..ia.len() / 3 {
                 let len = ia[i * 3 + 2];
-                if len <= 0 { continue; }
-                if rest <= 0 { break; }
+                if len <= 0 {
+                    continue;
+                }
+                if rest <= 0 {
+                    break;
+                }
                 let len = if len > rest { rest } else { len };
                 result.push(ia[i * 3 + 0]);
                 result.push(ia[i * 3 + 1]);
@@ -1087,7 +1192,9 @@ impl Track {
     /// 周期的な先行指定を、指定した時刻まで書き出す (.onCycle)
     /// 音符の発音開始時と、音符・休符で時間が進んだあとに呼ぶ
     pub fn write_cc_on_cycle(&mut self, until: isize, ctx: &mut WriteCtx) {
-        if self.cc_on_cycle.len() == 0 { return; }
+        if self.cc_on_cycle.len() == 0 {
+            return;
+        }
         // 前回の書き込みから周期が経過していれば、その分だけ値を書き込む
         let mut writes: Vec<(WriteTarget, isize, isize)> = vec![];
         let max_writes = ctx.remaining_event_capacity().saturating_add(1).min(10000);
@@ -1101,10 +1208,14 @@ impl Track {
                 item.next_time = item.next_time.saturating_add(item.len);
                 count += 1;
             }
-            if writes.len() >= max_writes { break; }
+            if writes.len() >= max_writes {
+                break;
+            }
         }
         for (target, time, v) in writes.into_iter() {
-            if !self.push_value_event(target, time, v, ctx) { break; }
+            if !self.push_value_event(target, time, v, ctx) {
+                break;
+            }
         }
     }
 
@@ -1116,8 +1227,10 @@ impl Track {
     }
     pub fn remove_cc_on_note_wave(&mut self, no: isize) {
         let target = WriteTarget::CC(no);
-        self.cc_on_note_wave.retain(|it| !it.target.is_same(&target));
-        self.cc_on_note_sine.retain(|it| !it.target.is_same(&target));
+        self.cc_on_note_wave
+            .retain(|it| !it.target.is_same(&target));
+        self.cc_on_note_sine
+            .retain(|it| !it.target.is_same(&target));
     }
     pub fn set_cc_on_note_wave(&mut self, no: isize, ia: Vec<isize>) {
         self.set_on_note_wave(WriteTarget::CC(no), ia, WaveMode::Normal);

@@ -5,7 +5,9 @@ use super::*;
 /// PB.onNoteWave などと同時に指定されたときは、タイ・スラーを優先させる
 fn remove_pitch_bend_on_tie_notes(song: &mut Song) {
     let tie_notes = &trk!(song).tie_notes;
-    if tie_notes.len() == 0 { return; }
+    if tie_notes.len() == 0 {
+        return;
+    }
     let begin = tie_notes[0].time;
     let last = &tie_notes[tie_notes.len() - 1];
     let end = last.time + last.v2;
@@ -50,30 +52,46 @@ pub(super) fn tie_mode_port(song: &mut Song) {
         if bend_range <= 0 {
             // set bend range
             trk!(song).bend_range = 12;
-            let timepos = if last_note.time <= 0 { 0 } else { last_note.time - 1 };
+            let timepos = if last_note.time <= 0 {
+                0
+            } else {
+                last_note.time - 1
+            };
             let bend_range_event = Event::pitch_bend_range(timepos, trk!(song).channel, 12);
-            if !song.add_event(bend_range_event) { return; }
+            if !song.add_event(bend_range_event) {
+                return;
+            }
             bend_range = 12;
         }
         // calc pitch range
         // bend value range: -8192 to 8191
         let note_diff: isize = next_event.v1 - last_note.v1;
-        tie_value = if tie_value == 0 { (song.timebase * 4) / 8 } else { tie_value };
+        tie_value = if tie_value == 0 {
+            (song.timebase * 4) / 8
+        } else {
+            tie_value
+        };
         let bend_from = (note_diff as f32 * (8192f32 / bend_range as f32)) as isize;
         let bend_to = 0;
         let mut last_v = 0;
         for i in 0..tie_value {
             let timepos = next_event.time - tie_value + i;
             let v = ((bend_from - bend_to) as f32 * (i as f32 / tie_value as f32)) as isize;
-            if last_v == v { continue; }
+            if last_v == v {
+                continue;
+            }
             last_v = v;
             let bend_event = Event::pitch_bend(timepos, trk!(song).channel, v + 8192);
-            if !song.add_event(bend_event) { return; }
+            if !song.add_event(bend_event) {
+                return;
+            }
         }
         last_note.v2 = next_event.time - last_note.time;
         song.add_reserved_event(last_note);
         let bend_event_end = Event::pitch_bend(next_event.time, trk!(song).channel, bend_to + 8192);
-        if !song.add_event(bend_event_end) { return; }
+        if !song.add_event(bend_event_end) {
+            return;
+        }
         last_note = next_event;
     }
 }
@@ -89,14 +107,22 @@ pub(super) fn tie_mode_bend(song: &mut Song) {
     let mut bend_range = trk!(song).bend_range;
     if bend_range <= 0 {
         trk!(song).bend_range = 12;
-        let timepos = if last_note.time <= 0 { 0 } else { last_note.time - 1 };
+        let timepos = if last_note.time <= 0 {
+            0
+        } else {
+            last_note.time - 1
+        };
         let bend_range_event = Event::pitch_bend_range(timepos, trk!(song).channel, 12);
-        if !song.add_event(bend_range_event) { return; }
+        if !song.add_event(bend_range_event) {
+            return;
+        }
         bend_range = 12;
     }
     // set bend 0
     let bend0 = Event::pitch_bend(last_note.time, trk!(song).channel, 8192);
-    if !song.add_event(bend0) { return; }
+    if !song.add_event(bend0) {
+        return;
+    }
     let mut lastpos = last_note.time + last_note.v2;
     while trk!(song).tie_notes.len() > 0 {
         let next_event = trk!(song).tie_notes.remove(0);
@@ -116,7 +142,9 @@ pub(super) fn tie_mode_bend(song: &mut Song) {
             trk!(song).channel,
             (note_diff as f32 * 8192f32 / bend_range as f32) as isize + 8192,
         );
-        if !song.add_event(bend_event) { return; }
+        if !song.add_event(bend_event) {
+            return;
+        }
     }
     // write begin note
     begin_note.v2 = lastpos - begin_note.time;

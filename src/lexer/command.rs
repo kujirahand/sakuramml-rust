@@ -32,13 +32,16 @@ pub(super) fn read_upper_command(cur: &mut SourceCursor, song: &mut Song) -> Tok
         match arg_t {
             'I' | 'S' | 'A' => {
                 cur.skip_space();
-                if cur.eq_char('=') { cur.next(); }
+                if cur.eq_char('=') {
+                    cur.next();
+                }
                 let args = read_args_tokens(cur, song);
                 return Token::new_tokens_lineno(token_t, tag1, args, lineno);
-            },
-            '_' => { // no parameter
+            }
+            '_' => {
+                // no parameter
                 return Token::new_tokens_lineno(token_t, tag1, vec![], lineno);
-            },
+            }
             _ => {
                 // 例外的に読み取り処理が必要な特別コマンド
                 match token_t {
@@ -69,21 +72,26 @@ pub(super) fn read_upper_command(cur: &mut SourceCursor, song: &mut Song) -> Tok
                         let values = if cur.eq_char('(') {
                             read_args_tokens(cur, song)
                         } else {
-                            vec![Token::new(TokenType::Value, LEX_VALUE, vec![SValue::from_i(0)])]
+                            vec![Token::new(
+                                TokenType::Value,
+                                LEX_VALUE,
+                                vec![SValue::from_i(0)],
+                            )]
                         };
                         return Token::new_tokens(TokenType::Return, 0, values);
-                    },
+                    }
                     TokenType::SetRandomSeed => {
                         let v = read_arg_value(cur, song);
-                        return Token::new(TokenType::SetConfig, 0, vec![
-                            SValue::from_str("RandomSeed"),
-                            v
-                        ]);
-                    },
+                        return Token::new(
+                            TokenType::SetConfig,
+                            0,
+                            vec![SValue::from_str("RandomSeed"), v],
+                        );
+                    }
                     TokenType::DefUserFunction => return read_def_user_function(cur, song),
                     _ => {
                         song.add_log(format!("[SYSTEM_ERROR] FUNCTION NOT SET : {}", cmd));
-                    },
+                    }
                 }
             }
         };
@@ -132,12 +140,12 @@ pub(super) fn read_timebase(cur: &mut SourceCursor, song: &mut Song) -> Token {
 pub(super) fn read_key_flag(cur: &mut SourceCursor, _song: &mut Song) -> Token {
     let mut flag = 1;
     let mut key_flag = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // c, c#,d, d#,e, f, f#,g, g#,a, a#,b
-    // --- key_flag means ---
-    //                      0  1  2  3  4  5  6  7  8  9 10 11
-    //                      c, c#,d, d#,e, f, f#,g, g#,a, a#,b
-    // --- converter ---
-    //                      a, b, c, d, e, f, g
-    let key_flag_index_a = [9,11, 0, 2, 4, 5, 7];
+                                                                 // --- key_flag means ---
+                                                                 //                      0  1  2  3  4  5  6  7  8  9 10 11
+                                                                 //                      c, c#,d, d#,e, f, f#,g, g#,a, a#,b
+                                                                 // --- converter ---
+                                                                 //                      a, b, c, d, e, f, g
+    let key_flag_index_a = [9, 11, 0, 2, 4, 5, 7];
     cur.skip_space();
     if cur.eq_char('=') {
         cur.next();
@@ -174,7 +182,9 @@ pub(super) fn read_key_flag(cur: &mut SourceCursor, _song: &mut Song) -> Token {
         // number
         if cur.is_numeric() {
             let v = cur.get_int(0) * plus_minus;
-            if key_flag_index_a.len() <= idx { continue; }
+            if key_flag_index_a.len() <= idx {
+                continue;
+            }
             key_flag[key_flag_index_a[idx]] = v;
             idx += 1;
             if idx >= 8 {
@@ -355,7 +365,7 @@ pub(super) fn read_command_rhythm(cur: &mut SourceCursor, song: &mut Song) -> To
 
 pub(super) fn read_def_rhythm_macro(cur: &mut SourceCursor, song: &mut Song) {
     let ch = cur.get_char(); // get macro char
-    // println!("macro={}", ch);
+                             // println!("macro={}", ch);
     cur.skip_space();
     if cur.eq_char('=') {
         cur.next();

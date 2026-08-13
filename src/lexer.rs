@@ -1,13 +1,13 @@
 //! lexer
-use crate::source_cursor::SourceCursor;
 use crate::note_length::calc_length;
 use crate::sakura_message::MessageKind;
-use crate::song::{Song, SFunction};
+use crate::song::{SFunction, Song};
+use crate::source_cursor::SourceCursor;
 use crate::svalue::SValue;
 use crate::token::{
-    zen2han, Token, TokenType, TokenValueType, COMMENT_DEBUG, COMMENT_NORMAL,
-    NOTE_PARAM_L, NOTE_PARAM_O, NOTE_PARAM_Q, NOTE_PARAM_T, NOTE_PARAM_V,
-    WRITE_TARGET_PB_BIG, WRITE_TARGET_PB_SMALL,
+    zen2han, Token, TokenType, TokenValueType, COMMENT_DEBUG, COMMENT_NORMAL, NOTE_PARAM_L,
+    NOTE_PARAM_O, NOTE_PARAM_Q, NOTE_PARAM_T, NOTE_PARAM_V, WRITE_TARGET_PB_BIG,
+    WRITE_TARGET_PB_SMALL,
 };
 
 mod args;
@@ -55,7 +55,11 @@ fn lex_preprocess(song: &mut Song, cur: &mut SourceCursor) -> bool {
                 }
                 // check reserved words
                 if song.reserved_words.contains_key(&func_name) {
-                    let msg = format!("{}: \"{}\"", song.get_message(MessageKind::ErrorDefineVariableIsReserved), func_name);
+                    let msg = format!(
+                        "{}: \"{}\"",
+                        song.get_message(MessageKind::ErrorDefineVariableIsReserved),
+                        func_name
+                    );
                     read_error(cur, song, &msg);
                 }
                 // register function name
@@ -65,7 +69,8 @@ fn lex_preprocess(song: &mut Song, cur: &mut SourceCursor) -> bool {
                 song.functions.push(sfunc);
                 continue;
             }
-            if word == "END" || word == "End" { // それ以降をコンパイルしない
+            if word == "END" || word == "End" {
+                // それ以降をコンパイルしない
                 break;
             }
         }
@@ -100,12 +105,12 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             /*
             SPACE TAB CR LF ; CHR(0x7C) => // @ space - 空白文字 / ';'や'|'も読み飛ばす
             */
-            ' ' | '\t' | '\r' | '|' | ';' => {},
+            ' ' | '\t' | '\r' | '|' | ';' => {}
             // ret
             '\n' => {
                 cur.line += 1;
                 result.push(Token::new_lineno(cur.line));
-            },
+            }
             // lower command
             'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ note - ドレミファソラシ c(l),(q),(v),(t),(o)
             'n' => result.push(read_note_n(&mut cur, song)), // @ note no - 番号を指定して発音 n(no),(l),(q),(v),(t) - (ex) n60
@@ -120,23 +125,26 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             // Upper command
             'A'..='Z' | '_' => {
                 cur.prev();
-                if cur.eq("End") || cur.eq("END") { // それ移行をコンパイルしない
+                if cur.eq("End") || cur.eq("END") {
+                    // それ移行をコンパイルしない
                     let last_comment = cur.cur2end();
                     cur.next_n(last_comment.len());
                     result.push(Token::new_empty(&last_comment, cur.line));
                     continue;
                 }
                 result.push(read_upper_command(&mut cur, song));
-            },
-            '#' => { // @ Macro - マクロ定義 (ex) #A={cdefg}
+            }
+            '#' => {
+                // @ Macro - マクロ定義 (ex) #A={cdefg}
                 cur.prev();
-                if cur.eq("##") || cur.eq("# ") || cur.eq("#-") { // なんかみんなが使っているので一行コメントと見なす
+                if cur.eq("##") || cur.eq("# ") || cur.eq("#-") {
+                    // なんかみんなが使っているので一行コメントと見なす
                     cur.get_token_ch('\n');
                     result.push(Token::new_lineno(cur.line)); // 改行を消費したので行番号を更新
                     continue;
                 }
                 result.push(read_upper_command(&mut cur, song));
-            },
+            }
             // flag
             '@' => result.push(read_voice(&mut cur, song)), // @ Voice select(音色の指定) range:1-128 (format) @(no),(Bank_MSB),(Bank_LSB)
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ Octave up (音階を1つ上げる)
@@ -159,7 +167,12 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                     let line_comment = cur.get_token_ch('\n');
                     // コメント記号「///」だけを取り除いた本文をMetaTextとして埋め込む (see: runner.rs)
                     let body = line_comment[3..].trim().to_string();
-                    let mut tok = Token::new_const(TokenType::Comment, COMMENT_DEBUG, Some(body), TokenValueType::VOID);
+                    let mut tok = Token::new_const(
+                        TokenType::Comment,
+                        COMMENT_DEBUG,
+                        Some(body),
+                        TokenValueType::VOID,
+                    );
                     tok.lineno = lineno;
                     result.push(tok);
                     result.push(Token::new_lineno(cur.line)); // 改行を消費したので行番号を更新
@@ -170,7 +183,12 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                     continue;
                 } else if cur.eq("/**") {
                     let range_comment = cur.get_token_s("*/");
-                    let mut tok = Token::new_const(TokenType::Comment, COMMENT_NORMAL, Some(range_comment), TokenValueType::VOID);
+                    let mut tok = Token::new_const(
+                        TokenType::Comment,
+                        COMMENT_NORMAL,
+                        Some(range_comment),
+                        TokenValueType::VOID,
+                    );
                     tok.lineno = cur.line;
                     result.push(tok);
                     result.push(Token::new_lineno(cur.line)); // 複数行にまたがる場合があるので行番号を更新
@@ -188,7 +206,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             }
             '[' => result.push(read_loop(&mut cur, song)), // @ begin of loop - ループ開始 (ex) [4 cdeg]
             ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)), // @ break of loop - ループ最終回に脱出 (ex)　[4 cde:g]e
-            ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)),   // @ end of loop - ループ終了
+            ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)), // @ end of loop - ループ終了
             '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)), // @ harmony - 和音 (ex) 'ceg' (format) 'ceg'(音長),(ゲート)
             '$' => read_def_rhythm_macro(&mut cur, song), // @ define rhythm macro - リズムマクロ定義 $(char){ defined } (ex) $c{n60,}
             '{' => result.push(read_command_div(&mut cur, song, true)), // @ tuplet - 連符 {note}(len) (ex) {ceg}4 {c^d}

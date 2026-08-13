@@ -18,7 +18,9 @@ pub(super) fn lex_error(cur: &mut SourceCursor, song: &mut Song, msg: &str) {
         song.get_message(MessageKind::Near),
         near
     );
-    if song.debug { println!("{}", log); }
+    if song.debug {
+        println!("{}", log);
+    }
     // add to logs
     if song.get_logs_len() == LEX_MAX_ERROR {
         song.add_log(format!(
@@ -41,7 +43,9 @@ pub(super) fn read_error_cmd(cur: &mut SourceCursor, song: &mut Song, cmd: &str)
         song.get_message(MessageKind::Near),
         near,
     );
-    if song.debug { println!("{}", error_log); }
+    if song.debug {
+        println!("{}", error_log);
+    }
     song.add_log(error_log);
     return Token::new_empty("ERROR", cur.line);
 }
@@ -58,7 +62,12 @@ pub(super) fn read_error(cur: &mut SourceCursor, song: &mut Song, msg: &str) -> 
     return Token::new_empty("ERROR", cur.line);
 }
 
-pub(super) fn read_warning(cur: &mut SourceCursor, song: &mut Song, cmd: &str, reason: &str) -> Token {
+pub(super) fn read_warning(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    cmd: &str,
+    reason: &str,
+) -> Token {
     let near = cur.peek_str_n(8).replace('\n', "↵");
     song.add_log(format!(
         "[WARN]({}) {} \"{}\" {} : {} \"{}\"",
@@ -71,6 +80,5 @@ pub(super) fn read_warning(cur: &mut SourceCursor, song: &mut Song, cmd: &str, r
     ));
     return Token::new_empty("ERROR", cur.line);
 }
-
 
 // --- lex calc script ---

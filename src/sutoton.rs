@@ -64,7 +64,10 @@ fn init_items() -> SutotonList {
     items.set_item("八分音符", "l8"); // @ 八分音符を基本音符にする
     items.set_item("十六音符", "l16"); // @ 十六音符を基本音符にする
     items.set_item("付点四分音符", "l4."); // @ 付点四分音符を基本音符にする
-    items.set_item("音源初期化", "System.MeasureShift(1);ResetGM;Time(1:1:0);TrackSync;"); // @ 音源初期化//音源の初期化(GMリセット)を実行する。（例）音源初期化
+    items.set_item(
+        "音源初期化",
+        "System.MeasureShift(1);ResetGM;Time(1:1:0);TrackSync;",
+    ); // @ 音源初期化//音源の初期化(GMリセット)を実行する。（例）音源初期化
     items.set_item("音長", "l"); // @ 基本音符を指定
     items.set_item("音量予約", "v.onTime="); // @ 音量を予約指定する
     items.set_item("「", "'"); // @ 和音はじめ
@@ -155,7 +158,7 @@ fn init_items() -> SutotonList {
     items.set_item("テンポ改", "TempoChange="); // @ テンポ改(開始テンポ),(終了テンポ),(長さ)//テンポを推移的に変更する。長さはステップ数。省略すると全音符の間に推移する。（例）テンポ改80,120,384
     items.set_item("ビブラート", "M.onNoteWaveEx(0,0,!4,0,96,!8);"); // @ 推移的なビブラートをかける
     items.set_item("ここから演奏", "PlayFrom(Time);"); // @ 途中から演奏したいときに書く
-    // </SUTOTON>
+                                                       // </SUTOTON>
     items.sort_items();
     items
 }

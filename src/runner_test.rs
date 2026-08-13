@@ -1,6 +1,6 @@
 //! Tests for runner module
-use crate::runner::*;
 use crate::lexer::lex;
+use crate::runner::*;
 use crate::song::Song;
 
 /// Helper macro for accessing current track
@@ -212,24 +212,20 @@ mod test_for_runner {
     #[test]
     fn test_exec_function() {
         // simple call
-        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n{}",
-            "FUNCTION FOO(A,B){",
-            "  INT C=A+B;",
-            "  PRINT(C);",
-            "}",
-            "FOO(3,5)"
+        let song = exec_easy(&format!(
+            "{}\n{}\n{}\n{}\n{}",
+            "FUNCTION FOO(A,B){", "  INT C=A+B;", "  PRINT(C);", "}", "FOO(3,5)"
         ));
         assert_eq!(song.get_logs_str(), "[PRINT](2) 8");
         // with return
-        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n",
-            "FUNCTION FOO(A,B){",
-            "  RETURN(A+B);",
-            "}",
-            "PRINT(FOO(3,8));"
+        let song = exec_easy(&format!(
+            "{}\n{}\n{}\n{}\n",
+            "FUNCTION FOO(A,B){", "  RETURN(A+B);", "}", "PRINT(FOO(3,8));"
         ));
         assert_eq!(song.get_logs_str(), "[PRINT](3) 11");
         // use global variable
-        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n{}\n{}\n",
+        let song = exec_easy(&format!(
+            "{}\n{}\n{}\n{}\n{}\n{}\n",
             "INT C=100",
             "FUNCTION FOO(TMP){",
             "  INT C=TMP;",
@@ -239,15 +235,20 @@ mod test_for_runner {
         ));
         assert_eq!(song.get_logs_str(), "[PRINT](3) 1\n[PRINT](5) 100");
         // use global variable
-        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n",
+        let song = exec_easy(&format!(
+            "{}\n{}\n{}\n{}\n",
             "INT C=123",
             "FUNCTION FOO(TMP){ INT C=TMP; Result=TMP; }",
             "FUNCTION BAA(TMP){ INT C=TMP; RETURN(C);  }",
             "PRINT(FOO(100)); PRINT(BAA(200)); PRINT(C);",
         ));
-        assert_eq!(song.get_logs_str(), "[PRINT](3) 100\n[PRINT](3) 200\n[PRINT](3) 123");
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](3) 100\n[PRINT](3) 200\n[PRINT](3) 123"
+        );
         // use global variable and return into for-loop
-        let song = exec_easy(&format!("{}\n{}\n{}\n{}\n{}\n",
+        let song = exec_easy(&format!(
+            "{}\n{}\n{}\n{}\n{}\n",
             "PRINT(FOO());",
             "FUNCTION FOO(){",
             "  INT C=0; FOR(INT I=0; I<=3; I++){ IF(I==2){ RETURN(C); } ELSE { C=I; } }",
@@ -260,27 +261,33 @@ mod test_for_runner {
     #[test]
     fn test_exec_function_issues71() {
         // First test individual calls
-        let song = exec_easy(&format!("{}\n{}\n{}\n",
+        let song = exec_easy(&format!(
+            "{}\n{}\n{}\n",
             "FUNCTION FOO(STR TMP){ Result=1; }",
             "FUNCTION BAA(STR TMP){ Result=0; }",
             "PRINT(FOO({0}));",
         ));
         assert_eq!(song.get_logs_str(), "[PRINT](2) 1");
-        
-        let song = exec_easy(&format!("{}\n{}\n{}\n",
+
+        let song = exec_easy(&format!(
+            "{}\n{}\n{}\n",
             "FUNCTION FOO(STR TMP){ Result=1; }",
             "FUNCTION BAA(STR TMP){ Result=0; }",
             "PRINT(BAA({A}));",
         ));
         assert_eq!(song.get_logs_str(), "[PRINT](2) 0");
-        
-        // Now test multiple calls on same line  
-        let song = exec_easy(&format!("{}\n{}\n{}\n",
+
+        // Now test multiple calls on same line
+        let song = exec_easy(&format!(
+            "{}\n{}\n{}\n",
             "FUNCTION FOO(STR TMP){ Result=1; }",
             "FUNCTION BAA(STR TMP){ Result=0; }",
             "PRINT(FOO({0})); PRINT(BAA({A})); PRINT(BAA({a}));",
         ));
-        assert_eq!(song.get_logs_str(), "[PRINT](2) 1\n[PRINT](2) 0\n[PRINT](2) 0");
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](2) 1\n[PRINT](2) 0\n[PRINT](2) 0"
+        );
     }
     #[test]
     fn test_exec_sys_func_mid() {
@@ -332,7 +339,8 @@ mod test_for_runner {
         assert_eq!(song.get_logs_str(), "[PRINT](0) -30");
     }
     #[test]
-    fn extract_function_args() { // 関数の引数で与えた文字列を関数の中で展開できない #27
+    fn extract_function_args() {
+        // 関数の引数で与えた文字列を関数の中で展開できない #27
         let song = exec_easy("Function EXT_MML(STR AA){ AA }; EXT_MML{ l4cdeg }");
         let pos = song.tracks[0].timepos;
         assert_eq!(pos, song.timebase * 4);
@@ -342,7 +350,8 @@ mod test_for_runner {
         assert_eq!(pos, song.timebase * 4);
     }
     #[test]
-    fn func_def_value() { // 関数の引数に省略値が指定できないでエラーになる #37
+    fn func_def_value() {
+        // 関数の引数に省略値が指定できないでエラーになる #37
         let song = exec_easy("Function EXT_MML(STR AA={l4cdef}){ AA }; EXT_MML");
         let pos = song.tracks[0].timepos;
         assert_eq!(pos, song.timebase * 4);
@@ -354,7 +363,8 @@ mod test_for_runner {
         assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
     }
     #[test]
-    fn test_read_value_hex() { // v1互換の16進数を読めない問題 #48
+    fn test_read_value_hex() {
+        // v1互換の16進数を読めない問題 #48
         let song = exec_easy("INT A=$10; PRINT(A)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 16");
         let song = exec_easy("INT A=0x10; PRINT(A)");
@@ -447,7 +457,10 @@ mod test_for_runner {
              PRINT(NoteNo({o(OCT)c})) PRINT(NoteNo({n(NOTE)})) \
              PRINT(NoteNo({o(OCT)n(NOTE)}))",
         );
-        assert_eq!(song.get_logs_str(), "[PRINT](0) 60\n[PRINT](0) 61\n[PRINT](0) 61");
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](0) 60\n[PRINT](0) 61\n[PRINT](0) 61"
+        );
     }
     #[test]
     fn test_add_len() {
@@ -465,7 +478,8 @@ mod test_for_runner {
         assert_eq!(pos, 96 * 4);
     }
     #[test]
-    fn test_read_length() { // 改行後の音長を有効にする #60
+    fn test_read_length() {
+        // 改行後の音長を有効にする #60
         let song = exec_easy("l8 c^\n^^");
         assert_eq!(song.tracks[0].timepos, song.timebase * 2);
         let song = exec_easy("l8 c^\n^4");
@@ -512,7 +526,9 @@ mod test_review_94 {
         // TempoChange は Tempo と違い範囲チェックがないため 0 が渡り得る。
         // 0以下でも MIDI のテンポ(μsec/四分音符)として妥当な値を書くこと。
         let song = exec_easy("TempoChange(0) c");
-        let e = song.tracks[0].events.iter()
+        let e = song.tracks[0]
+            .events
+            .iter()
             .find(|e| e.etype == EventType::Meta && e.v2 == 0x51)
             .expect("テンポのメタイベントがない");
         // 既定の120BPM => 500000 usec => 0x07A120
@@ -555,9 +571,8 @@ mod test_issue_102 {
 
     #[test]
     fn test_sub_velocity_on_note_and_cycle() {
-        let song = exec_easy(
-            "v.onCycle(!4,70,80) v__1.onCycle(!4,10,20) cde v__1.onNote(-10,-20) fga",
-        );
+        let song =
+            exec_easy("v.onCycle(!4,70,80) v__1.onCycle(!4,10,20) cde v__1.onNote(-10,-20) fga");
         let velocities = song.tracks[0]
             .events
             .iter()
@@ -808,9 +823,7 @@ mod test_issue_78 {
         let events = song.tracks[0]
             .events
             .iter()
-            .filter(|event| {
-                event.etype == EventType::ControllChange && event.v1 == 1
-            })
+            .filter(|event| event.etype == EventType::ControllChange && event.v1 == 1)
             .collect::<Vec<_>>();
         // 同じ時刻に同じCC番号のイベントが2つ以上ないこと
         for i in 1..events.len() {

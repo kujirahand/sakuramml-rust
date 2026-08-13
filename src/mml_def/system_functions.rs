@@ -1,23 +1,47 @@
 //! mml_def: システム関数の定義
-use std::collections::HashMap;
-use crate::token::TokenType;
 use crate::sakura_functions;
+use crate::token::TokenType;
+use std::collections::HashMap;
 
 macro_rules! sysfunc_add {
     ($obj:expr, $name:expr, $func_id:expr, $arg_type:expr) => {
-        $obj.insert(String::from($name), SystemFunction{token_type: $func_id, arg_type: $arg_type, tag1: 0, tag2: 0});
+        $obj.insert(
+            String::from($name),
+            SystemFunction {
+                token_type: $func_id,
+                arg_type: $arg_type,
+                tag1: 0,
+                tag2: 0,
+            },
+        );
     };
 }
 
 macro_rules! sysfunc_cc_add {
     ($obj:expr, $name:expr, $func_id:expr, $arg_type:expr, $tag:expr) => {
-        $obj.insert(String::from($name), SystemFunction{token_type: $func_id, arg_type: $arg_type, tag1: $tag, tag2: 0});
+        $obj.insert(
+            String::from($name),
+            SystemFunction {
+                token_type: $func_id,
+                arg_type: $arg_type,
+                tag1: $tag,
+                tag2: 0,
+            },
+        );
     };
 }
 
 macro_rules! sysfunc_rpn_add {
     ($obj:expr, $name:expr, $func_id:expr, $arg_type:expr, $tag1:expr, $tag2:expr) => {
-        $obj.insert(String::from($name), SystemFunction{token_type: $func_id, arg_type: $arg_type, tag1: $tag1, tag2: $tag2});
+        $obj.insert(
+            String::from($name),
+            SystemFunction {
+                token_type: $func_id,
+                arg_type: $arg_type,
+                tag1: $tag1,
+                tag2: $tag2,
+            },
+        );
     };
 }
 
@@ -90,7 +114,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "q2Add", TokenType::Unimplemented, 'I'); // Unimplemented
     sysfunc_add!(sf, "SoundType", TokenType::SoundType, 'S'); // set sound type (ex) SoundType({pico})
     sysfunc_add!(sf, "DeviceNumber", TokenType::DeviceNumber, 'I'); // set Device Number (ex) DeviceNumber=$10
-    //@ Controll Change / Voice Change / RPN/NRPN / PitchBend
+                                                                    //@ Controll Change / Voice Change / RPN/NRPN / PitchBend
     sysfunc_add!(sf, "Voice", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
     sysfunc_add!(sf, "VOICE", TokenType::Voice, 'A'); // set voice (=@) range: 1-128 Voice(n[,msb,lsb]) (ex) Voice(1)
     sysfunc_add!(sf, "CONTROL_CHANGE", TokenType::ControlChange, '*'); // write Control Change (ex) CC(1,100)
@@ -99,7 +123,13 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "M", TokenType::ControlChangeCommand, '*', 1); // CC#1 Modulation (ex) M(10)
     sysfunc_cc_add!(sf, "Modulation", TokenType::ControlChangeCommand, '*', 1); // CC#1 Modulation range:0-127 (ex) M(10)
     sysfunc_cc_add!(sf, "PT", TokenType::ControlChangeCommand, '*', 5); // CC#5 Portamento Time range:0-127 (ex) PT(10)
-    sysfunc_cc_add!(sf, "PortamentoTime", TokenType::ControlChangeCommand, '*', 5); // CC#5 Portamento Time range:0-127 (ex) PT(10)
+    sysfunc_cc_add!(
+        sf,
+        "PortamentoTime",
+        TokenType::ControlChangeCommand,
+        '*',
+        5
+    ); // CC#5 Portamento Time range:0-127 (ex) PT(10)
     sysfunc_cc_add!(sf, "V", TokenType::ControlChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
     sysfunc_cc_add!(sf, "MainVolume", TokenType::ControlChangeCommand, '*', 7); // CC#7 Main Volume range:0-127 (ex) V(10)
     sysfunc_cc_add!(sf, "P", TokenType::ControlChangeCommand, '*', 10); // CC#10 Panpot range:0-64-127 (ex) P(64)
@@ -107,7 +137,13 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "EP", TokenType::ControlChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
     sysfunc_cc_add!(sf, "Expression", TokenType::ControlChangeCommand, '*', 11); // CC#11 Expression range:0-127 (ex) EP(100)
     sysfunc_cc_add!(sf, "PS", TokenType::ControlChangeCommand, '*', 65); // CC#65 Portament switch range:0-127 (ex) PS(1)
-    sysfunc_cc_add!(sf, "PortamentoSwitch", TokenType::ControlChangeCommand, '*', 65); // CC#65 Portament switch range:0-127 (ex) PS(1)
+    sysfunc_cc_add!(
+        sf,
+        "PortamentoSwitch",
+        TokenType::ControlChangeCommand,
+        '*',
+        65
+    ); // CC#65 Portament switch range:0-127 (ex) PS(1)
     sysfunc_cc_add!(sf, "REV", TokenType::ControlChangeCommand, '*', 91); // CC#91 Reverb range:0-127 (ex) REV(100)
     sysfunc_cc_add!(sf, "Reverb", TokenType::ControlChangeCommand, '*', 91); // CC#91 Reverb range:0-127 (ex) REV(100)
     sysfunc_cc_add!(sf, "CHO", TokenType::ControlChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) CHO(100)
@@ -132,14 +168,14 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_rpn_add!(sf, "EGAttack", TokenType::NRPNCommand, '*', 1, 0x63); // set EGAttack range: 0-127
     sysfunc_rpn_add!(sf, "EGDecay", TokenType::NRPNCommand, '*', 1, 0x64); // set EGDecay range: 0-127
     sysfunc_rpn_add!(sf, "EGRelease", TokenType::NRPNCommand, '*', 1, 0x66); // set EGRelease range: 0-127
-    //@ fadein
+                                                                             //@ fadein
     sysfunc_cc_add!(sf, "Fadein", TokenType::FadeIO, '*', 1); // fadein 小節数を指定 (ex) Fadein(1)
     sysfunc_cc_add!(sf, "Fadeout", TokenType::FadeIO, '*', -1); // fadeout 小節数を指定 (ex) Fadeout(1)
     sysfunc_cc_add!(sf, "Cresc", TokenType::Cresc, '*', 1); // だんだん大きくする Cresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Cresc=1,40,127
     sysfunc_cc_add!(sf, "Decresc", TokenType::Cresc, '*', -1); // だんだん小さくする Decresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Decresc=1,127,40
     sysfunc_cc_add!(sf, "CRESC", TokenType::Cresc, '*', 1); // だんだん大きくする Cresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Cresc=1,40,127
     sysfunc_cc_add!(sf, "DECRESC", TokenType::Cresc, '*', -1); // だんだん小さくする Decresc=[len][,v1][,v2] v1からv2へ変更する。lenを省略すると全音符の長さに。カッコは使えない (ex) Decresc=1,127,40
-    //@ SysEx / Meta
+                                                               //@ SysEx / Meta
     sysfunc_cc_add!(sf, "ResetGM", TokenType::SysexReset, 'I', 0); // ResetGM
     sysfunc_cc_add!(sf, "ResetGS", TokenType::SysexReset, 'I', 1); // ResetGS
     sysfunc_cc_add!(sf, "ResetXG", TokenType::SysexReset, 'I', 2); // ResetXG
@@ -169,7 +205,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "MAKER", TokenType::MetaText, 'S', 6); // write MAKER text (ex) MAKER{"hello"}
     sysfunc_cc_add!(sf, "Maker", TokenType::MetaText, 'S', 6); // write Maker text (ex) Maker{"hello"}
     sysfunc_cc_add!(sf, "CuePoint", TokenType::MetaText, 'S', 7); // write CuePoint text (ex) CuePoint{"hello"}
-    //@ GS System Exclusive
+                                                                  //@ GS System Exclusive
     sysfunc_cc_add!(sf, "GSEffect", TokenType::GSEffect, 'A', 0); // GSEffect(num, val) (ex) GSEffect($30, 0)
     sysfunc_cc_add!(sf, "GSReverbMacro", TokenType::GSEffect, 'I', 0x30); // GSReverbMacro(val) - 0:Room1 5:Hall 6:Delay (ex) GSReverbMacro(0)
     sysfunc_cc_add!(sf, "GSReverbCharacter", TokenType::GSEffect, 'I', 0x31); // GSReverbCharacter(val) - リバーブのキャラクター (ex) GSReverbCharacter(0)
@@ -189,7 +225,7 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "GSChorusSendToDelay", TokenType::GSEffect, 'I', 0x40); // GSChorusSendToDelay(val) (ex) GSChorusSendToDelay(0)
     sysfunc_cc_add!(sf, "GS_RHYTHM", TokenType::GSEffect, 'I', 0x15); // Change to rhythm part val=0:instrument/1:drum1/2:drum2 (ex) GS_RHYTHM(1)
     sysfunc_cc_add!(sf, "GSScaleTuning", TokenType::GSEffect, 'A', 0x11); // GS Scale Tuning. GSScaleTuning(C,Cp,D,Dp,E,F,Fp,G,Gp,A,Ap,B) (ex) GSScaleTuning(0,0,0,0,0,0,0,0,0,0,0,0)
-    //@ Script command
+                                                                          //@ Script command
     sysfunc_add!(sf, "Int", TokenType::DefInt, '*'); // define int variables (ex) Int A = 3
     sysfunc_add!(sf, "INT", TokenType::DefInt, '*'); // define int variables (ex) INT A = 3
     sysfunc_add!(sf, "Str", TokenType::DefStr, '*'); // define string variables (ex) Str A = {cde}
@@ -215,23 +251,23 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "Continue", TokenType::Continue, '_'); // exit from loop
     sysfunc_add!(sf, "RETURN", TokenType::Return, '*'); // return from function
     sysfunc_add!(sf, "Return", TokenType::Return, '*'); // return from function
-    // sysfunc_add!(sf, "Result", TokenType::Return, '*'); // set function's result
+                                                        // sysfunc_add!(sf, "Result", TokenType::Return, '*'); // set function's result
     sysfunc_add!(sf, "RANDOM_SEED", TokenType::SetRandomSeed, '*'); // set random seed
     sysfunc_add!(sf, "RandomSeed", TokenType::SetRandomSeed, '*'); // set random seed
     sysfunc_add!(sf, "FUNCTION", TokenType::DefUserFunction, '*'); // define user function
     sysfunc_add!(sf, "Function", TokenType::DefUserFunction, '*'); // define user function
-    //@ MIDI command
+                                                                   //@ MIDI command
     sysfunc_add!(sf, "DirectSMF", TokenType::DirectSMF, 'A'); // direct smf event / DirectSMF(b1, b2, b3, ...)
     sysfunc_add!(sf, "NoteOn", TokenType::NoteOn, 'A'); // note no / NoteOn(noteno, velocity)
     sysfunc_add!(sf, "NoteOff", TokenType::NoteOff, 'A'); // note off / NoteOn(noteno, velocity)
-    //</SYSTEM_FUNCTION>
+                                                          //</SYSTEM_FUNCTION>
     sf
 }
 
 macro_rules! syscalc_add {
     ($obj:expr, $name:expr, $callback:expr) => {
         $obj.insert(String::from($name), $callback)
-    }
+    };
 }
 
 pub fn init_system_calc_functions() -> HashMap<String, sakura_functions::CallbackCalcFn> {
@@ -262,6 +298,6 @@ pub fn init_system_calc_functions() -> HashMap<String, sakura_functions::Callbac
     syscalc_add!(sf, "HEX", sakura_functions::calc_hex); // HEX(V) // return Hex value (ex) Hex(255) // => FF
     syscalc_add!(sf, "Pos", sakura_functions::calc_pos); // Pos(N, M) // Return the 1-based index of substring N in M (ex) Pos({b}, {abc}) // => 2
     syscalc_add!(sf, "POS", sakura_functions::calc_pos); // POS(N, M) // Return the 1-based index of substring N in M (ex) Pos({b}, {abc}) // => 2
-    // </SYSTEM_CALC_FUNCTION>
+                                                         // </SYSTEM_CALC_FUNCTION>
     sf
 }
