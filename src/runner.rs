@@ -74,6 +74,14 @@ pub fn exec_args(song: &mut Song, tokens: &[Token]) -> Vec<SValue> {
     args
 }
 
+/// 数値列を必要とする命令の引数を実行し、配列を再帰的に平坦化する。
+pub fn exec_int_args(song: &mut Song, t: &Token) -> Vec<isize> {
+    exec_args(song, t.children.as_deref().unwrap_or(&[]))
+        .iter()
+        .flat_map(SValue::to_int_array)
+        .collect()
+}
+
 /// run tokens and get value
 pub fn exec_value(song: &mut Song, tokens: &[Token]) -> SValue {
     let tmp_needs_return_values = song.flags.function_needs_return_value;

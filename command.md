@@ -260,7 +260,7 @@ Function usable within an expression (計算式で使える関数)
 | ARRAYFLATTEN | ARRAYFLATTEN(A) | flatten nested arrays |
 | StrLen | StrLen(S) | return length of S (ex) StrLen({abc}) // => 3 |
 | STRLEN | STRLEN(S) | return length of S (ex) STRLEN({abc}) // => 3 |
-| MML | MML(C) | return C(o/v/q/t/@/BR) value (ex) MML({o}) |
+| MML | MML(C) | return C(o/v/q/t/@/BR/yN) value (ex) MML({o}) |
 | NoteNo | NoteNo(MML) | return note no of the note written in MML (ex) NoteNo(o5e) // => 64 |
 | NOTENO | NOTENO(MML) | return note no of the note written in MML (ex) NOTENO(o5e) // => 64 |
 | Hex | Hex(V) | return Hex value (ex) Hex(255) // => FF |

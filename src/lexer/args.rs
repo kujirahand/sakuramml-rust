@@ -80,51 +80,6 @@ pub(super) fn read_arg_value(cur: &mut SourceCursor, song: &mut Song) -> SValue 
     }
 }
 
-pub(super) fn read_arg_value_int_array(cur: &mut SourceCursor, song: &mut Song) -> SValue {
-    let mut a: Vec<SValue> = vec![];
-    loop {
-        cur.skip_space();
-        // println!("@@@read_arg_value_int_array:{}", cur.peek_n(0));
-        let v = read_arg_value(cur, song);
-        match v {
-            SValue::None => {
-                break;
-            }
-            SValue::Array(av) => {
-                a.extend(av);
-            }
-            _ => a.push(v),
-        }
-        cur.skip_space();
-        if !cur.eq_char(',') {
-            break;
-        }
-        cur.next(); // skip ,
-    }
-    SValue::from_vec(a)
-}
-
-pub(super) fn read_arg_int_array(cur: &mut SourceCursor, song: &mut Song) -> SValue {
-    cur.skip_space();
-    let ch = cur.peek_n(0);
-    match ch {
-        '(' => {
-            cur.next(); // skip '('
-            let sv = read_arg_value_int_array(cur, song);
-            cur.skip_space();
-            if cur.peek_n(0) == ')' {
-                cur.next();
-            }
-            return sv;
-        }
-        '=' => {
-            cur.next();
-            read_arg_value_int_array(cur, song)
-        }
-        _ => SValue::None,
-    }
-}
-
 /// on/off の指定を読み取る (.Repeat(on) など)
 /// on/off のほか 1/0 などの数値も受け付ける。省略時は on とみなす
 pub(super) fn read_arg_on_off(cur: &mut SourceCursor, song: &mut Song) -> SValue {
@@ -199,4 +154,14 @@ pub(super) fn read_args_tokens(cur: &mut SourceCursor, song: &mut Song) -> Vec<T
         }
     }
     tokens
+}
+
+/// 数値列を受け取る命令の引数を式として読み取る。
+/// 従来の`Command=1,2,3`形式も互換性のため受け付ける。
+pub(super) fn read_int_args_tokens(cur: &mut SourceCursor, song: &mut Song) -> Vec<Token> {
+    cur.skip_space();
+    if cur.eq_char('=') {
+        cur.next();
+    }
+    read_args_tokens(cur, song)
 }

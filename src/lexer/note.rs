@@ -27,6 +27,21 @@ pub(super) fn read_harmony_flag(cur: &mut SourceCursor, flag_harmony: &mut bool)
     Token::new(TokenType::HarmonyEnd, 0, vec![len_s, qlen, vel])
 }
 
+/// 数値列を受け取る音符属性オプションを、実行時に評価する引数トークン付きで作る。
+fn read_note_int_args_token(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    ttype: TokenType,
+    value_i: isize,
+    ino: Option<isize>,
+) -> Token {
+    let mut token = Token::new_tokens(ttype, value_i, read_int_args_tokens(cur, song));
+    if let Some(ino) = ino {
+        token.data.push(SValue::from_i(ino));
+    }
+    token
+}
+
 /// 音符属性(v/q/t/o/l)に共通の先行指定を読み取る (#65)
 /// target: NOTE_PARAM_V〜NOTE_PARAM_L / ino: サブベロシティの番号(-1で通常のv)
 /// 対応していないコマンドのときは None を返す
@@ -63,7 +78,6 @@ pub(super) fn read_note_param_option(
         }
         // 時間ごとの推移的な先行指定
         "onTime" | "T" => {
-            let av = read_arg_int_array(cur, song);
             let ttype = pick(
                 TokenType::VelocityOnTime,
                 TokenType::QLenOnTime,
@@ -71,11 +85,10 @@ pub(super) fn read_note_param_option(
                 TokenType::OctaveOnTime,
                 TokenType::LengthOnTime,
             );
-            Some(Token::new(ttype, 0, vec![av, ino_v]))
+            Some(read_note_int_args_token(cur, song, ttype, 0, Some(ino)))
         }
         // 音符ごとの先行指定
         "onNote" | "N" => {
-            let av = read_arg_int_array(cur, song);
             let ttype = pick(
                 TokenType::VelocityOnNote,
                 TokenType::QLenOnNote,
@@ -83,11 +96,10 @@ pub(super) fn read_note_param_option(
                 TokenType::OctaveOnNote,
                 TokenType::LengthOnNote,
             );
-            Some(Token::new(ttype, 0, vec![av, ino_v]))
+            Some(read_note_int_args_token(cur, song, ttype, 0, Some(ino)))
         }
         // 一定時間ごとの先行指定 (ステップ値, 値1, 値2, ...)
         "onCycle" | "C" => {
-            let av = read_arg_int_array(cur, song);
             let ttype = pick(
                 TokenType::VelocityOnCycle,
                 TokenType::QLenOnCycle,
@@ -95,13 +107,16 @@ pub(super) fn read_note_param_option(
                 TokenType::OctaveOnCycle,
                 TokenType::LengthOnCycle,
             );
-            Some(Token::new(ttype, 0, vec![av, ino_v]))
+            Some(read_note_int_args_token(cur, song, ttype, 0, Some(ino)))
         }
         // 値の下限と上限を設定する
-        "Range" => {
-            let av = read_arg_int_array(cur, song);
-            Some(Token::new(TokenType::NoteParamRange, target, vec![av]))
-        }
+        "Range" => Some(read_note_int_args_token(
+            cur,
+            song,
+            TokenType::NoteParamRange,
+            target,
+            None,
+        )),
         // 先行指定の効果の遅延時間
         "Delay" => {
             let v = read_arg_value(cur, song);
@@ -136,7 +151,7 @@ pub(super) fn read_unknown_on_command(
     if cmd.len() == 0 {
         return None;
     }
-    let _ = read_arg_int_array(cur, song); // 引数を読み飛ばす
+    let _ = read_int_args_tokens(cur, song); // 引数を読み飛ばす
     let mut msg = format!("not supported : {}.{}", target, cmd);
     // 音符の中で音量を波形状に変化させたい場合は、ベロシティではなく
     // エクスプレッション(CC#11)を使う必要があるので、代替手段を案内する

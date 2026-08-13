@@ -244,7 +244,7 @@ fn is_mml_state_name(name: &str) -> bool {
     matches!(
         name,
         "l" | "v" | "o" | "q" | "t" | "@" | "BR" | "p%" | "Key" | "TimeKey" | "Port"
-    )
+    ) || crate::sakura_functions::parse_mml_cc_name(name).is_some()
 }
 
 fn is_noteno_func_name(name: &str) -> bool {

@@ -2,6 +2,20 @@
 use super::*;
 use std::collections::HashMap;
 
+const CC_MAIN_VOLUME: isize = 7;
+const CC_PANPOT: isize = 10;
+const CC_EXPRESSION: isize = 11;
+
+/// 旧サクラのMML(yN)と同じ、未送信時のCC初期値。
+fn default_cc_value(no: isize) -> isize {
+    match no {
+        CC_MAIN_VOLUME => 100,
+        CC_PANPOT => 64,
+        CC_EXPRESSION => 127,
+        _ => 0,
+    }
+}
+
 /// NoteInfo
 #[derive(Debug)]
 pub struct NoteInfo {
@@ -477,6 +491,21 @@ impl Track {
             cc_on_cycle: vec![],
             write_opt: HashMap::new(),
         }
+    }
+
+    /// 現在のトラック・チャンネル・時間位置におけるCC値を返す。
+    pub fn current_cc_value(&self, no: isize) -> isize {
+        self.events
+            .iter()
+            .rev()
+            .find(|event| {
+                event.etype == EventType::ControllChange
+                    && event.channel == self.channel
+                    && event.v1 == no
+                    && event.time <= self.timepos
+            })
+            .map(|event| event.v2)
+            .unwrap_or_else(|| default_cc_value(no))
     }
 
     pub fn split_note_off(&self) -> Vec<Event> {
