@@ -5,6 +5,9 @@ pub(super) fn exec_cc_rpn_nrpn(song: &mut Song, t: &Token, cc1: isize, cc2: isiz
     let val = exec_value_int_by_token(song, t);
     let msb = t.data[0].to_i();
     let lsb = t.data[1].to_i();
+    if cc1 == 101 && cc2 == 100 && msb == 0 && lsb == 0 {
+        trk!(song).bend_range = val;
+    }
     song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb));
     song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb));
     song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val)); 
@@ -105,6 +108,7 @@ pub(super) fn exec_control_change(song: &mut Song, t: &Token) {
 /// ピッチベンドの送信
 pub(super) fn exec_pitch_bend(song: &mut Song, t: &Token) {
     let val = var_extract(&t.data[0], song).to_i();
+    trk!(song).pitch_bend = if t.value_i == 0 { val * 128 - 8192 } else { val };
     let val = if t.value_i == 0 { val * 128 } else { val + 8192 };
     song.add_event(Event::pitch_bend(
         trk!(song).timepos,

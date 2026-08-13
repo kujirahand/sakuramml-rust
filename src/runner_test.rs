@@ -308,6 +308,26 @@ mod test_for_runner {
         assert_eq!(song.get_logs_str(), "[PRINT](0) 6");
     }
     #[test]
+    fn test_mml_returns_current_track_and_song_values() {
+        let song = exec_easy(
+            "l4 v100 o4 q80 t-3 @25 BR(12) PitchBend(123) Key(2) Port(3)\
+             PRINT(MML(l)) PRINT(MML(v)) PRINT(MML(o)) PRINT(MML(q))\
+             PRINT(MML(t)) PRINT(MML(@)) PRINT(MML(BR)) PRINT(MML(p%))\
+             PRINT(MML(Key)) PRINT(MML(TimeKey)) PRINT(MML(Port))",
+        );
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](0) 96\n[PRINT](0) 100\n[PRINT](0) 4\n[PRINT](0) 80\n\
+             [PRINT](0) -3\n[PRINT](0) 25\n[PRINT](0) 12\n[PRINT](0) 123\n\
+             [PRINT](0) 2\n[PRINT](0) 0\n[PRINT](0) 3"
+        );
+    }
+    #[test]
+    fn test_mml_keeps_string_and_variable_arguments_compatible() {
+        let song = exec_easy("o6 STR Command={o} PRINT(MML({o})) PRINT(MML(Command))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 6\n[PRINT](0) 6");
+    }
+    #[test]
     fn test_add_len() {
         // test basic
         let song = exec_easy("l4 c");

@@ -190,7 +190,7 @@ Print(Add(1, 2))    // 3
 | `Replace` | `Replace(S, A, B)` | 文字列Sの中のAをBに置き換える。別名 `REPLACE` |
 | `SizeOf` | `SizeOf(A)` | 配列の要素数を返す。別名 `SIZEOF` |
 | `StrLen` | `StrLen(S)` | 文字列の長さを返す。別名 `STRLEN` |
-| `MML` | `MML(C)` | `o` `v` `q` `t` `@` `BR` の現在値を返す |
+| `MML` | `MML(C)` | `l` `v` `o` `q` `t` `@` `BR` `p%` `Key` `TimeKey` `Port` の現在値を返す |
 | `Hex` | `Hex(V)` | 数値を16進文字列に変換する。別名 `HEX` |
 | `Pos` | `Pos(N, M)` | 文字列Mの中でNが現れる位置(1始まり)を返す。別名 `POS` |
 
@@ -201,6 +201,15 @@ Print(Replace({abc}, {a}, {b})) // bbc
 Print(Hex(255))                 // FF
 Print(Pos({b}, {abc}))          // 2
 Print(RandomSelect({c}, {d}, {e}))
+```
+
+`MML` の引数には、現在値を調べるMML命令名をそのまま指定します。`l` は内部のステップ数を返すため、既定の `TimeBase=96` では `l4` の値は `96` です。`p%` は中央を0とする詳細なピッチベンド値を返します。なお、現在のRust版では `TimeKey` 命令が未実装のため、`MML(TimeKey)` は初期値の `0` を返します。
+
+```
+l4 v100 o4
+Print(MML(l)) // 96
+Print(MML(v)) // 100
+Print(MML(o)) // 4
 ```
 
 ### 乱数の種
