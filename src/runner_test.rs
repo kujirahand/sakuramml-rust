@@ -714,4 +714,52 @@ mod test_issue_78 {
         let at_note2 = events.iter().find(|event| event.time == 96).unwrap();
         assert_eq!(at_note2.v1, -8000 + 8192);
     }
+
+    /// ピッチベンドのイベントを時刻順に取り出す
+    fn pitch_bends(song: &crate::song::Song) -> Vec<(isize, isize)> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::PitchBend)
+            .map(|event| (event.time, event.v1))
+            .collect::<Vec<_>>()
+    }
+
+    #[test]
+    fn test_tie_glissando_has_priority_over_pb_on_note_wave() {
+        // タイ・スラーと PB.onNoteWave が同時に指定されたら、タイ・スラーを優先する (#78)
+        // Slur(0)=グリッサンド。タイでつないだ範囲(0〜192)の波形は書き込まれない
+        let song = exec_easy("TimeBase=96 BR(2) Slur(0) PB.onNoteWave(-2000,0,!4) l4 c&d e");
+        let bends = pitch_bends(&song);
+        // グリッサンドは 96-48=48 から始まる
+        // 波形が残っていれば音符の先頭(0)から書き込まれているはずなので、それが無いことを確認する
+        assert!(bends.iter().all(|(time, _)| *time >= 48));
+        // タイに関係しない次の音符では、波形が書き込まれる
+        let at_note3 = bends.iter().find(|(time, _)| *time == 96 * 2).unwrap();
+        assert_eq!(at_note3.1, -2000 + 8192);
+    }
+
+    #[test]
+    fn test_tie_bend_mode_has_priority_over_pb_on_note_wave() {
+        // Slur(1)=ベンドモードでは、タイの範囲すべてをタイ側のベンドが占める (#78)
+        let song = exec_easy("TimeBase=96 BR(4) Slur(1) PB.onNoteWave(-2000,0,!4) l4 c&d e");
+        let in_tie = pitch_bends(&song)
+            .into_iter()
+            .filter(|(time, _)| *time < 96 * 2)
+            .collect::<Vec<_>>();
+        // タイの開始・音程の変化・タイの終了の3つだけ
+        assert_eq!(in_tie.len(), 3);
+        assert_eq!(in_tie[0].1, 8192); // タイの開始でベンドを0に戻す
+        assert_eq!(in_tie[1].1, 8192 + 8192 * 2 / 4); // 2半音ぶん上げる
+    }
+
+    #[test]
+    fn test_pb_on_note_wave_is_kept_when_tie_writes_no_bend() {
+        // 同じ音程のタイ(c&c)はベンドを書き込まないので、波形はそのまま残る (#78)
+        let song = exec_easy("TimeBase=96 BR(2) Slur(0) PB.onNoteWave(-2000,0,!4) l4 c&c e");
+        let bends = pitch_bends(&song);
+        assert_eq!(bends[0], (0, -2000 + 8192));
+        // タイの音符と次の音符で、2回分の波形が書き込まれる
+        assert_eq!(bends.len(), 32 * 2);
+    }
 }

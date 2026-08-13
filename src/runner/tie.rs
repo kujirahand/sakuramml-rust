@@ -1,8 +1,35 @@
 //! runner: タイ(&)の各モードの処理
 use super::*;
 
+/// タイ・スラーでつないだ範囲の、古いピッチベンドを削除する (#78)
+/// PB.onNoteWave などと同時に指定されたときは、タイ・スラーを優先させる
+fn remove_pitch_bend_on_tie_notes(song: &mut Song) {
+    let tie_notes = &trk!(song).tie_notes;
+    if tie_notes.len() == 0 { return; }
+    let begin = tie_notes[0].time;
+    let last = &tie_notes[tie_notes.len() - 1];
+    let end = last.time + last.v2;
+    trk!(song).remove_pitch_bend_in_range(begin, end);
+}
+
+/// タイ・スラーでつないだ音符に、異なる音程が含まれるか
+/// (同じ音程だけならベンドは書き込まれない)
+fn has_different_note_no(song: &Song) -> bool {
+    let tie_notes = &trk!(song).tie_notes;
+    for i in 1..tie_notes.len() {
+        if tie_notes[i - 1].v1 != tie_notes[i].v1 {
+            return true;
+        }
+    }
+    false
+}
+
 /// TieMode::Port
 pub(super) fn tie_mode_port(song: &mut Song) {
+    // 異音程をベンドでつなぐときだけ、重なった古いピッチベンドを削除する (#78)
+    if has_different_note_no(song) {
+        remove_pitch_bend_on_tie_notes(song);
+    }
     let mut last_note = trk!(song).tie_notes.remove(0);
     let mut tie_value = trk!(song).tie_value;
     loop {
@@ -52,6 +79,9 @@ pub(super) fn tie_mode_port(song: &mut Song) {
 }
 
 pub(super) fn tie_mode_bend(song: &mut Song) {
+    // タイでつないだ範囲は、すべてベンドで表現するので、
+    // 重なっている古いピッチベンドを先に削除する (#78)
+    remove_pitch_bend_on_tie_notes(song);
     // first note
     let mut last_note = trk!(song).tie_notes.remove(0);
     let mut begin_note = last_note.clone();

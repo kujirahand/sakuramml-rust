@@ -483,6 +483,12 @@ impl Track {
             false
         });
     }
+    /// 指定した時間範囲にある古いピッチベンドを削除する (#78)
+    /// タイ・スラーのグリッサンドを、先に書き込まれた波形より優先させるため
+    /// (start以上end以下の範囲。書き込む前に呼ぶこと)
+    pub fn remove_pitch_bend_in_range(&mut self, start: isize, end: isize) {
+        self.remove_events_in_range(EventType::PitchBend, 0, start, end + 1);
+    }
     pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>) {
         let freq = self.cc_on_time_freq.max(1);
         // 重なった古い書き込みを削除する (#78)
