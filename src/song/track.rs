@@ -463,7 +463,7 @@ impl Track {
     }
     /// 先行指定(low,high,len...)が書き込む長さの合計を求める
     /// len が0以下の組は書き込まれないので合計に含めない
-    fn calc_on_time_length(ia: &Vec<isize>) -> isize {
+    fn calc_on_time_length(ia: &[isize]) -> isize {
         let mut total = 0;
         for i in 0..ia.len() / 3 {
             let len = ia[i*3+2];
