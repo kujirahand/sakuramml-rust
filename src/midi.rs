@@ -537,10 +537,9 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
             }
         };
         let initial_channel = find_initial_channel(bin, pos, end_pos);
-        log("// ----- TRACK -----");
         match initial_channel {
-            Some(channel) => log(&format!("TR({}) CH({})", no, channel)),
-            None => log(&format!("TR({})", no)),
+            Some(channel) => log(&format!("TR({}) CH({})", no + 1, channel)),
+            None => log(&format!("TR({})", no + 1)),
         }
         let mut current_channel = initial_channel;
         while pos < end_pos && !info.is_eot {
