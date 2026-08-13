@@ -460,9 +460,8 @@ fn find_initial_channel(bin: &Vec<u8>, start_pos: usize, end_pos: usize) -> Opti
         if pos >= end_pos {
             break;
         }
-        let status = bin[pos];
-        if matches!(status & 0xF0, 0x90 | 0xB0) {
-            return midi_event_channel(bin, pos);
+        if let Some(channel) = midi_event_channel(bin, pos) {
+            return Some(channel);
         }
         let event_pos = pos;
         let _ = dump_midi_event(bin, &mut pos, &mut info);
