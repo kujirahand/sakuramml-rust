@@ -487,22 +487,79 @@ mod test_for_runner {
     }
     #[test]
     fn test_calc_and_or() {
-        /*
-        let song = exec_easy("PRINT(TRUE&TRUE)");
+        let song = exec_easy("PRINT( (1=1) && TRUE )");
         assert_eq!(song.get_logs_str(), "[PRINT](0) TRUE");
-        //
-        let song = exec_easy("PRINT(TRUE&FALSE)");
-        assert_eq!(song.get_logs_str(), "[PRINT](0) FALSE");
-        //
-        let song = exec_easy("PRINT(TRUE&FALSE&TRUE)");
-        assert_eq!(song.get_logs_str(), "[PRINT](0) FALSE");
-        //
-        let song = exec_easy("PRINT(TRUE&TRUE&TRUE)");
-        assert_eq!(song.get_logs_str(), "[PRINT](0) TRUE");
-        //
-        */
-        let song = exec_easy("PRINT( (1=1)&TRUE )");
-        assert_eq!(song.get_logs_str(), "[PRINT](0) TRUE");
+        let song = exec_easy("PRINT( (1=1) & TRUE )");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
+    }
+}
+// ------------------------------------------
+
+#[cfg(test)]
+mod test_issue_130 {
+    use super::exec_easy;
+
+    #[test]
+    fn test_bitwise_operators() {
+        // Bitwise OR |
+        let song = exec_easy("Int A = 1 | 2; PRINT(A)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 3");
+
+        // Bitwise AND &
+        let song = exec_easy("Int B = 3 & 1; PRINT(B)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
+
+        // Bitwise XOR ^
+        let song = exec_easy("Int C = 3 ^ 1; PRINT(C)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 2");
+
+        // Additional bitwise calculations
+        let song = exec_easy(
+            "Int D = 12 & 10; Int E = 12 | 10; Int F = 12 ^ 10; PRINT(D); PRINT(E); PRINT(F)",
+        );
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](0) 8\n[PRINT](0) 14\n[PRINT](0) 6"
+        );
+    }
+
+    #[test]
+    fn test_logical_operators() {
+        let song = exec_easy("PRINT(1 && 1); PRINT(1 && 0); PRINT(0 || 1); PRINT(0 || 0)");
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](0) TRUE\n[PRINT](0) FALSE\n[PRINT](0) TRUE\n[PRINT](0) FALSE"
+        );
+    }
+
+    #[test]
+    fn test_operator_precedence() {
+        // & (45) has higher precedence than | (47): 1 | (2 & 4) = 1 | 0 = 1
+        let song = exec_easy("Int A = 1 | 2 & 4; PRINT(A)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
+
+        // Parentheses override priority: (1 | 2) & 4 = 3 & 4 = 0
+        let song = exec_easy("Int B = (1 | 2) & 4; PRINT(B)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 0");
+
+        // ^ (46) has higher precedence than | (47): (3 ^ 1) | 4 = 2 | 4 = 6
+        let song = exec_easy("Int C = 3 ^ 1 | 4; PRINT(C)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 6");
+
+        // + (30) has higher precedence than & (45): (1 + 2) & 3 = 3 & 3 = 3
+        let song = exec_easy("Int D = 1 + 2 & 3; PRINT(D)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 3");
+    }
+
+    #[test]
+    fn test_tie_caret_non_regression() {
+        let song = exec_easy("l4 c^d");
+        assert_eq!(song.tracks[0].events.len(), 2); // Event::Note c^ and Event::Note d
+        assert_eq!(song.tracks[0].timepos, song.timebase * 3);
+
+        let song = exec_easy("l4 c^^^");
+        assert_eq!(song.tracks[0].events.len(), 1); // Event::Note c^^^
+        assert_eq!(song.tracks[0].timepos, song.timebase * 4);
     }
 }
 // ------------------------------------------

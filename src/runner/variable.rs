@@ -196,8 +196,11 @@ pub(super) fn exec_calc_tree(song: &mut Song, t: &Token) {
     let mut c = SValue::None;
     match flag {
         '(' => c = a.clone(),                            // nop
-        '&' => c = SValue::from_b(a.to_b() && b.to_b()), // logical and
-        '|' => c = SValue::from_b(a.to_b() || b.to_b()), // logical or
+        '&' => c = SValue::from_i(a.to_i() & b.to_i()),  // ビット論理積(AND)
+        '|' => c = SValue::from_i(a.to_i() | b.to_i()),  // ビット論理和(OR)
+        '^' => c = SValue::from_i(a.to_i() ^ b.to_i()),  // ビット排他的論理和(XOR)
+        'A' => c = SValue::from_b(a.to_b() && b.to_b()), // 論理積(&&)
+        'O' => c = SValue::from_b(a.to_b() || b.to_b()), // 論理和(||)
         '=' => c = SValue::from_b(a.eq(b)),
         '≠' => c = SValue::from_b(a.ne(b)), // !=
         '>' => c = SValue::from_b(a.gt(b)),

@@ -11,7 +11,15 @@ pub(super) const LEX_PLUS_MINUS: isize = 30;
 
 pub(super) const LEX_COMPARE: isize = 40;
 
-pub(super) const LEX_OR_AND: isize = 50;
+pub(super) const LEX_BIT_AND: isize = 45;
+
+pub(super) const LEX_BIT_XOR: isize = 46;
+
+pub(super) const LEX_BIT_OR: isize = 47;
+
+pub(super) const LEX_LOGICAL_AND: isize = 50;
+
+pub(super) const LEX_LOGICAL_OR: isize = 55;
 
 pub(super) fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
     cur.skip_space();
@@ -259,7 +267,7 @@ fn is_raw_mml_note(arg: &str) -> bool {
 
 pub(super) fn is_operator_char(c: char) -> bool {
     match c {
-        '+' | '-' | '*' | '/' | '|' | '&' | '%' | '≠' | '=' | '>' | '<' | '≧' | '≦' | '!' => {
+        '+' | '-' | '*' | '/' | '|' | '&' | '^' | '%' | '≠' | '=' | '>' | '<' | '≧' | '≦' | '!' => {
             true
         }
         _ => false,
@@ -290,11 +298,11 @@ pub(super) fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
     } else if cur.eq("&&") {
         // logical and
         cur.next_n(2);
-        ch = '&';
+        ch = 'A';
     } else if cur.eq("||") {
         // logical or
         cur.next_n(2);
-        ch = '|';
+        ch = 'O';
     } else {
         cur.next();
     }
@@ -303,8 +311,6 @@ pub(super) fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
         '-' => LEX_PLUS_MINUS,
         '*' => LEX_MUL_DIV,
         '/' => LEX_MUL_DIV,
-        '|' => LEX_OR_AND,
-        '&' => LEX_OR_AND,
         '%' => LEX_MUL_DIV,
         '≠' => LEX_COMPARE,
         '=' => LEX_COMPARE,
@@ -313,6 +319,11 @@ pub(super) fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
         '≧' => LEX_COMPARE,
         '≦' => LEX_COMPARE,
         '!' => LEX_COMPARE,
+        '&' => LEX_BIT_AND,
+        '^' => LEX_BIT_XOR,
+        '|' => LEX_BIT_OR,
+        'A' => LEX_LOGICAL_AND,
+        'O' => LEX_LOGICAL_OR,
         _ => -1,
     };
     if priority < 0 {
