@@ -113,6 +113,14 @@ pub fn calc_sizeof(_: &mut Song, args: Vec<SValue>) -> SValue {
     SValue::from_i(0)
 }
 
+/// ArrayFlatten
+pub fn calc_array_flatten(_: &mut Song, args: Vec<SValue>) -> SValue {
+    match args.first() {
+        Some(value) => SValue::from_vec(value.flatten_array_values()),
+        None => SValue::from_vec(vec![]),
+    }
+}
+
 /// StrLen
 pub fn calc_strlen(_: &mut Song, args: Vec<SValue>) -> SValue {
     if args.len() >= 1 {

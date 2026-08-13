@@ -100,16 +100,8 @@ impl SValue {
     /// to int array (flatten)
     pub fn to_int_array(&self) -> Vec<isize> {
         match self {
-            Self::Array(a) => {
-                let mut res: Vec<isize> = vec![];
-                for v in a.iter() {
-                    res.extend(v.to_int_array());
-                }
-                res
-            }
+            Self::Array(a) => a.iter().flat_map(|v| v.to_int_array()).collect(),
             Self::IntArray(a) => a.clone(),
-            Self::StrArray(a) => a.iter().map(|s| s.parse().unwrap_or(0)).collect(),
-            Self::None => vec![],
             _ => vec![self.to_i()],
         }
     }
@@ -128,19 +120,12 @@ impl SValue {
             }
         }
     }
-    /// to array (flatten)
-    pub fn to_array_flatten(&self) -> Vec<SValue> {
+    /// 配列の入れ子を再帰的に展開する
+    pub fn flatten_array_values(&self) -> Vec<SValue> {
         match self {
-            Self::Array(a) => {
-                let mut res: Vec<SValue> = vec![];
-                for v in a.iter() {
-                    res.extend(v.to_array_flatten());
-                }
-                res
-            }
+            Self::Array(a) => a.iter().flat_map(|v| v.flatten_array_values()).collect(),
             Self::IntArray(a) => a.iter().map(|v| SValue::from_i(*v)).collect(),
             Self::StrArray(a) => a.iter().map(|s| SValue::from_s(s.clone())).collect(),
-            Self::None => vec![],
             _ => vec![self.clone()],
         }
     }

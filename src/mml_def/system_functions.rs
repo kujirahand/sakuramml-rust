@@ -289,6 +289,8 @@ pub fn init_system_calc_functions() -> HashMap<String, sakura_functions::Callbac
     syscalc_add!(sf, "REPLACE", sakura_functions::calc_replace); // REPLACE(S, A, B) // Replace A in string S with B (ex) REPLACE({abc}, {a}, {b}) // =>  bbc
     syscalc_add!(sf, "SizeOf", sakura_functions::calc_sizeof); // SizeOf(A) // return size of A
     syscalc_add!(sf, "SIZEOF", sakura_functions::calc_sizeof); // SIZEOF(A) // return size of A
+    syscalc_add!(sf, "ArrayFlatten", sakura_functions::calc_array_flatten); // ArrayFlatten(A) // flatten nested arrays
+    syscalc_add!(sf, "ARRAYFLATTEN", sakura_functions::calc_array_flatten); // ARRAYFLATTEN(A) // flatten nested arrays
     syscalc_add!(sf, "StrLen", sakura_functions::calc_strlen); // StrLen(S) // return length of S (ex) StrLen({abc}) // => 3
     syscalc_add!(sf, "STRLEN", sakura_functions::calc_strlen); // STRLEN(S) // return length of S (ex) STRLEN({abc}) // => 3
     syscalc_add!(sf, "MML", sakura_functions::calc_mml); // MML(C) // return C(o/v/q/t/@/BR) value (ex) MML({o})
