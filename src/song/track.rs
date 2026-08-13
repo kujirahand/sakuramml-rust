@@ -58,6 +58,7 @@ pub struct Track {
     pub tie_mode: TieMode, // Slur(#7)
     pub tie_value: isize,
     pub bend_range: isize,
+    pub pitch_bend: isize,
     pub program_change: isize,
     pub v_on_time_start: isize,
     pub v_on_time: Option<Vec<isize>>,
@@ -128,6 +129,7 @@ impl Track {
             events: vec![],
             tie_notes: vec![],
             bend_range: -1,
+            pitch_bend: 0,
             cc_on_note: vec![],
             cc_on_note_wave: vec![],
         }

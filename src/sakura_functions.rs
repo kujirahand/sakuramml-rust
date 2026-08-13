@@ -143,6 +143,10 @@ pub fn calc_mml(song: &mut Song, args: Vec<SValue>) -> SValue {
     }
     let arg = &args[0];
     let sa = arg.to_s();
+    if sa == "l" {
+        let v = song.tracks[song.cur_track].length;
+        return SValue::from_i(v);
+    }
     if sa == "o" {
         let o = song.tracks[song.cur_track].octave;
         return SValue::from_i(o);
@@ -165,6 +169,21 @@ pub fn calc_mml(song: &mut Song, args: Vec<SValue>) -> SValue {
     }
     if sa == "BR" {
         let v = song.tracks[song.cur_track].bend_range;
+        return SValue::from_i(v);
+    }
+    if sa == "p%" {
+        let v = song.tracks[song.cur_track].pitch_bend;
+        return SValue::from_i(v);
+    }
+    if sa == "Key" {
+        return SValue::from_i(song.key_shift);
+    }
+    if sa == "TimeKey" {
+        // TimeKey命令は未実装のため、現在の時間キーは初期値の0。
+        return SValue::from_i(0);
+    }
+    if sa == "Port" {
+        let v = song.tracks[song.cur_track].port;
         return SValue::from_i(v);
     }
     SValue::from_i(0)

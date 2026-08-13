@@ -127,7 +127,19 @@ pub(super) fn read_value_word(cur: &mut SourceCursor, song: &mut Song) -> Token 
         let arg_lineno = cur.line;
         let arg_str = cur.get_token_nest('(', ')');
         // println!("read_calc_args={:?}", arg_str);
-        let arg_tokens = lex_calc(song, &arg_str, arg_lineno);
+        // MML(l) などの引数は値ではなく、参照するMML命令名として渡す。
+        // 既知の命令名以外は従来どおり式として解析し、変数指定との互換性を保つ。
+        let arg_name = arg_str.trim();
+        let arg_tokens = if varname == "MML" && is_mml_state_name(arg_name) {
+            vec![Token::new_const(
+                TokenType::ConstStr,
+                arg_name.len() as isize,
+                Some(arg_name.to_string()),
+                TokenValueType::STR,
+            )]
+        } else {
+            lex_calc(song, &arg_str, arg_lineno)
+        };
         tok.children = Some(arg_tokens);
         tok.tag = 1; // FUNCTION
         tok.data.push(SValue::from_s(varname.clone()));
@@ -162,6 +174,23 @@ pub(super) fn read_value_word(cur: &mut SourceCursor, song: &mut Song) -> Token 
             return tok;
         }
     }
+}
+
+fn is_mml_state_name(name: &str) -> bool {
+    matches!(
+        name,
+        "l"
+            | "v"
+            | "o"
+            | "q"
+            | "t"
+            | "@"
+            | "BR"
+            | "p%"
+            | "Key"
+            | "TimeKey"
+            | "Port"
+    )
 }
 
 pub(super) fn is_operator_char(c: char) -> bool {
