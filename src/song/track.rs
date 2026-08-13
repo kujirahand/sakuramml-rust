@@ -82,6 +82,8 @@ pub struct Track {
     pub tie_notes: Vec<Event>,
     pub cc_on_note: Vec<ControlChangeOnNoteWave>,
     pub cc_on_note_wave: Vec<ControlChangeOnNoteWave>,
+    /// ピッチベンドの音符ごとの波形変化 (is_big, データ列)
+    pub pb_on_note_wave: Option<(isize, Vec<isize>)>,
 }
 
 impl Track {
@@ -132,6 +134,7 @@ impl Track {
             pitch_bend: 0,
             cc_on_note: vec![],
             cc_on_note_wave: vec![],
+            pb_on_note_wave: None,
         }
     }
 
@@ -458,9 +461,35 @@ impl Track {
         self.l_on_note_index += 1;
         return l;
     }
+    /// 先行指定(low,high,len...)が書き込む長さの合計を求める
+    /// len が0以下の組は書き込まれないので合計に含めない
+    fn calc_on_time_length(ia: &Vec<isize>) -> isize {
+        let mut total = 0;
+        for i in 0..ia.len() / 3 {
+            let len = ia[i*3+2];
+            if len <= 0 { continue; }
+            total += len;
+        }
+        total
+    }
+    /// これから波形を書き込む時間範囲にある、古い書き込みを削除する (#78)
+    /// 先行指定が重なったとき、あとから指定した波形を優先させるため
+    fn remove_events_in_range(&mut self, etype: EventType, cc_no: isize, start: isize, end: isize) {
+        if start >= end { return; }
+        self.events.retain(|e| {
+            if e.etype != etype || e.time < start || end <= e.time { return true; }
+            // コントロールチェンジは同じ番号のときだけ削除する
+            if etype == EventType::ControllChange && e.v1 != cc_no { return true; }
+            false
+        });
+    }
     pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>) {
         let freq = self.cc_on_time_freq.max(1);
+        // 重なった古い書き込みを削除する (#78)
+        let total = Self::calc_on_time_length(&ia);
+        self.remove_events_in_range(EventType::ControllChange, cc_no, self.timepos, self.timepos + total);
         let mut elapsed = 0;
+        let mut last_v: Option<isize> = None;
         for i in 0..ia.len() / 3 {
             let low = ia[i*3+0];
             let high = ia[i*3+1];
@@ -471,6 +500,9 @@ impl Track {
                 if (j % freq) == 0 {
                     let v = (high - low) as f32 * (j as f32 / len as f32) + low as f32;
                     let v = value_range(0, v as isize, 127);
+                    // 直前と同じ値なら書き込まない (#78)
+                    if last_v == Some(v) { continue; }
+                    last_v = Some(v);
                     let e = Event::cc(self.timepos + elapsed + j, self.channel, cc_no, v);
                     self.events.push(e);
                 }
@@ -480,7 +512,11 @@ impl Track {
     }
     pub fn write_pb_on_time(&mut self, is_big: isize, ia: Vec<isize>, timebase: isize) {
         let freq = timebase / 32;
+        // 重なった古い書き込みを削除する (#78)
+        let total = Self::calc_on_time_length(&ia);
+        self.remove_events_in_range(EventType::PitchBend, 0, self.timepos, self.timepos + total);
         let mut elapsed = 0;
+        let mut last_v: Option<isize> = None;
         for i in 0..ia.len() / 3 {
             let mut low = ia[i*3+0];
             let mut high = ia[i*3+1];
@@ -498,12 +534,34 @@ impl Track {
                 if (j % freq) == 0 {
                     let v = (high - low) as f32 * (j as f32 / len as f32) + low as f32;
                     let v = value_range(0, v as isize, 0x7f7f);
+                    // 直前と同じ値なら書き込まない (#78)
+                    if last_v == Some(v) { continue; }
+                    last_v = Some(v);
                     let e = Event::pitch_bend(self.timepos + elapsed + j, self.channel, v);
                     self.events.push(e);
                 }
             }
             elapsed += len;
         }
+    }
+    /// ピッチベンドの音符ごとの波形変化を予約する
+    pub fn set_pb_on_note_wave(&mut self, is_big: isize, ia: Vec<isize>) {
+        self.pb_on_note_wave = Some((is_big, ia));
+    }
+    /// ピッチベンドの音符ごとの波形変化を解除する
+    pub fn remove_pb_on_note_wave(&mut self) {
+        self.pb_on_note_wave = None;
+    }
+    /// 音符の先頭からピッチベンドの波形を書き出す
+    pub fn write_pb_on_note_wave(&mut self, start_pos: isize, timebase: isize) {
+        let (is_big, ia) = match &self.pb_on_note_wave {
+            None => return,
+            Some((is_big, ia)) => (*is_big, ia.clone()),
+        };
+        let end_pos = self.timepos;
+        self.timepos = start_pos;
+        self.write_pb_on_time(is_big, ia, timebase);
+        self.timepos = end_pos;
     }
     pub fn remove_cc_on(&mut self, no: isize) {
         self.remove_cc_on_note(no);

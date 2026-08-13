@@ -79,6 +79,15 @@ pub(super) fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut S
     note.no = noteno;
 }
 
+/// 音符の発音開始時に、先行指定(onNote/onNoteWave)を書き出す
+/// タイ・スラーや和音では、つながった音符の先頭で一度だけ呼ぶ
+pub(super) fn write_on_note_events(song: &mut Song, start_pos: isize) {
+    let timebase = song.timebase;
+    trk!(song).write_cc_on_note(start_pos);
+    trk!(song).write_cc_on_note_wave(start_pos);
+    trk!(song).write_pb_on_note_wave(start_pos, timebase);
+}
+
 pub(super) fn exec_note(song: &mut Song, t: &Token) {
     // get note parameters
     let mut note = get_note_info_from_token(t);
@@ -149,18 +158,21 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     }
     // tie or slur?
     if note.slur >= 1 {
+        // タイ・スラーの先頭の音符でだけ先行指定を書き出す (#78)
+        if trk!(song).tie_notes.len() == 0 {
+            write_on_note_events(song, start_pos);
+        }
         trk!(song).tie_notes.push(event);
         return;
     }
     if trk!(song).tie_notes.len() > 0 {
+        // タイ・スラーの末尾の音符 --- 先行指定は先頭の音符で書き出し済み
         trk!(song).tie_notes.push(event);
         check_tie_notes(song);
         return;
     }
-    // onNote event
-    trk!(song).write_cc_on_note(start_pos);
-    // onNoteWave event
-    trk!(song).write_cc_on_note_wave(start_pos);
+    // onNote / onNoteWave event
+    write_on_note_events(song, start_pos);
     // write note event
     trk!(song).events.push(event);
 }
@@ -228,8 +240,8 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
         v,
     );
     // println!("- {}: note(no={},len={},qlen={},v={},t={})", trk!(song).timepos, notelen_real, notelen, qlen, v, t);
-    // onNoteWave event
-    trk!(song).write_cc_on_note_wave(start_pos);
+    // onNote / onNoteWave event
+    write_on_note_events(song, start_pos);
     // write event
     trk!(song).events.push(event);
     trk!(song).timepos += notelen;

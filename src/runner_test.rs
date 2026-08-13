@@ -575,3 +575,143 @@ mod test_issue_74 {
         assert_eq!(events, vec![(0, 8292), (3, 8342)]);
     }
 }
+
+#[cfg(test)]
+mod test_issue_78 {
+    use super::exec_easy;
+    use crate::song::EventType;
+
+    /// 指定したCC番号のイベント数を数える
+    fn count_cc(song: &crate::song::Song, no: isize) -> usize {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::ControllChange && event.v1 == no)
+            .count()
+    }
+
+    /// ピッチベンドのイベント数を数える
+    fn count_pitch_bend(song: &crate::song::Song) -> usize {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::PitchBend)
+            .count()
+    }
+
+    #[test]
+    fn test_cc_on_note_wave_writes_wave_for_each_note() {
+        // 音符ごとに .onTime 相当の波形が書き込まれる (#78)
+        let song = exec_easy("TimeBase=96 M.onNoteWave(0,127,!4) l4 cd");
+        assert_eq!(count_cc(&song, 1), 96 / 4 * 2);
+    }
+
+    #[test]
+    fn test_cc_on_note_wave_with_tie() {
+        // タイ・スラーでつないだ音符でも、先頭の音符で1回書き込まれる (#78)
+        let song = exec_easy("TimeBase=96 M.onNoteWave(0,127,!4) l4 c&c d");
+        assert_eq!(count_cc(&song, 1), 96 / 4 * 2);
+    }
+
+    #[test]
+    fn test_cc_on_note_wave_with_harmony() {
+        // 和音では音数分ではなく1回だけ書き込まれる (#78)
+        let song = exec_easy("TimeBase=96 M.onNoteWave(0,127,!4) l4 'ceg'");
+        assert_eq!(count_cc(&song, 1), 96 / 4);
+        // 和音の先頭から書き出される
+        let first = song.tracks[0]
+            .events
+            .iter()
+            .find(|event| event.etype == EventType::ControllChange)
+            .unwrap();
+        assert_eq!(first.time, 0);
+    }
+
+    #[test]
+    fn test_pb_on_note_wave() {
+        // PB.onNoteWave は音符ごとにピッチベンドの波形を書き込む (#78)
+        let song = exec_easy("TimeBase=96 PB.onNoteWave(-8000,8000,!4) l4 cd");
+        assert_eq!(count_pitch_bend(&song), 96 / (96 / 32) * 2);
+        let first = song.tracks[0]
+            .events
+            .iter()
+            .find(|event| event.etype == EventType::PitchBend)
+            .unwrap();
+        assert_eq!(first.time, 0);
+        assert_eq!(first.v1, -8000 + 8192);
+    }
+
+    #[test]
+    fn test_pb_on_note_wave_short_alias_and_reset() {
+        // .W の別名で指定でき、PB(値)の単発指定で解除される (#78)
+        let song = exec_easy("TimeBase=96 PB.W(-8000,8000,!4) l4 c PB(0) d");
+        // 1音符分の波形 + PB(0) の1イベント
+        assert_eq!(count_pitch_bend(&song), 96 / (96 / 32) + 1);
+    }
+
+    #[test]
+    fn test_velocity_on_note_wave_is_reported_as_error() {
+        // v.onNoteWave は未対応。無言で v0 にならず、エラーを出す (#78)
+        let song = exec_easy("v100 v.onNoteWave(0,127,!4) l4 cd");
+        assert!(song.get_logs_str().contains("not supported : v.onNoteWave"));
+        let velocities = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3)
+            .collect::<Vec<_>>();
+        assert_eq!(velocities, vec![100, 100]);
+    }
+
+    #[test]
+    fn test_qlen_on_note_wave_is_reported_as_error() {
+        // q.onNoteWave も同様に、無言で q0 にならずエラーを出す (#78)
+        let song = exec_easy("q90 q.onNoteWave(0,127,!4) l4 c");
+        assert!(song.get_logs_str().contains("not supported : q.onNoteWave"));
+        assert_eq!(song.tracks[0].qlen, 90);
+    }
+
+    #[test]
+    fn test_cc_on_time_skips_duplicated_values() {
+        // 直前と同じ値は書き込まない (#78)
+        let song = exec_easy("TimeBase=96 M.onTime(10,10,!4) l4 c");
+        assert_eq!(count_cc(&song, 1), 1);
+    }
+
+    #[test]
+    fn test_cc_on_note_wave_overwrites_overlapped_range() {
+        // 波形が音符より長く重なるとき、古い書き込みは削除され後勝ちになる (#78)
+        // 2分音符分の波形を4分音符ごとに書き出すので、1音符目の後半は2音符目に上書きされる
+        let song = exec_easy("TimeBase=96 M.onNoteWave(0,127,!2) l4 cd");
+        let events = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| {
+                event.etype == EventType::ControllChange && event.v1 == 1
+            })
+            .collect::<Vec<_>>();
+        // 同じ時刻に同じCC番号のイベントが2つ以上ないこと
+        for i in 1..events.len() {
+            assert_ne!(events[i - 1].time, events[i].time);
+        }
+        // 2音符目の先頭では、あとから指定した波形の開始値になる
+        let at_note2 = events.iter().find(|event| event.time == 96).unwrap();
+        assert_eq!(at_note2.v2, 0);
+    }
+
+    #[test]
+    fn test_pb_on_note_wave_overwrites_overlapped_range() {
+        // ピッチベンドでも同様に後勝ちになる (#78)
+        let song = exec_easy("TimeBase=96 PB.onNoteWave(-8000,8000,!2) l4 cd");
+        let events = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::PitchBend)
+            .collect::<Vec<_>>();
+        for i in 1..events.len() {
+            assert_ne!(events[i - 1].time, events[i].time);
+        }
+        let at_note2 = events.iter().find(|event| event.time == 96).unwrap();
+        assert_eq!(at_note2.v1, -8000 + 8192);
+    }
+}

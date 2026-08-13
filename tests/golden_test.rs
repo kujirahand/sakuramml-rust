@@ -28,7 +28,8 @@ fn sample_midi_is_unchanged() {
         (
             "candy_of_kujirahand.mml",
             include_str!("../samples/candy_of_kujirahand.mml"),
-            "07b31dcc4adc18243a2dfe860171c8b83ecffd50fbce4ba8257fda4a248118bb",
+            // #78: 先行指定の重複値を書き込まなくなったため、CC#1の重複7件分だけ変化
+            "a6fe466b7f47371124dd6678893b83f977c34e3b71fc8fe1341803400d4e826b",
         ),
         (
             "sakura2.mml",

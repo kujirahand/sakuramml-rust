@@ -194,6 +194,7 @@ l4 {cde} f {gab} >c<
 - `Include` / `System.Include` … 外部ファイルの読み込み
 - `System.q2Add` / `q2Add`
 - `l.Random` / `l.onTime` / `o.onTime` / `q.onTime`
+- `v` `q` `t` `o` `l` の `.onNoteWave`(CC系とピッチベンドでのみ利用できます)
 - CC系の `.onNoteWaveEx` / `.onNoteWaveR` / `.onCycle` / `.Sine` / `.onNoteSine`
 
 ## 関連リンク

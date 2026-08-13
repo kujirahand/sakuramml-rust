@@ -107,6 +107,8 @@ pub(super) fn exec_control_change(song: &mut Song, t: &Token) {
 
 /// ピッチベンドの送信
 pub(super) fn exec_pitch_bend(song: &mut Song, t: &Token) {
+    // 単発のピッチベンド指定で、音符ごとの波形変化を解除する
+    trk!(song).remove_pb_on_note_wave();
     let val = var_extract(&t.data[0], song).to_i();
     trk!(song).pitch_bend = if t.value_i == 0 { val * 128 - 8192 } else { val };
     let val = if t.value_i == 0 { val * 128 } else { val + 8192 };
@@ -165,5 +167,11 @@ pub(super) fn exec_cc_on_time_freq(song: &mut Song, t: &Token) {
 
 /// 時間経過によるピッチベンドの変化
 pub(super) fn exec_pb_on_time(song: &mut Song, t: &Token) {
+    trk!(song).remove_pb_on_note_wave();
     trk!(song).write_pb_on_time(t.value_i, t.data[0].to_int_array(), song.timebase);
+}
+
+/// 音符ごとのピッチベンドの波形変化
+pub(super) fn exec_pb_on_note_wave(song: &mut Song, t: &Token) {
+    trk!(song).set_pb_on_note_wave(t.value_i, t.data[0].to_int_array());
 }

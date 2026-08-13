@@ -108,11 +108,11 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             'r' => result.push(read_rest(&mut cur)),         // @ rest - 休符
             'l' => result.push(read_length(&mut cur, song)), // @ length - 音長の指定 (ex) l4 c
             'o' => result.push(read_octave(&mut cur, song)), // @ octave - 音階の指定 range:0-10 (ex) o6 c
-            'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ pitch bend - ピッチベンドの指定 range:0-127 (center:64) (ex) p64 / (ref) PB(n) は -8192~0~8191
+            'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ pitch bend - ピッチベンドの指定 range:0-127 (center:64) (ex) p64 / p.onTime(low,high,len) / p.onNoteWave(low,high,len) / (ref) PB(n) は -8192~0~8191
             'q' => result.push(read_qlen(&mut cur, song)), // @ gate rate - ゲートの指定 range:0-100 (ex) q90
             'v' => result.push(read_velocity(&mut cur, song)), // @ velocity - ベロシティ音量の指定 range:0-127 (ex) v100 / v.Random=n
             't' => result.push(read_timing(&mut cur, song)), // @ timing - 発音タイミングの指定 (例 t-1) / t.Random=n
-            'y' => result.push(read_cc(&mut cur, song, ch)), // @ Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len)
+            'y' => result.push(read_cc(&mut cur, song, ch)), // @ Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len) / y1.onNoteWave(low,high,len)
             // Upper command
             'A'..='Z' | '_' => {
                 cur.prev();

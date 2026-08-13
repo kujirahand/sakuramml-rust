@@ -27,6 +27,33 @@ pub(super) fn read_harmony_flag(cur: &mut SourceCursor, flag_harmony: &mut bool)
     Token::new(TokenType::HarmonyEnd, 0, vec![len_s, qlen, vel])
 }
 
+/// 未対応の先行指定コマンドを検出してエラーを出す (#78)
+/// 例: `v.onNoteWave(...)` のように解釈できないコマンドを、無言で無視して
+/// `v0` などに化けさせないようにする
+pub(super) fn read_unknown_on_command(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    target: &str,
+    cmd: &str,
+) -> Option<Token> {
+    if cmd.len() == 0 {
+        return None;
+    }
+    let _ = read_arg_int_array(cur, song); // 引数を読み飛ばす
+    let mut msg = format!("not supported : {}.{}", target, cmd);
+    // 音符の中で音量を波形状に変化させたい場合は、ベロシティではなく
+    // エクスプレッション(CC#11)を使う必要があるので、代替手段を案内する
+    if cmd == "onNoteWave" || cmd == "W" {
+        if target == "v" {
+            msg = format!("{} (hint: EP.onNoteWave / y11.onNoteWave)", msg);
+        } else {
+            msg = format!("{} (hint: CC.onNoteWave / PB.onNoteWave)", msg);
+        }
+    }
+    song.add_log(format!("[ERROR]({}) {}", cur.line, msg));
+    Some(Token::new_empty(&msg, cur.line))
+}
+
 pub(super) fn scan_chars(s: &str, c: char) -> isize {
     let mut cnt = 0;
     for ch in s.chars() {
@@ -41,13 +68,11 @@ pub(super) fn read_length(cur: &mut SourceCursor, song: &mut Song) -> Token {
     if cur.eq_char('.') {
         cur.next(); // skip '.'
         let cmd = cur.get_word();
-        if cmd == "Random" {
+        if cmd == "Random" || cmd == "onTime" || cmd == "T" {
             let _av = read_arg_int_array(cur, song);
-            return Token::new_empty(&format!("[ERROR]({}) l.Random not supported", cur.line), cur.line);
-        }
-        if cmd == "onTime" || cmd == "T" {
-            let _av = read_arg_int_array(cur, song);
-            return Token::new_empty(&format!("[ERROR]({}) l.onTime not supported", cur.line), cur.line);
+            let msg = format!("not supported : l.{}", cmd);
+            song.add_log(format!("[ERROR]({}) {}", cur.line, msg));
+            return Token::new_empty(&msg, cur.line);
         }
         if cmd == "onNote" || cmd == "N" {
             let av = read_arg_int_array(cur, song);
@@ -56,6 +81,9 @@ pub(super) fn read_length(cur: &mut SourceCursor, song: &mut Song) -> Token {
         if cmd == "onCycle" || cmd == "C" {
             let av = read_arg_int_array(cur, song);
             return Token::new(TokenType::LengthOnCycle, 0, vec![av]);
+        }
+        if let Some(t) = read_unknown_on_command(cur, song, "l", &cmd) {
+            return t;
         }
     }
     let s = cur.get_note_length();
@@ -73,7 +101,9 @@ pub(super) fn read_octave(cur: &mut SourceCursor, song: &mut Song) -> Token {
         }
         if cmd == "onTime" || cmd == "T" {
             let _av = read_arg_int_array(cur, song);
-            return Token::new_empty(&format!("[ERROR]({}) o.onTime not supported", cur.line), cur.line);
+            let msg = format!("not supported : o.{}", cmd);
+            song.add_log(format!("[ERROR]({}) {}", cur.line, msg));
+            return Token::new_empty(&msg, cur.line);
         }
         if cmd == "onNote" || cmd == "N" {
             let av = read_arg_int_array(cur, song);
@@ -82,6 +112,9 @@ pub(super) fn read_octave(cur: &mut SourceCursor, song: &mut Song) -> Token {
         if cmd == "onCycle" || cmd == "C" {
             let r = read_arg_int_array(cur, song);
             return Token::new(TokenType::OctaveOnCycle, 0, vec![r]);
+        }
+        if let Some(t) = read_unknown_on_command(cur, song, "o", &cmd) {
+            return t;
         }
     }
     let value = read_arg_value(cur, song);
@@ -115,7 +148,9 @@ pub(super) fn read_qlen(cur: &mut SourceCursor, song: &mut Song) -> Token {
         }
         if cmd == "onTime" || cmd == "T" {
             let _av = read_arg_int_array(cur, song);
-            return Token::new_empty(&format!("[ERROR]({}) q.onTime not supported", cur.line), cur.line);
+            let msg = format!("not supported : q.{}", cmd);
+            song.add_log(format!("[ERROR]({}) {}", cur.line, msg));
+            return Token::new_empty(&msg, cur.line);
         }
         if cmd == "onNote" || cmd == "N" {
             let av = read_arg_int_array(cur, song);
@@ -124,6 +159,9 @@ pub(super) fn read_qlen(cur: &mut SourceCursor, song: &mut Song) -> Token {
         if cmd == "onCycle" || cmd == "C" {
             let av = read_arg_int_array(cur, song);
             return Token::new(TokenType::QLenOnCycle, 0, vec![av]);
+        }
+        if let Some(t) = read_unknown_on_command(cur, song, "q", &cmd) {
+            return t;
         }
     }
     let value = read_arg_value(cur, song);
@@ -168,6 +206,9 @@ pub(super) fn read_velocity(cur: &mut SourceCursor, song: &mut Song) -> Token {
             let av = read_arg_int_array(cur, song);
             return Token::new(TokenType::VelocityOnCycle, 0, vec![av, SValue::from_i(ino)]);
         }
+        if let Some(t) = read_unknown_on_command(cur, song, "v", &cmd) {
+            return t;
+        }
     }
     // v(no)
     let value = read_arg_value(cur, song);
@@ -198,6 +239,9 @@ pub(super) fn read_timing(cur: &mut SourceCursor, song: &mut Song) -> Token {
         if cmd == "onCycle" || cmd == "C" {
             let av = read_arg_int_array(cur, song);
             return Token::new(TokenType::TimingOnCycle, 0, vec![av]);
+        }
+        if let Some(t) = read_unknown_on_command(cur, song, "t", &cmd) {
+            return t;
         }
     }
     // t(no)

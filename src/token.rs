@@ -48,6 +48,7 @@ pub enum TokenType {
     TimeSignature,
     PitchBend,
     PBonTime,
+    PBonNoteWave,
     LoopBegin,
     LoopEnd,
     LoopBreak,
