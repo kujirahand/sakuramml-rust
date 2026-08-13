@@ -69,7 +69,11 @@ fn dump_outputs_midi_channels() {
         ],
         &dir,
     );
-    assert!(compile.status.success());
+    assert!(
+        compile.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compile.stderr)
+    );
 
     let dump = run(&["--dump", "eval.mid"], &dir);
     assert!(
