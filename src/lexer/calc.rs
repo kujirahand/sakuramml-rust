@@ -11,7 +11,11 @@ pub(super) const LEX_PLUS_MINUS: isize = 30;
 
 pub(super) const LEX_COMPARE: isize = 40;
 
-pub(super) const LEX_OR_AND: isize = 50;
+pub(super) const LEX_BITWISE: isize = 45;
+
+pub(super) const LEX_LOGICAL_AND: isize = 50;
+
+pub(super) const LEX_LOGICAL_OR: isize = 55;
 
 pub(super) fn read_value(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
     cur.skip_space();
@@ -259,7 +263,7 @@ fn is_raw_mml_note(arg: &str) -> bool {
 
 pub(super) fn is_operator_char(c: char) -> bool {
     match c {
-        '+' | '-' | '*' | '/' | '|' | '&' | '%' | '≠' | '=' | '>' | '<' | '≧' | '≦' | '!' => {
+        '+' | '-' | '*' | '/' | '|' | '&' | '^' | '%' | '≠' | '=' | '>' | '<' | '≧' | '≦' | '!' => {
             true
         }
         _ => false,
@@ -290,11 +294,11 @@ pub(super) fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
     } else if cur.eq("&&") {
         // logical and
         cur.next_n(2);
-        ch = '&';
+        ch = 'A';
     } else if cur.eq("||") {
         // logical or
         cur.next_n(2);
-        ch = '|';
+        ch = 'O';
     } else {
         cur.next();
     }
@@ -303,8 +307,6 @@ pub(super) fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
         '-' => LEX_PLUS_MINUS,
         '*' => LEX_MUL_DIV,
         '/' => LEX_MUL_DIV,
-        '|' => LEX_OR_AND,
-        '&' => LEX_OR_AND,
         '%' => LEX_MUL_DIV,
         '≠' => LEX_COMPARE,
         '=' => LEX_COMPARE,
@@ -313,6 +315,11 @@ pub(super) fn read_operator(cur: &mut SourceCursor) -> Option<(char, isize)> {
         '≧' => LEX_COMPARE,
         '≦' => LEX_COMPARE,
         '!' => LEX_COMPARE,
+        '&' => LEX_BITWISE,
+        '^' => LEX_BITWISE,
+        '|' => LEX_BITWISE,
+        'A' => LEX_LOGICAL_AND,
+        'O' => LEX_LOGICAL_OR,
         _ => -1,
     };
     if priority < 0 {
@@ -329,72 +336,42 @@ pub(super) fn read_calc_tokens(cur: &mut SourceCursor, song: &mut Song) -> Optio
 }
 
 pub(super) fn read_calc(cur: &mut SourceCursor, song: &mut Song) -> Option<Token> {
-    // read left value
-    let mut left_val = match read_value(cur, song) {
-        Some(res) => res,
-        None => return None,
-    };
-    // read operator and right value
+    read_calc_priority(cur, song, isize::MAX)
+}
+
+/// 優先順位を考慮して計算式を読み取る。
+/// 同じ優先順位の演算子は旧サクラと同じく左から評価する。
+fn read_calc_priority(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    max_priority: isize,
+) -> Option<Token> {
+    let mut left_val = read_value(cur, song)?;
     while cur.has_next() {
-        // read operator
+        let operator_index = cur.index;
+        let operator_line = cur.line;
         let (operator_ch, operator_priority) = match read_operator(cur) {
             Some(res) => res,
             None => break,
         };
-        // println!("@@@operator_ch={}({})", operator_ch, operator_priority);
-        // read right value
-        let right_val_o = read_calc(cur, song);
+
+        // 数値が小さい演算子ほど優先順位が高い。
+        // 現在の階層より優先順位が低い演算子は呼び出し元で処理する。
+        if operator_priority > max_priority {
+            cur.index = operator_index;
+            cur.line = operator_line;
+            break;
+        }
+
+        // 同じ優先順位を右辺へ取り込まないことで左結合にする。
+        let right_val_o = read_calc_priority(cur, song, operator_priority - 1);
         if right_val_o.is_none() {
             let msg = song.get_message(MessageKind::ErrorMissingValue);
             read_error(cur, song, msg);
         }
         let right_val = right_val_o.unwrap_or(Token::new_empty("ERROR", cur.line));
-
-        // replace left_val to CalcTree
-        if left_val.ttype != TokenType::CalcTree {
-            left_val =
-                Token::new_calc_token(operator_ch, operator_priority, vec![left_val, right_val]);
-            continue;
-        }
-        // check priority
-        if left_val.value_i < operator_priority {
-            // (examle) 1 + 2 * 3 => [left] (1 + 2) [operator] * [right] 3
-            // => (1 + (2 * 3))
-            // 元々の左側の演算をばらして、右側にくっつける
-            let left_operator = left_val.operator_flag;
-            let left_priority = left_val.value_i;
-            let mut left_val_children = left_val.children.clone().unwrap_or(vec![]);
-            if left_val_children.len() < 2 {
-                // 括弧や値の場合
-                // example (1) + 2
-                left_val = Token::new_calc_token(
-                    operator_ch,
-                    operator_priority,
-                    vec![left_val, right_val],
-                );
-                continue;
-            }
-            let val2 = left_val_children.pop().unwrap_or(Token::new_const(
-                TokenType::ConstInt,
-                0,
-                None,
-                TokenValueType::INT,
-            ));
-            let val1 = left_val_children.pop().unwrap_or(Token::new_const(
-                TokenType::ConstInt,
-                0,
-                None,
-                TokenValueType::INT,
-            ));
-            let val3 = right_val;
-            let new_right = Token::new_calc_token(operator_ch, operator_priority, vec![val2, val3]);
-            left_val = Token::new_calc_token(left_operator, left_priority, vec![val1, new_right]);
-        } else {
-            left_val =
-                Token::new_calc_token(operator_ch, operator_priority, vec![left_val, right_val]);
-        }
+        left_val = Token::new_calc_token(operator_ch, operator_priority, vec![left_val, right_val]);
     }
-    // println!("@@@read_calc={:?}", left_val.to_debug_str(0));
     Some(left_val)
 }
 
