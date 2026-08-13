@@ -328,6 +328,39 @@ mod test_for_runner {
         assert_eq!(song.get_logs_str(), "[PRINT](0) 6\n[PRINT](0) 6");
     }
     #[test]
+    fn test_noteno_returns_note_number_of_mml() {
+        // オクターブ付きの音符・臨時記号・n命令
+        let song = exec_easy("Int N = NoteNo(o5e) PRINT(N)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 64");
+        let song = exec_easy("PRINT(NoteNo(o4c)) PRINT(NoteNo(o5e+)) PRINT(NoteNo(o5e-))");
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](0) 48\n[PRINT](0) 65\n[PRINT](0) 63"
+        );
+        let song = exec_easy("PRINT(NOTENO(n60)) PRINT(NoteNo(o5c,,,,6))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 60\n[PRINT](0) 72");
+        // 省略時は現在のトラックのオクターブを使う
+        let song = exec_easy("o6 PRINT(NoteNo(c)) PRINT(NoteNo(>c)) PRINT(NoteNo(<c))");
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](0) 72\n[PRINT](0) 84\n[PRINT](0) 60"
+        );
+        // キーシフトを反映する
+        let song = exec_easy("Key(2) PRINT(NoteNo(o5c))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 62");
+        // 一度だけオクターブを変える「`」も反映する
+        let song = exec_easy("o5 PRINT(NoteNo(`c))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 72");
+        // オクターブは実行時と同じく0-10に丸める
+        let song = exec_easy("PRINT(NoteNo(o99c)) PRINT(NoteNo(o-5c))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 120\n[PRINT](0) 0");
+        let song = exec_easy("PRINT(NoteNo(>>>>>>>>>>>c)) PRINT(NoteNo(<<<<<<<<<<<c))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 120\n[PRINT](0) 0");
+        // 計算式の中でも使える / 変数に入れたMMLも使える
+        let song = exec_easy("STR MMLA={o5e} PRINT(NoteNo(MMLA)) PRINT(NoteNo(o5c) + 1)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 64\n[PRINT](0) 61");
+    }
+    #[test]
     fn test_add_len() {
         // test basic
         let song = exec_easy("l4 c");
