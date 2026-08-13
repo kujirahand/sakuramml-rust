@@ -154,3 +154,27 @@ fn eval_without_source_reports_an_error() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("requires MML text"));
     assert!(!dir.0.join("eval.mid").exists());
 }
+
+#[test]
+fn max_event_bytes_stops_compilation_and_writes_a_partial_file() {
+    let dir = TestDir::new("event-limit");
+    let output = run(
+        &["--max-event-bytes", "64", "--eval", "[1000000 y1,64]"],
+        &dir,
+    );
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr)
+        .contains("MIDI event data exceeds max_event_bytes (64)"));
+    assert!(fs::read(dir.0.join("eval.mid")).unwrap().starts_with(b"MThd"));
+}
+
+#[test]
+fn max_event_bytes_accepts_a_custom_cli_limit() {
+    let dir = TestDir::new("event-limit-custom");
+    let output = run(
+        &["--max-event-bytes", "16", "--eval", "y1,64 y2,64"],
+        &dir,
+    );
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(fs::read(dir.0.join("eval.mid")).unwrap().starts_with(b"MThd"));
+}

@@ -48,6 +48,7 @@ pub(super) fn exec_while(song: &mut Song, t: &Token) -> bool {
         // exec body
         let body = body_token.children.clone().unwrap();
         exec(song, &body);
+        if song.event_limit_exceeded() { break; }
         // check counter
         counter += 1;
         if counter > song.flags.max_loop {
@@ -104,6 +105,7 @@ pub(super) fn exec_for(song: &mut Song, t: &Token) -> bool {
         // exec body
         let body = body_token.children.clone().unwrap();
         exec(song, &body);
+        if song.event_limit_exceeded() { break; }
         // check loop counter
         counter += 1;
         if counter > song.flags.max_loop {

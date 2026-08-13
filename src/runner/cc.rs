@@ -9,12 +9,22 @@ where
 {
     let timebase = song.timebase;
     let mut seed = song.rand_seed;
-    {
-        let mut ctx = WriteCtx { timebase, rand_seed: &mut seed };
+    let max_event_bytes = song.max_event_bytes();
+    let event_bytes = song.event_bytes();
+    let (result_event_bytes, event_limit_exceeded) = {
+        let mut ctx = WriteCtx {
+            timebase,
+            rand_seed: &mut seed,
+            max_event_bytes,
+            event_bytes,
+            event_limit_exceeded: false,
+        };
         let trk = &mut song.tracks[song.cur_track];
         f(trk, &mut ctx);
-    }
+        (ctx.event_bytes, ctx.event_limit_exceeded)
+    };
     song.rand_seed = seed;
+    song.update_event_budget(result_event_bytes, event_limit_exceeded);
 }
 
 /// トークンの value_i から書き込み先を求める
@@ -61,6 +71,10 @@ pub(super) fn tempo_change_a_to_b(song: &mut Song, a: isize, b: isize, len: isiz
     for i in 0..step_cnt {
         let v = (a as f32) + (width as f32) * (i as f32 / step_cnt as f32);
         tempo_change(song, v as isize);
+        if song.event_limit_exceeded() {
+            trk!(song).timepos = timepos;
+            return;
+        }
         trk!(song).timepos += step;
     }
     trk!(song).timepos = timepos + len;

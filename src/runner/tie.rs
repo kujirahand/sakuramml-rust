@@ -34,7 +34,7 @@ pub(super) fn tie_mode_port(song: &mut Song) {
     let mut tie_value = trk!(song).tie_value;
     loop {
         if trk!(song).tie_notes.len() == 0 {
-            trk!(song).events.push(last_note);
+            song.add_reserved_event(last_note);
             break;
         }
         let next_event = trk!(song).tie_notes.remove(0);
@@ -52,7 +52,7 @@ pub(super) fn tie_mode_port(song: &mut Song) {
             trk!(song).bend_range = 12;
             let timepos = if last_note.time <= 0 { 0 } else { last_note.time - 1 };
             let bend_range_event = Event::pitch_bend_range(timepos, trk!(song).channel, 12);
-            trk!(song).events.push(bend_range_event);
+            if !song.add_event(bend_range_event) { return; }
             bend_range = 12;
         }
         // calc pitch range
@@ -68,12 +68,12 @@ pub(super) fn tie_mode_port(song: &mut Song) {
             if last_v == v { continue; }
             last_v = v;
             let bend_event = Event::pitch_bend(timepos, trk!(song).channel, v + 8192);
-            trk!(song).events.push(bend_event);
+            if !song.add_event(bend_event) { return; }
         }
         last_note.v2 = next_event.time - last_note.time;
-        trk!(song).events.push(last_note);
+        song.add_reserved_event(last_note);
         let bend_event_end = Event::pitch_bend(next_event.time, trk!(song).channel, bend_to + 8192);
-        trk!(song).events.push(bend_event_end);
+        if !song.add_event(bend_event_end) { return; }
         last_note = next_event;
     }
 }
@@ -91,12 +91,12 @@ pub(super) fn tie_mode_bend(song: &mut Song) {
         trk!(song).bend_range = 12;
         let timepos = if last_note.time <= 0 { 0 } else { last_note.time - 1 };
         let bend_range_event = Event::pitch_bend_range(timepos, trk!(song).channel, 12);
-        trk!(song).events.push(bend_range_event);
+        if !song.add_event(bend_range_event) { return; }
         bend_range = 12;
     }
     // set bend 0
     let bend0 = Event::pitch_bend(last_note.time, trk!(song).channel, 8192);
-    trk!(song).events.push(bend0);
+    if !song.add_event(bend0) { return; }
     let mut lastpos = last_note.time + last_note.v2;
     while trk!(song).tie_notes.len() > 0 {
         let next_event = trk!(song).tie_notes.remove(0);
@@ -116,14 +116,14 @@ pub(super) fn tie_mode_bend(song: &mut Song) {
             trk!(song).channel,
             (note_diff as f32 * 8192f32 / bend_range as f32) as isize + 8192,
         );
-        trk!(song).events.push(bend_event);
+        if !song.add_event(bend_event) { return; }
     }
     // write begin note
     begin_note.v2 = lastpos - begin_note.time;
-    trk!(song).events.push(begin_note);
+    song.add_reserved_event(begin_note);
     // reset bend
     let bend_end = Event::pitch_bend(lastpos, trk!(song).channel, 8192);
-    trk!(song).events.push(bend_end);
+    song.add_event(bend_end);
 }
 
 pub(super) fn tie_mode_gate(song: &mut Song) {
@@ -131,7 +131,7 @@ pub(super) fn tie_mode_gate(song: &mut Song) {
     let tie_value = trk!(song).tie_value;
     loop {
         if trk!(song).tie_notes.len() == 0 {
-            trk!(song).events.push(last_note);
+            song.add_reserved_event(last_note);
             break;
         }
         let next_event = trk!(song).tie_notes.remove(0);
@@ -148,7 +148,7 @@ pub(super) fn tie_mode_gate(song: &mut Song) {
         } else {
             last_note.v2 = tie_value;
         }
-        trk!(song).events.push(last_note);
+        song.add_reserved_event(last_note);
         last_note = next_event;
     }
 }
@@ -160,7 +160,7 @@ pub(super) fn tie_mode_alpe(song: &mut Song) {
     let tie_notes = trk!(song).tie_notes.clone();
     for mut event in tie_notes.into_iter() {
         event.v2 = last_pos - event.time;
-        trk!(song).events.push(event);
+        song.add_reserved_event(event);
     }
 }
 

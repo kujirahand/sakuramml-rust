@@ -102,7 +102,7 @@ pub(super) fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
             if !note_vel.is_none() {
                 e.v3 = note_vel.to_i();
             }
-            trk!(song).events.push(e);
+            song.add_reserved_event(e);
         }
         trk!(song).timepos = song.flags.harmony_time + note_len;
         return;

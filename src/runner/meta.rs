@@ -120,7 +120,7 @@ pub(super) fn exec_direct_smf(song: &mut Song, t: &Token) {
     if args.len() >= 1 {
         let timepos = trk!(song).timepos;
         let args_u8 = args.iter().map(|v| v.to_i() as u8).collect();
-        trk!(song).events.push(Event::direct_smf(timepos, args_u8));
+        song.add_event(Event::direct_smf(timepos, args_u8));
     }
 }
 
@@ -131,7 +131,7 @@ pub(super) fn exec_note_on(song: &mut Song, t: &Token) {
         let timepos = trk!(song).timepos;
         let mut args_u8: Vec<u8> = args.iter().map(|v| v.to_i() as u8).collect();
         args_u8.insert(0, 0x90 | trk!(song).channel as u8);
-        trk!(song).events.push(Event::direct_smf(timepos, args_u8));
+        song.add_event(Event::direct_smf(timepos, args_u8));
     }
 }
 
@@ -142,6 +142,6 @@ pub(super) fn exec_note_off(song: &mut Song, t: &Token) {
         let timepos = trk!(song).timepos;
         let mut args_u8: Vec<u8> = args.iter().map(|v| v.to_i() as u8).collect();
         args_u8.insert(0, 0x80 | trk!(song).channel as u8);
-        trk!(song).events.push(Event::direct_smf(timepos, args_u8));
+        song.add_event(Event::direct_smf(timepos, args_u8));
     }
 }

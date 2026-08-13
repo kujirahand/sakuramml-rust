@@ -51,6 +51,17 @@ $ cargo build --release
 $ sakuramml test.mml
 ```
 
+安全のため、生成するMIDIイベントデータは既定で3MiBまでに制限されます。
+コマンドライン版では、信頼できるMMLを変換するときに限り上限を変更できます。
+
+```sh
+$ sakuramml --max-event-bytes 10485760 test.mml
+```
+
+WebAssembly版の上限は3MiB固定です。詳しくは
+[MIDIイベントデータの上限](docs/event-limit.md)を参照してください。
+上限超過時はエラーを記録し、超過直前までの部分MIDIを返します。
+
 ### 基本的な使い方
 
 ```mml

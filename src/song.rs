@@ -23,6 +23,8 @@ use crate::token::Tokens;
 pub const SAKURA_MAX_LOGS: usize = 100; // lines
 pub const SAKURA_MAX_LOGS_CHARS: usize = 1024 * 4; // chars
 pub const SAKURA_DEFAULT_RANDOM_SEED: u32 = 3958587042; // random seed
+/// MIDIイベントデータの既定上限 (3MiB)
+pub const SAKURA_DEFAULT_MAX_EVENT_BYTES: usize = 3 * 1024 * 1024;
 
 /// Song
 #[derive(Debug)]
@@ -53,6 +55,9 @@ pub struct Song {
     pub device_number: u8,
     pub use_key_shift: bool,
     pub lineno: isize,
+    max_event_bytes: usize,
+    event_bytes: usize,
+    event_limit_exceeded: bool,
     logs: Vec<String>, // ログ
 }
 
@@ -93,6 +98,9 @@ impl Song {
             device_number: 0x10, // default device number (0x10: General MIDI)
             use_key_shift: true,
             lineno: 0,
+            max_event_bytes: SAKURA_DEFAULT_MAX_EVENT_BYTES,
+            event_bytes: 0,
+            event_limit_exceeded: false,
         }
     }
     pub fn set_language(&mut self, lang_code: &str) {
@@ -117,8 +125,53 @@ impl Song {
     pub fn get_logs_len(&self) -> usize {
         self.logs.len()
     }
-    pub fn add_event(&mut self, e: Event) {
+    /// MIDIイベントデータの上限を変更する。CLIなど信頼できる呼び出し元だけが使う。
+    pub fn set_max_event_bytes(&mut self, max_event_bytes: usize) {
+        self.max_event_bytes = max_event_bytes;
+    }
+    pub fn max_event_bytes(&self) -> usize {
+        self.max_event_bytes
+    }
+    pub fn event_bytes(&self) -> usize {
+        self.event_bytes
+    }
+    pub fn event_limit_exceeded(&self) -> bool {
+        self.event_limit_exceeded
+    }
+    fn report_event_limit(&mut self) {
+        if self.event_limit_exceeded { return; }
+        self.event_limit_exceeded = true;
+        self.add_log(format!(
+            "[ERROR]({}) MIDI event data exceeds max_event_bytes ({})",
+            self.lineno,
+            self.max_event_bytes,
+        ));
+    }
+    /// イベント用の予算を確保する。和音やタイなど、一時領域へ置く場合にも使う。
+    pub fn reserve_event(&mut self, e: &Event) -> bool {
+        if self.event_limit_exceeded { return false; }
+        let size = e.estimated_midi_bytes();
+        let next = self.event_bytes.saturating_add(size);
+        if next > self.max_event_bytes {
+            self.report_event_limit();
+            return false;
+        }
+        self.event_bytes = next;
+        true
+    }
+    pub fn add_event(&mut self, e: Event) -> bool {
+        if !self.reserve_event(&e) { return false; }
         self.tracks[self.cur_track].events.push(e);
+        true
+    }
+    /// すでに予算を確保した一時イベントをトラックへ移す。
+    pub fn add_reserved_event(&mut self, e: Event) {
+        self.tracks[self.cur_track].events.push(e);
+    }
+    /// Track内の連続書き込みから予算超過を通知する。
+    pub fn update_event_budget(&mut self, event_bytes: usize, exceeded: bool) {
+        self.event_bytes = event_bytes;
+        if exceeded { self.report_event_limit(); }
     }
     pub fn normalize_and_sort(&mut self) {
         for trk in self.tracks.iter_mut() {
@@ -220,5 +273,67 @@ impl Song {
     }
     pub fn variables_stack_pop(&mut self) -> HashMap<String, SValue> {
         self.variables_stack.pop().unwrap_or(HashMap::new())
+    }
+}
+
+#[cfg(test)]
+mod event_limit_tests {
+    use super::*;
+    use crate::{lexer, runner};
+
+    fn exec_with_limit(source: &str, max_event_bytes: usize) -> Song {
+        let mut song = Song::new();
+        song.set_max_event_bytes(max_event_bytes);
+        let tokens = lexer::lex(&mut song, source, 0);
+        runner::exec(&mut song, &tokens);
+        song
+    }
+
+    #[test]
+    fn event_limit_stops_a_large_bracket_loop() {
+        let mut song = exec_with_limit("[1000000 y1,64]", 64);
+        assert!(song.event_limit_exceeded());
+        assert_eq!(song.event_bytes(), 64);
+        assert_eq!(song.tracks[0].events.len(), 8);
+        assert!(song.get_logs_str().contains("MIDI event data exceeds max_event_bytes (64)"));
+        assert!(crate::midi::generate(&mut song).starts_with(b"MThd"));
+    }
+
+    #[test]
+    fn event_limit_stops_inside_continuous_cc_writing() {
+        let song = exec_with_limit("M.Random(10) M.onTime(0,127,1000000)", 64);
+        assert!(song.event_limit_exceeded());
+        assert!(song.tracks[0].events.len() <= 8);
+    }
+
+    #[test]
+    fn event_limit_avoids_a_huge_repeated_wave_buffer() {
+        let song = exec_with_limit("M.onNoteWaveR(0,127,1) l%100000000 c", 64);
+        assert!(song.event_limit_exceeded());
+        assert!(song.tracks[0].events.len() <= 8);
+    }
+
+    #[test]
+    fn event_limit_stops_inside_tempo_change() {
+        let song = exec_with_limit("TempoChange(60,120,100000000)", 64);
+        assert!(song.event_limit_exceeded());
+        assert!(song.tracks[0].events.len() <= 8);
+    }
+
+    #[test]
+    fn note_budget_includes_the_generated_note_off() {
+        let mut song = Song::new();
+        song.set_max_event_bytes(15);
+        assert!(!song.add_event(Event::note(0, 0, 60, 96, 100)));
+        assert!(song.event_limit_exceeded());
+        assert!(song.tracks[0].events.is_empty());
+    }
+
+    #[test]
+    fn variable_length_event_data_counts_toward_the_limit() {
+        let mut song = Song::new();
+        song.set_max_event_bytes(11);
+        assert!(!song.add_event(Event::direct_smf(0, vec![0; 4])));
+        assert!(song.event_limit_exceeded());
     }
 }

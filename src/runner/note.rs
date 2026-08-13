@@ -164,6 +164,7 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     let v = value_range(0, v, trk!(song).v_opt.max_or(127));
     // event
     let event = Event::note(timepos + t, trk!(song).channel, note.no, notelen_real, v);
+    if !song.reserve_event(&event) { return; }
     // println!("- {}: note(no={},len={},qlen={},v={},t={},o={})", trk.timepos, noteno, notelen_real, qlen, v, t, o);
     trk!(song).timepos += notelen;
 
@@ -197,7 +198,7 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     // onNote / onNoteWave event
     write_on_note_events(song, start_pos);
     // write note event
-    trk!(song).events.push(event);
+    song.add_reserved_event(event);
     // 音符の中にある .onCycle の書き込みを確定する
     flush_cc_on_cycle(song);
 }
@@ -255,11 +256,12 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
         notelen_real,
         v,
     );
+    if !song.reserve_event(&event) { return; }
     // println!("- {}: note(no={},len={},qlen={},v={},t={})", trk!(song).timepos, notelen_real, notelen, qlen, v, t);
     // onNote / onNoteWave event
     write_on_note_events(song, start_pos);
     // write event
-    trk!(song).events.push(event);
+    song.add_reserved_event(event);
     trk!(song).timepos += notelen;
     // 音符の中にある .onCycle の書き込みを確定する
     flush_cc_on_cycle(song);
