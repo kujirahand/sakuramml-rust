@@ -157,7 +157,7 @@ pub(super) fn exec_tokens(song: &mut Song, t: &Token) {
 
 /// 調号の指定
 pub(super) fn exec_key_flag(song: &mut Song, t: &Token) {
-    song.key_flag = t.data[0].to_int_array();
+    song.key_flag = var_extract(&t.data[0], song).to_int_array();
 }
 
 /// 曲全体のキーシフト
@@ -172,7 +172,7 @@ pub(super) fn exec_track_key(song: &mut Song, t: &Token) {
 
 /// キーシフトを使うかどうかの指定
 pub(super) fn exec_use_key_shift(song: &mut Song, t: &Token) {
-    song.use_key_shift = t.value_i != 0;
+    song.use_key_shift = t.data.first().map(|v| var_extract(v, song).to_b()).unwrap_or(t.value_i != 0);
 }
 
 /// 現在位置を演奏開始位置にする
@@ -200,6 +200,6 @@ pub(super) fn exec_set_config(song: &mut Song, t: &Token) {
     let key = t.data[0].to_s();
     let val = &t.data[1];
     if key == "RandomSeed" {
-        song.rand_seed = val.to_i() as u32;
+        song.rand_seed = var_extract(val, song).to_i() as u32;
     }
 }

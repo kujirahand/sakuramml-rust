@@ -69,7 +69,7 @@ pub(super) fn read_arg_value(cur: &mut SourceCursor, song: &mut Song) -> SValue 
             if flag_array {
                 SValue::from_vec(args)
             } else {
-                SValue::from_i(args[0].to_i())
+                args.into_iter().next().unwrap_or(SValue::None)
             }
         }
         '{' => {
@@ -81,7 +81,7 @@ pub(super) fn read_arg_value(cur: &mut SourceCursor, song: &mut Song) -> SValue 
 }
 
 pub(super) fn read_arg_value_int_array(cur: &mut SourceCursor, song: &mut Song) -> SValue {
-    let mut a: Vec<isize> = vec![];
+    let mut a: Vec<SValue> = vec![];
     loop {
         cur.skip_space();
         // println!("@@@read_arg_value_int_array:{}", cur.peek_n(0));
@@ -89,12 +89,10 @@ pub(super) fn read_arg_value_int_array(cur: &mut SourceCursor, song: &mut Song) 
         match v {
             SValue::None => { break; }
             SValue::Array(av) => {
-                for v in av.into_iter() {
-                    a.push(v.to_i());
-                }
+                a.extend(av);
             },
             _ => {
-                a.push(v.to_i())
+                a.push(v)
             }
         }
         cur.skip_space();
@@ -103,7 +101,7 @@ pub(super) fn read_arg_value_int_array(cur: &mut SourceCursor, song: &mut Song) 
         }
         cur.next(); // skip ,
     }
-    SValue::from_int_array(a)
+    SValue::from_vec(a)
 }
 
 pub(super) fn read_arg_int_array(cur: &mut SourceCursor, song: &mut Song) -> SValue {
@@ -129,7 +127,7 @@ pub(super) fn read_arg_int_array(cur: &mut SourceCursor, song: &mut Song) -> SVa
 
 /// on/off の指定を読み取る (.Repeat(on) など)
 /// on/off のほか 1/0 などの数値も受け付ける。省略時は on とみなす
-pub(super) fn read_arg_on_off(cur: &mut SourceCursor, song: &mut Song) -> bool {
+pub(super) fn read_arg_on_off(cur: &mut SourceCursor, song: &mut Song) -> SValue {
     cur.skip_space();
     if cur.eq_char('=') {
         cur.next();
@@ -142,13 +140,16 @@ pub(super) fn read_arg_on_off(cur: &mut SourceCursor, song: &mut Song) -> bool {
     let result = match cur.peek_n(0) {
         'a'..='z' | 'A'..='Z' => {
             let word = cur.get_word();
-            let word = word.to_lowercase();
-            !(word == "off" || word == "false" || word == "no")
+            match word.to_lowercase().as_str() {
+                "off" | "false" | "no" => SValue::from_b(false),
+                "on" | "true" | "yes" => SValue::from_b(true),
+                _ => SValue::from_s(format!("={}", word)),
+            }
         }
-        '-' | '0'..='9' | '$' => cur.get_int(0) != 0,
+        '-' | '0'..='9' | '$' => SValue::from_b(cur.get_int(0) != 0),
         _ => {
-            let _ = read_arg_value(cur, song);
-            true
+            let value = read_arg_value(cur, song);
+            if value.is_none() { SValue::from_b(true) } else { value }
         }
     };
     cur.skip_space();

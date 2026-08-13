@@ -75,7 +75,6 @@ pub(super) fn read_upper_command(cur: &mut SourceCursor, song: &mut Song) -> Tok
                     },
                     TokenType::SetRandomSeed => {
                         let v = read_arg_value(cur, song);
-                        song.rand_seed = v.to_i() as u32;
                         return Token::new(TokenType::SetConfig, 0, vec![
                             SValue::from_str("RandomSeed"),
                             v
@@ -248,17 +247,17 @@ pub(super) fn read_use_key_shift(cur: &mut SourceCursor, song: &mut Song) -> Tok
     }
     let v = if cur.eq("on") || cur.eq("ON") {
         cur.next_n(2);
-        1
+        SValue::from_b(true)
     } else if cur.eq("off") || cur.eq("OFF") {
         cur.next_n(3);
-        0
+        SValue::from_b(false)
     } else {
-        read_arg_value(cur, song).to_i()
+        read_arg_value(cur, song)
     };
     if cur.eq_char(')') {
         cur.next();
     }
-    Token::new(TokenType::UseKeyShift, v, vec![])
+    Token::new(TokenType::UseKeyShift, 0, vec![v])
 }
 
 pub(super) fn read_command_sub(cur: &mut SourceCursor, song: &mut Song) -> Token {

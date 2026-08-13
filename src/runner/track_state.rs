@@ -22,7 +22,8 @@ pub(super) fn exec_length(song: &mut Song, t: &Token) {
 /// オクターブの指定 (o)
 pub(super) fn exec_octave(song: &mut Song, t: &Token) {
     trk!(song).o_opt.clear_reserve();
-    trk!(song).octave = value_range(0, t.value_i, 10);
+    let value = t.data.first().map(|v| var_extract(v, song).to_i()).unwrap_or(t.value_i);
+    trk!(song).octave = value_range(0, value, 10);
 }
 
 /// オクターブの相対変更 (> <)
@@ -38,15 +39,16 @@ pub(super) fn exec_octave_once(song: &mut Song, t: &Token) {
 
 /// ベロシティの指定 (v)
 pub(super) fn exec_velocity(song: &mut Song, t: &Token) {
-    let ino = t.data[0].to_i();
+    let value = t.data.first().map(|v| var_extract(v, song).to_i()).unwrap_or(t.value_i);
+    let ino = t.data.get(1).map(|v| v.to_i()).unwrap_or(-1);
     if ino >= 0 {
         let index = ino as usize;
-        let velocity = value_range(-127, t.value_i, 127);
+        let velocity = value_range(-127, value, 127);
         trk!(song).set_v_sub(index, velocity);
     } else {
         trk!(song).v_opt.clear_reserve();
         let max = trk!(song).v_opt.max_or(127);
-        trk!(song).velocity = value_range(0, t.value_i, max);
+        trk!(song).velocity = value_range(0, value, max);
     }
 }
 
@@ -60,7 +62,8 @@ pub(super) fn exec_velocity_rel(song: &mut Song, t: &Token) {
 pub(super) fn exec_qlen(song: &mut Song, t: &Token) {
     trk!(song).q_opt.clear_reserve();
     let max = trk!(song).q_opt.max_or(100);
-    trk!(song).qlen = value_range(0, t.value_i, max);
+    let value = t.data.first().map(|v| var_extract(v, song).to_i()).unwrap_or(t.value_i);
+    trk!(song).qlen = value_range(0, value, max);
 }
 
 /// ゲートの相対変更
@@ -71,7 +74,7 @@ pub(super) fn exec_qlen_rel(song: &mut Song, t: &Token) {
 /// 発音タイミングの指定 (t)
 pub(super) fn exec_timing(song: &mut Song, t: &Token) {
     trk!(song).t_opt.clear_reserve();
-    trk!(song).timing = t.value_i;
+    trk!(song).timing = t.data.first().map(|v| var_extract(v, song).to_i()).unwrap_or(t.value_i);
 }
 
 /// 音符属性のランダム変化 (.Random)
@@ -88,7 +91,7 @@ pub(super) fn exec_note_param_random(song: &mut Song, t: &Token, target: isize) 
 
 /// 時間経過による音符属性の変化 (.onTime)
 pub(super) fn exec_note_param_on_time(song: &mut Song, t: &Token, target: isize) {
-    let values = t.data[0].to_int_array();
+    let values = var_extract(&t.data[0], song).to_int_array();
     let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
     if target == NOTE_PARAM_V && index >= 0 {
         trk!(song).set_v_sub_on_time(index as usize, values);
@@ -100,7 +103,7 @@ pub(super) fn exec_note_param_on_time(song: &mut Song, t: &Token, target: isize)
 
 /// 一定時間ごとの音符属性の変化 (.onCycle) --- (ステップ値, 値1, 値2, ...)
 pub(super) fn exec_note_param_on_cycle(song: &mut Song, t: &Token, target: isize) {
-    let values = t.data[0].to_int_array();
+    let values = var_extract(&t.data[0], song).to_int_array();
     let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
     if values.len() < 2 {
         runtime_error(song, ".onCycle needs (step, v1, v2, ...)");
@@ -116,7 +119,7 @@ pub(super) fn exec_note_param_on_cycle(song: &mut Song, t: &Token, target: isize
 
 /// 音符ごとの音符属性の変化 (.onNote)
 pub(super) fn exec_note_param_on_note(song: &mut Song, t: &Token, target: isize) {
-    let values = t.data[0].to_int_array();
+    let values = var_extract(&t.data[0], song).to_int_array();
     let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
     if target == NOTE_PARAM_V && index >= 0 {
         trk!(song).set_v_sub_on_note(index as usize, values);
@@ -128,7 +131,7 @@ pub(super) fn exec_note_param_on_note(song: &mut Song, t: &Token, target: isize)
 /// 音符属性の値の範囲指定 (.Range)
 pub(super) fn exec_note_param_range(song: &mut Song, t: &Token) {
     let target = t.value_i;
-    let args = t.data[0].to_int_array();
+    let args = var_extract(&t.data[0], song).to_int_array();
     if args.len() < 2 {
         runtime_error(song, ".Range needs (low, high)");
         return;
@@ -146,7 +149,7 @@ pub(super) fn exec_note_param_delay(song: &mut Song, t: &Token) {
 /// 音符属性の .onNote をくり返すかどうか (.Repeat)
 pub(super) fn exec_note_param_repeat(song: &mut Song, t: &Token) {
     let target = t.value_i;
-    let on = t.data[0].to_i() != 0;
+    let on = var_extract(&t.data[0], song).to_i() != 0;
     let param = note_param(song, target);
     param.repeat = on;
     // すでに予約されている .onNote にも反映する

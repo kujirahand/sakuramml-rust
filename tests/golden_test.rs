@@ -28,8 +28,8 @@ fn sample_midi_is_unchanged() {
         (
             "candy_of_kujirahand.mml",
             include_str!("../samples/candy_of_kujirahand.mml"),
-            // #78: 先行指定の重複値を書き込まなくなったため、CC#1の重複7件分だけ変化
-            "a6fe466b7f47371124dd6678893b83f977c34e3b71fc8fe1341803400d4e826b",
+            // #121: n(ClosedHiHat)などの変数参照を実行時に正しく解決するため変化
+            "345a0e5cbb8ae2353073507fa8636b873c53b4644e96d08493caa75bad6a7b13",
         ),
         (
             "sakura2.mml",
@@ -39,7 +39,8 @@ fn sample_midi_is_unchanged() {
         (
             "seija.mml",
             include_str!("../samples/seija.mml"),
-            "7ada444b1387dd7f62e3fd5c38bdf2bd87bccd05814cb5c4c8262114a2beb807",
+            // #121: 日本語リズムマクロ内のn(Kick1)なども正しい音程へ変化
+            "ba098b354e642f767187831e850bc059a3ac10df62e73f202d5098829ed69c0d",
         ),
     ];
 

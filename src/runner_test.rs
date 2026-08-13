@@ -41,6 +41,88 @@ mod test_for_runner {
         let song = exec_easy("INT N; N=333; PRINT(N)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 333");
     }
+
+    #[test]
+    fn test_issue121_string_assignment_runs_in_source_order() {
+        let song = exec_easy("A={o5c}; A; A={o5d}; A");
+        let notes: Vec<isize> = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v1)
+            .collect();
+        assert_eq!(notes, vec![60, 62]);
+
+        let song = exec_easy("A={o5c}; IF(FALSE){A={o5d}} A");
+        let notes: Vec<isize> = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v1)
+            .collect();
+        assert_eq!(notes, vec![60]);
+    }
+
+    #[test]
+    fn test_issue121_mml_parameters_resolve_variables_at_runtime() {
+        let song = exec_easy(
+            "Int NOTE=60; Int BEND=100; Int OCT=5; Int VEL=90; Int GATE=80; Int TIMING=-3; \
+             o(OCT) v(VEL) q(GATE) t(TIMING) n(NOTE) PB(BEND)",
+        );
+        let note = song.tracks[0]
+            .events
+            .iter()
+            .find(|event| event.etype == EventType::NoteOn)
+            .unwrap();
+        assert_eq!(note.v1, 60);
+        assert_eq!(note.v3, 90);
+        assert_eq!(song.tracks[0].octave, 5);
+        assert_eq!(song.tracks[0].velocity, 90);
+        assert_eq!(song.tracks[0].qlen, 80);
+        assert_eq!(song.tracks[0].timing, -3);
+        let bend = song.tracks[0]
+            .events
+            .iter()
+            .find(|event| event.etype == EventType::PitchBend)
+            .unwrap();
+        assert_eq!(bend.v1, 100 + 8192);
+    }
+
+    #[test]
+    fn test_issue121_function_defaults_and_assignments_use_outer_variables() {
+        let song = exec_easy(
+            "Int BASE=7; Int A=10; \
+             Function F(Int X=BASE){A=A+1; A++; Print(X); Print(A)} \
+             F(); Print(A)",
+        );
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](0) 7\n[PRINT](0) 12\n[PRINT](0) 12"
+        );
+    }
+
+    #[test]
+    fn test_issue121_random_seed_and_boolean_settings_accept_variables() {
+        let by_variable = exec_easy(
+            "Int SEED=12345; RandomSeed(SEED); Print(Random(1,100)); \
+             Int ENABLE=0; UseKeyShift(ENABLE)",
+        );
+        let by_literal = exec_easy(
+            "RandomSeed(12345); Print(Random(1,100)); \
+             UseKeyShift(off)",
+        );
+        assert_eq!(by_variable.get_logs_str(), by_literal.get_logs_str());
+        assert!(!by_variable.use_key_shift);
+        assert!(!by_literal.use_key_shift);
+    }
+
+    #[test]
+    fn test_issue121_undefined_variable_emits_warning() {
+        let song = exec_easy("Print(UNDEFINED_VALUE); Int A=UNDEFINED_VALUE+1; Print(A)");
+        let logs = song.get_logs_str();
+        assert!(logs.contains("Undefined: UNDEFINED_VALUE"), "{logs}");
+        assert!(logs.contains("[PRINT](0) 1"), "{logs}");
+    }
     #[test]
     fn test_exec_harmony() {
         let song = exec_easy("q100 l8 'dg'^^^");
@@ -359,6 +441,13 @@ mod test_for_runner {
         // 計算式の中でも使える / 変数に入れたMMLも使える
         let song = exec_easy("STR MMLA={o5e} PRINT(NoteNo(MMLA)) PRINT(NoteNo(o5c) + 1)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 64\n[PRINT](0) 61");
+        // NoteNo内のo/nも、通常のRunnerと同じく変数を実行時に解決する
+        let song = exec_easy(
+            "Int OCT=5; Int NOTE=61; \
+             PRINT(NoteNo({o(OCT)c})) PRINT(NoteNo({n(NOTE)})) \
+             PRINT(NoteNo({o(OCT)n(NOTE)}))",
+        );
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 60\n[PRINT](0) 61\n[PRINT](0) 61");
     }
     #[test]
     fn test_add_len() {

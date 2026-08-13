@@ -1,4 +1,5 @@
 use crate::lexer::lex;
+use crate::runner::function::var_extract;
 use crate::runner::note::{get_note_info_from_token, set_note_info_with_default_value};
 use crate::runner::value_range;
 use crate::song::{Song};
@@ -201,7 +202,12 @@ fn find_note_no(song: &mut Song, tokens: &[Token]) -> Option<isize> {
     let mut octave = song.tracks[song.cur_track].octave;
     for t in tokens.iter() {
         match t.ttype {
-            TokenType::Octave => { octave = value_range(0, t.value_i, 10); },
+            TokenType::Octave => {
+                let value = t.data.first()
+                    .map(|v| var_extract(v, song).to_i())
+                    .unwrap_or(t.value_i);
+                octave = value_range(0, value, 10);
+            },
             TokenType::OctaveRel | TokenType::OctaveOnce => {
                 octave = value_range(0, octave + t.value_i, 10);
             },
@@ -217,7 +223,7 @@ fn find_note_no(song: &mut Song, tokens: &[Token]) -> Option<isize> {
             TokenType::NoteN => {
                 // n コマンドは音符番号を直接指定する
                 if t.data.is_empty() { return Some(0); }
-                return Some(t.data[0].to_i());
+                return Some(var_extract(&t.data[0], song).to_i());
             },
             _ => {},
         }

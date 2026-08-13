@@ -184,6 +184,16 @@ impl Song {
         last.insert(key.to_string(), val); // 現在のスコープに変数を追加
         self.variables_stack.push(last); // スコープを戻す
     }
+    /// 最も近いスコープの既存変数を更新し、未定義なら現在のスコープへ追加する
+    pub fn variables_set(&mut self, key: &str, val: SValue) {
+        for vars in self.variables_stack.iter_mut().rev() {
+            if let Some(current) = vars.get_mut(key) {
+                *current = val;
+                return;
+            }
+        }
+        self.variables_insert(key, val);
+    }
     pub fn variables_get(&self, key: &str) -> Option<&SValue> {
         // search scope
         for vars in self.variables_stack.iter().rev() {
@@ -195,20 +205,14 @@ impl Song {
         None
     }
     pub fn variables_modify<F: Fn(SValue)->SValue>(&mut self, key: &str, closure: F) {
-        let mut modified = false;
         for vars in self.variables_stack.iter_mut().rev() {
-            match vars.get_mut(key) {
-                None => continue,
-                Some(val) => {
-                    modified = true;
-                    *val = closure(val.clone());
-                }
+            if let Some(val) = vars.get_mut(key) {
+                *val = closure(val.clone());
+                return;
             }
         }
-        if !modified {
-            let new_val = closure(SValue::new());
-            self.variables_insert(key, new_val);
-        }
+        let new_val = closure(SValue::new());
+        self.variables_insert(key, new_val);
     }
     pub fn variables_stack_push(&mut self) {
         let vars = HashMap::new();
