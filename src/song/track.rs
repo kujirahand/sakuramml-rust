@@ -458,23 +458,27 @@ impl Track {
     }
     pub fn write_cc_on_time(&mut self, cc_no: isize, ia: Vec<isize>) {
         let freq = self.cc_on_time_freq.max(1);
+        let mut elapsed = 0;
         for i in 0..ia.len() / 3 {
             let low = ia[i*3+0];
             let high = ia[i*3+1];
             let len = ia[i*3+2];
+            if len <= 0 { continue; }
             // println!("CC.T={},{},{}", low, high, len);
             for j in 0..len {
                 if (j % freq) == 0 {
                     let v = (high - low) as f32 * (j as f32 / len as f32) + low as f32;
                     let v = value_range(0, v as isize, 127);
-                    let e = Event::cc(self.timepos + j, self.channel, cc_no, v);
+                    let e = Event::cc(self.timepos + elapsed + j, self.channel, cc_no, v);
                     self.events.push(e);
                 }
             }
+            elapsed += len;
         }
     }
     pub fn write_pb_on_time(&mut self, is_big: isize, ia: Vec<isize>, timebase: isize) {
         let freq = timebase / 32;
+        let mut elapsed = 0;
         for i in 0..ia.len() / 3 {
             let mut low = ia[i*3+0];
             let mut high = ia[i*3+1];
@@ -487,14 +491,16 @@ impl Track {
             }
             // println!("@@@PB.T={},{}", low,high);
             let len = ia[i*3+2];
+            if len <= 0 { continue; }
             for j in 0..len {
                 if (j % freq) == 0 {
                     let v = (high - low) as f32 * (j as f32 / len as f32) + low as f32;
                     let v = value_range(0, v as isize, 0x7f7f);
-                    let e = Event::pitch_bend(self.timepos + j, self.channel, v);
+                    let e = Event::pitch_bend(self.timepos + elapsed + j, self.channel, v);
                     self.events.push(e);
                 }
             }
+            elapsed += len;
         }
     }
     pub fn remove_cc_on(&mut self, no: isize) {
