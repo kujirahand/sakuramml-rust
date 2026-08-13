@@ -114,8 +114,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_cc_add!(sf, "Chorus", TokenType::ControlChangeCommand, '*', 93); // CC#93 Chorus range:0-127 (ex) Chorus(100)
     sysfunc_cc_add!(sf, "VAR", TokenType::ControlChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) VAR(100)
     sysfunc_cc_add!(sf, "Variation", TokenType::ControlChangeCommand, '*', 94); // CC#94 Variation range:0-127 (ex) Variation(100)
-    sysfunc_add!(sf, "PitchBend", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~64~127
-    sysfunc_add!(sf, "PB", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PB(10)
+    sysfunc_add!(sf, "PitchBend", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~64~127 / PitchBend.onTime(low,high,len) / PitchBend.onNoteWave(low,high,len)
+    sysfunc_add!(sf, "PB", TokenType::PitchBend, '*'); // Pitchbend range: -8192~0~8191 (ex) PB(10) / PB.onTime(low,high,len) / PB.onNoteWave(low,high,len)
     sysfunc_rpn_add!(sf, "PitchBendSensitivity", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BR(10)
     sysfunc_rpn_add!(sf, "BEND_RANGE", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BEND_RANGE(10)
     sysfunc_rpn_add!(sf, "BendRange", TokenType::RPNCommand, '*', 0, 0); // PitchBendSensitivity (ex) BendRange(10)

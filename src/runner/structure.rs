@@ -87,6 +87,11 @@ pub(super) fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
             note_qlen = trk!(song).qlen;
         }
         let note_len = calc_length(&note_len_s, song.timebase, trk!(song).length);
+        // 和音全体で一度だけ先行指定を書き出す (#78)
+        if song.flags.harmony_events.len() > 0 {
+            let harmony_time = song.flags.harmony_time;
+            write_on_note_events(song, harmony_time);
+        }
         // change event length
         while song.flags.harmony_events.len() > 0 {
             let mut e = song.flags.harmony_events.pop().unwrap();

@@ -112,6 +112,7 @@
 | `Include` / `System.Include` / `INCLUDE` | 未実装 |
 | `System.q2Add` / `q2Add` | 未実装 |
 | `l.Random` `l.onTime` `o.onTime` `q.onTime` | 未対応(エラー) |
+| `v` `q` `t` `o` `l` の `.onNoteWave` | 未対応(エラー) ※CC系とピッチベンドでは利用可 |
 | CC系の `.onNoteWaveEx` `.onNoteWaveR` `.onCycle` `.Sine` `.onNoteSine` | 未対応(警告を出して無視) |
 
 ## 自動生成ドキュメント

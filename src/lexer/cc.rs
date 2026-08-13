@@ -168,29 +168,37 @@ pub(super) fn read_voice(cur: &mut SourceCursor, song: &mut Song) -> Token {
     Token::new_tokens(TokenType::Voice, 0, args)
 }
 
-pub(super) fn read_command_pitch_bend_big(cur: &mut SourceCursor, song: &mut Song) -> Token {
-    if cur.eq(".onTime") || cur.eq(".T") {
-        if cur.eq(".onTime") {
-            cur.index += ".onTime".len();
+/// ピッチベンドの先行指定(.onTime/.onNoteWave)を読み取る
+/// is_big: 1=PB(-8192〜8191) / 0=p(0〜127)
+fn read_command_pitch_bend(cur: &mut SourceCursor, song: &mut Song, is_big: isize) -> Option<Token> {
+    for (cmd, short, ttype) in [
+        (".onTime", ".T", TokenType::PBonTime),
+        (".onNoteWave", ".W", TokenType::PBonNoteWave),
+    ] {
+        if cur.eq(cmd) {
+            cur.index += cmd.len();
+        } else if cur.eq(short) {
+            cur.index += short.len();
         } else {
-            cur.index += ".T".len();
+            continue;
         }
         let ia = read_arg_int_array(cur, song);
-        return Token::new(TokenType::PBonTime, 1, vec![ia]);
+        return Some(Token::new(ttype, is_big, vec![ia]));
+    }
+    None
+}
+
+pub(super) fn read_command_pitch_bend_big(cur: &mut SourceCursor, song: &mut Song) -> Token {
+    if let Some(t) = read_command_pitch_bend(cur, song, 1) {
+        return t;
     }
     let value = read_arg_value(cur, song);
     Token::new(TokenType::PitchBend, 1, vec![value])
 }
 
 pub(super) fn read_pitch_bend_small(cur: &mut SourceCursor, song: &mut Song) -> Token {
-    if cur.eq(".onTime") || cur.eq(".T") {
-        if cur.eq(".onTime") {
-            cur.index += ".onTime".len();
-        } else {
-            cur.index += ".T".len();
-        }
-        let ia = read_arg_int_array(cur, song);
-        return Token::new(TokenType::PBonTime, 0, vec![ia]);
+    if let Some(t) = read_command_pitch_bend(cur, song, 0) {
+        return t;
     }
     let value = read_arg_value(cur, song);
     Token::new(TokenType::PitchBend, 0, vec![value])

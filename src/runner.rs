@@ -249,6 +249,7 @@ pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
             TokenType::CConTimeFreq => exec_cc_on_time_freq(song, t),
             TokenType::Decresc => exec_decres(song, t),
             TokenType::PBonTime => exec_pb_on_time(song, t),
+            TokenType::PBonNoteWave => exec_pb_on_note_wave(song, t),
             TokenType::MeasureShift => exec_measure_shift(song, t),
             TokenType::TrackSync => song.track_sync(),
             TokenType::TieMode => exec_tie_mode(song, t),
