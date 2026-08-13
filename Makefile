@@ -6,7 +6,7 @@ TARGET_ZIP = ./mac-sakuramml-bin.zip
 SCRIPT_DIR = $(PWD)
 
 # Default target
-.PHONY: all build bin wasm doc doc-check clean help
+.PHONY: all build bin wasm doc doc-check clean fmt fmt-check help
 
 all: build
 
@@ -60,7 +60,11 @@ test:
 
 # Format code
 fmt:
-	cargo fmt
+	cargo fmt --all
+
+# Verify code formatting
+fmt-check:
+	cargo fmt --all -- --check
 
 # Run clippy
 clippy:
@@ -82,7 +86,8 @@ help:
 	@echo "  doc-check - Verify generated documentation"
 	@echo "  debug     - Build debug version"
 	@echo "  test      - Run tests"
-	@echo "  fmt       - Format code with cargo fmt"
+	@echo "  fmt       - Format all Rust code with cargo fmt"
+	@echo "  fmt-check - Verify Rust code formatting"
 	@echo "  clippy    - Run clippy linter"
 	@echo "  clean     - Clean build artifacts"
 	@echo "  deps      - Show dependency information"

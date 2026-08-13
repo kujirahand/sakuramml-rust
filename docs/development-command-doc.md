@@ -13,6 +13,16 @@ make doc-check
 `make doc`はPython 3の標準ライブラリだけで動作します。なでしこ3の`cnako3`は、
 WebAssemblyのビルドには引き続き必要ですが、ドキュメント生成には不要です。
 
+## Rustコードの整形
+
+```sh
+make fmt
+make fmt-check
+```
+
+`make fmt`は、`cargo fmt --all`を使ってプロジェクト内の全Rustコードを整形します。
+`make fmt-check`はファイルを書き換えず、整形済みかどうかを検査します。
+
 ## Rustソースの注釈
 
 抽出範囲は、`// <SYSTEM_FUNCTION>`と`// </SYSTEM_FUNCTION>`のような
