@@ -777,8 +777,13 @@ mod test_issue_78 {
             .collect::<Vec<_>>();
         // ベロシティが既定値(100)のまま変化しないこと
         assert_eq!(notes[0].v3, 100);
-        // グリッサンド開始位置(!8 = 48ステップ)にピッチベンドが書き込まれること
+        // !8 が48ステップとして解釈され、数値で 48 と書いた場合と同じ結果になること
         let bends = pitch_bends(&song);
+        let expected = pitch_bends(&exec_easy("TimeBase=96 BR(2) Slur(0,48) l4 c&d"));
+        assert_eq!(bends, expected);
+        // グリッサンドは音符の48ステップ手前(96-48=48)から始まる。
+        // ただし開始時点のベンド値は0で直前の値と同じため出力されず、
+        // 最初に書き込まれるイベントは49ステップ目になる
         assert_eq!(bends.first().unwrap().0, 49);
     }
 }
