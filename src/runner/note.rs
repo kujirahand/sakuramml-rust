@@ -134,15 +134,15 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     let qlen = trk!(song).calc_qlen_on_note(qlen);
     let o_abs = trk!(song).calc_o_on_time(-1);
     let o_abs = trk!(song).calc_o_on_note(o_abs);
-    if o_abs != -1 {// ノートはそのままでオクターブだけ変える
-        note.no = note.no % 12 + o_abs * 12; // set absolute octave
-    }
-    // Random
+    // 実際に使うオクターブを求め、.Random と .Range/.Max を適用する
+    let mut o_cur = if o_abs != -1 { o_abs } else { note.o };
     if trk!(song).o_opt.random > 0 { // octave randomize
-        let r = song.calc_rand_value(0, trk!(song).o_opt.random);
-        if r != 0 {
-            note.no += r * 12;
-        }
+        o_cur = song.calc_rand_value(o_cur, trk!(song).o_opt.random);
+    }
+    let o_cur = trk!(song).o_opt.apply_limit(o_cur);
+    if o_cur != note.o {
+        // ノート番号のオクターブ部分だけ差し替える(臨時記号や移調はそのまま)
+        note.no += (o_cur - note.o) * 12;
     }
     let v = calc_note_param(song, NOTE_PARAM_V, v);
     let t = calc_note_param(song, NOTE_PARAM_T, t);
@@ -155,8 +155,10 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     let notelen_on_note = trk!(song).calc_l_on_time(-1);
     let notelen_on_note = trk!(song).calc_l_on_note(notelen_on_note);
     if notelen_on_note != -1 { // 先行指定の値があれば強制的に上書き
-        notelen = calc_note_param(song, NOTE_PARAM_L, notelen_on_note);
+        notelen = notelen_on_note;
     }
+    // .Random / .Range / .Max は通常の音長にも適用する
+    let notelen = calc_note_param(song, NOTE_PARAM_L, notelen).max(0);
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // check range
     let v = value_range(0, v, trk!(song).v_opt.max_or(127));
@@ -196,6 +198,8 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     write_on_note_events(song, start_pos);
     // write note event
     trk!(song).events.push(event);
+    // 音符の中にある .onCycle の書き込みを確定する
+    flush_cc_on_cycle(song);
 }
 
 pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
@@ -211,6 +215,7 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
 
     // check parameters
     let notelen = calc_length(&data_note_len, song.timebase, trk!(song).length);
+    let notelen = calc_note_param(song, NOTE_PARAM_L, notelen).max(0);
     let qlen = if data_note_qlen != 0 {
         data_note_qlen
     } else {
@@ -256,6 +261,8 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     // write event
     trk!(song).events.push(event);
     trk!(song).timepos += notelen;
+    // 音符の中にある .onCycle の書き込みを確定する
+    flush_cc_on_cycle(song);
 }
 
 pub(super) fn exec_rest(song: &mut Song, t: &Token) {
@@ -263,4 +270,6 @@ pub(super) fn exec_rest(song: &mut Song, t: &Token) {
     let data_note_len = t.data[0].to_s();
     let notelen = calc_length(&data_note_len, song.timebase, trk.length);
     trk.timepos += notelen * t.value_i;
+    // 休符の間にある .onCycle の書き込みを確定する
+    flush_cc_on_cycle(song);
 }

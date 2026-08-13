@@ -1025,15 +1025,16 @@ impl Track {
         }
         result
     }
-    /// 音符の発音開始時に、周期的な先行指定を書き出す (.onCycle)
-    pub fn write_cc_on_cycle(&mut self, start_pos: isize, ctx: &mut WriteCtx) {
+    /// 周期的な先行指定を、指定した時刻まで書き出す (.onCycle)
+    /// 音符の発音開始時と、音符・休符で時間が進んだあとに呼ぶ
+    pub fn write_cc_on_cycle(&mut self, until: isize, ctx: &mut WriteCtx) {
         if self.cc_on_cycle.len() == 0 { return; }
         // 前回の書き込みから周期が経過していれば、その分だけ値を書き込む
         let mut writes: Vec<(WriteTarget, isize, isize)> = vec![];
         for item in self.cc_on_cycle.iter_mut() {
-            // 無限ループを避けるため、1音符あたりの書き込み回数を制限する
+            // 無限ループを避けるため、1回あたりの書き込み回数を制限する
             let mut count = 0;
-            while item.next_time <= start_pos && count < 1000 {
+            while item.next_time <= until && count < 10000 {
                 let v = item.data[item.index % item.data.len()];
                 writes.push((item.target, item.next_time, v));
                 item.index += 1;

@@ -231,6 +231,17 @@ pub(super) fn exec_cc_on_note_wave_r(song: &mut Song, t: &Token) {
     trk!(song).set_on_note_wave(target, ia, WaveMode::Repeat);
 }
 
+/// 現在のトラック時刻まで、周期的な先行指定(.onCycle)を書き出す
+/// 音符や休符で時間が進んだあとに呼ぶ。呼ばないと、長い音符の途中や
+/// 曲の末尾で周期的な書き込みが止まってしまう
+pub(super) fn flush_cc_on_cycle(song: &mut Song) {
+    if trk!(song).cc_on_cycle.len() == 0 { return; }
+    // 現在位置ちょうどの書き込みは、次の音符の発音時に確定させる
+    // (ここで書き込むと、曲の末尾に余分なイベントが増えてしまう)
+    let until = trk!(song).timepos - 1;
+    with_write_ctx(song, |trk, ctx| trk.write_cc_on_cycle(until, ctx));
+}
+
 /// 一定時間ごとの値の先行指定 (.onCycle)
 pub(super) fn exec_cc_on_cycle(song: &mut Song, t: &Token) {
     let target = write_target_from_value(t.value_i);

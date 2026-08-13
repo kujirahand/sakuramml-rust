@@ -856,6 +856,16 @@ mod test_issue_65 {
             .collect()
     }
 
+    /// ノートオンの音程を取り出す
+    fn note_numbers(song: &Song) -> Vec<isize> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::NoteOn)
+            .map(|e| e.v1)
+            .collect()
+    }
+
     /// ノートオンの (時間, 長さ) を取り出す
     fn note_times(song: &Song) -> Vec<(isize, isize)> {
         song.tracks[0]
@@ -1073,6 +1083,59 @@ mod test_issue_65 {
         assert_eq!(modulation, vec![1, 2, 1, 2]);
         assert_eq!(panpot, vec![10, 20]);
         assert_eq!(bends, vec![0, 8192]);
+    }
+
+    #[test]
+    fn test_cc_on_cycle_continues_inside_a_long_note() {
+        // 長い音符の途中でも .onCycle の書き込みが止まらないこと
+        let song = exec_easy("TimeBase=96 M.onCycle(!8,0,127) l1 c");
+        let times: Vec<isize> = cc_events(&song, 1).iter().map(|(t, _)| *t).collect();
+        assert_eq!(times, vec![0, 48, 96, 144, 192, 240, 288, 336]);
+    }
+
+    #[test]
+    fn test_cc_on_cycle_continues_during_rests() {
+        // 休符で時間が進んだ場合も書き込みが続くこと
+        let song = exec_easy("TimeBase=96 M.onCycle(!4,0,127) l4 c r r r");
+        assert_eq!(
+            cc_events(&song, 1),
+            vec![(0, 0), (96, 127), (192, 0), (288, 127)]
+        );
+    }
+
+    #[test]
+    fn test_length_random_changes_normal_note_length() {
+        // l.Random は先行指定なしの通常の音長にも効くこと
+        let song = exec_easy("TimeBase=96 l.Random(8) l4 [8 c]");
+        let times: Vec<isize> = note_times(&song).iter().map(|(t, _)| *t).collect();
+        // 音長が96のままなら 0,96,192,... と並ぶので、ずれていることを確かめる
+        assert!(times.iter().enumerate().any(|(i, t)| *t != i as isize * 96));
+        assert!(times.windows(2).all(|w| (w[1] - w[0] - 96).abs() <= 4));
+    }
+
+    #[test]
+    fn test_length_range_limits_normal_note_length() {
+        // l.Range は先行指定なしの通常の音長にも効くこと
+        let song = exec_easy("TimeBase=96 l.Range(48,48) l4 cd");
+        let times: Vec<isize> = note_times(&song).iter().map(|(t, _)| *t).collect();
+        assert_eq!(times, vec![0, 48]);
+    }
+
+    #[test]
+    fn test_octave_range_limits_normal_octave() {
+        // o.Range は o コマンドで直接指定したオクターブにも効くこと
+        let song = exec_easy("o.Range(4,4) o6 c");
+        assert_eq!(note_numbers(&song), vec![48]);
+        // 先行指定で切り替えたオクターブにも効く
+        let song = exec_easy("o.Range(4,4) o.onNote(6) c");
+        assert_eq!(note_numbers(&song), vec![48]);
+    }
+
+    #[test]
+    fn test_octave_change_keeps_accidental() {
+        // オクターブの差し替えで臨時記号が消えないこと
+        let song = exec_easy("o5 c+ o.Range(6,6) c+");
+        assert_eq!(note_numbers(&song), vec![61, 73]);
     }
 
     #[test]
