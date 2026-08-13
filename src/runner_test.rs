@@ -1557,10 +1557,13 @@ mod test_issue_127 {
         // 0 --- ゲート長0
         let song = exec_easy("TimeBase=96 l4 q%0 c");
         assert_eq!(note_gates(&song), vec![0]);
-        // 負の値 --- 音長から引いた値
+        // 負の値 --- 現在のqの値からの相対指定 (qの初期値は90)
         let song = exec_easy("TimeBase=96 l4 q%-1 c");
-        assert_eq!(note_gates(&song), vec![95]);
-        // 音長より大きく引くと0で止まる
+        assert_eq!(note_gates(&song), vec![89]);
+        // 相対指定はくり返し適用され、値を引いた結果もステップ単位になる
+        let song = exec_easy("TimeBase=96 l4 q80 q%-1 c q%-1 d");
+        assert_eq!(note_gates(&song), vec![79, 78]);
+        // 0未満にはならない
         let song = exec_easy("TimeBase=96 l4 q%-200 c");
         assert_eq!(note_gates(&song), vec![0]);
         // 音長を超える値 --- そのまま使う(次の音符と重なる)
@@ -1606,9 +1609,9 @@ mod test_issue_127 {
         // %を付けない指定はこれまで通り割合
         let song = exec_easy("TimeBase=96 c4,70");
         assert_eq!(note_gates(&song), vec![67]);
-        // 0やマイナスの指定
+        // 0やマイナスの指定 (マイナスは現在のqの値からの相対指定 --- qの初期値は90)
         let song = exec_easy("TimeBase=96 c4,%0 d4,%-6");
-        assert_eq!(note_gates(&song), vec![0, 90]);
+        assert_eq!(note_gates(&song), vec![0, 84]);
     }
 
     #[test]
@@ -1648,5 +1651,28 @@ mod test_issue_127 {
         // 先行指定が終わればステップ指定は解除されている(割合指定の値が残る)
         let song = exec_easy("TimeBase=96 q%10 q.onNote(50) l4 cd");
         assert_eq!(note_gates(&song), vec![48, 48]);
+        // .onTime が終わった次の音符からは、ステップ指定に戻る
+        // (予約の解除は値を求めたあとに分かるので、境界の1音を割合で計算しないこと)
+        let song = exec_easy("TimeBase=96 q%10 q.onTime(50,50,!4) l4 cde");
+        assert_eq!(note_gates(&song), vec![48, 10, 10]);
+    }
+
+    #[test]
+    fn test_harmony_gate_with_reserve() {
+        // 和音でも、先行指定(割合)はステップ指定より優先される
+        let song = exec_easy("TimeBase=96 q%10 q.onTime(50,100,!1) l4 'ceg'");
+        assert_eq!(note_gates(&song), vec![48, 48, 48]);
+        // 和音自身のステップ指定より、先行指定を優先する
+        let song = exec_easy("TimeBase=96 q.onNote(50) l4 'ceg'4,%70");
+        assert_eq!(note_gates(&song), vec![48, 48, 48]);
+        // 先行指定がなければ、和音自身のステップ指定を使う
+        let song = exec_easy("TimeBase=96 l4 'ceg'4,%70");
+        assert_eq!(note_gates(&song), vec![70, 70, 70]);
+        // 和音の音長を変えても、ステップ指定はそのままのステップ数になる
+        let song = exec_easy("TimeBase=96 l16 q%70 'ceg'4");
+        assert_eq!(note_gates(&song), vec![70, 70, 70]);
+        // 和音の割合指定は、これまで通り音長に対する割合
+        let song = exec_easy("TimeBase=96 l16 'ceg'4,50");
+        assert_eq!(note_gates(&song), vec![48, 48, 48]);
     }
 }

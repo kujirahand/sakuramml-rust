@@ -48,15 +48,21 @@ fn calc_note_param(song: &mut Song, target: isize, value: isize) -> isize {
 /// ゲート長(実際の発音ステップ数)を求める (#127)
 /// - 割合指定(q90 など): 音長に対する百分率
 /// - ステップ指定(q%48 など): ステップ数をそのまま使う(音長を超える指定も可能)
-///   ただし負の値は「音長から引いた値」として扱い、0未満にはしない
 pub(crate) fn calc_gate_len(notelen: isize, qlen: isize, qlen_is_step: bool) -> isize {
     if qlen_is_step {
-        if qlen >= 0 {
-            return qlen;
-        }
-        return notelen.saturating_add(qlen).max(0);
+        // 負の値は resolve_step_qlen で解決済み。念のため0で止める
+        return qlen.max(0);
     }
     (notelen as f32 * qlen as f32 / 100.0) as isize
+}
+
+/// ステップ指定のゲートが負の値のときは、現在のqの値からの相対指定として解決する (#127)
+/// (オリジナル(Pascal版)の SetNoteInfo.subSoutai と同じ動作)
+pub(crate) fn resolve_step_qlen(song: &mut Song, qlen: isize, qlen_is_step: bool) -> isize {
+    if qlen_is_step && qlen < 0 {
+        return trk!(song).qlen.saturating_add(qlen).max(0);
+    }
+    qlen
 }
 
 pub(crate) fn get_note_info_from_token(t: &Token) -> NoteInfo {
@@ -107,6 +113,9 @@ pub(crate) fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut S
     if note.qlen == 0 && !note.qlen_is_step {
         note.qlen = trk!(song).qlen;
         note.qlen_is_step = trk!(song).qlen_is_step;
+    } else {
+        // c4,%-6 のような負のステップ指定は、現在のqの値からの相対指定 (#127)
+        note.qlen = resolve_step_qlen(song, note.qlen, note.qlen_is_step);
     }
     if note.vel < 0 {
         note.vel = trk!(song).velocity;
@@ -172,10 +181,11 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     let v = trk!(song).calc_v_on_note(v);
     let t = trk!(song).calc_t_on_time(note.t);
     let t = trk!(song).calc_t_on_note(t);
-    // ゲートの先行指定は割合指定なので、有効ならステップ指定より優先する (#127)
-    let q_reserved = trk!(song).q_opt.has_reserve();
     let qlen = trk!(song).calc_qlen_on_time(note.qlen);
     let qlen = trk!(song).calc_qlen_on_note(qlen);
+    // ゲートの先行指定は割合指定なので、有効ならステップ指定より優先する (#127)
+    // 予約が終わったかどうかは、値を求めたあとでなければ分からない
+    let q_reserved = trk!(song).q_opt.has_reserve();
     let qlen_is_step = note.qlen_is_step && !q_reserved;
     let o_abs = trk!(song).calc_o_on_time(-1);
     let o_abs = trk!(song).calc_o_on_note(o_abs);
@@ -238,6 +248,10 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     // harmony?
     if song.flags.harmony_flag {
         trk!(song).timepos = song.flags.harmony_time;
+        // 和音の終わりでゲートを計算し直すので、実際に使った指定を覚えておく (#127)
+        if song.flags.harmony_qlen.is_none() {
+            song.flags.harmony_qlen = Some((qlen, qlen_is_step, q_reserved));
+        }
         song.flags.harmony_events.push(event);
         return;
     }
@@ -281,7 +295,11 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     let notelen = calc_note_param(song, NOTE_PARAM_L, notelen).max(0);
     // ゲート指定 --- 音符側の指定がなければトラックの指定(割合/ステップ)を使う (#127)
     let (qlen, qlen_is_step) = if data_note_qlen != 0 || data_qlen_is_step {
-        (data_note_qlen, data_qlen_is_step)
+        // 負のステップ指定は、現在のqの値からの相対指定 (#127)
+        (
+            resolve_step_qlen(song, data_note_qlen, data_qlen_is_step),
+            data_qlen_is_step,
+        )
     } else {
         (trk!(song).qlen, trk!(song).qlen_is_step)
     };
@@ -300,11 +318,11 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     let v = trk!(song).calc_v_on_note(v);
     let t = trk!(song).calc_t_on_time(t);
     let t = trk!(song).calc_t_on_note(t);
-    // ゲートの先行指定は割合指定なので、有効ならステップ指定より優先する (#127)
-    let q_reserved = trk!(song).q_opt.has_reserve();
     let qlen = trk!(song).calc_qlen_on_time(qlen);
     let qlen = trk!(song).calc_qlen_on_note(qlen);
-    let qlen_is_step = qlen_is_step && !q_reserved;
+    // ゲートの先行指定は割合指定なので、有効ならステップ指定より優先する (#127)
+    // 予約が終わったかどうかは、値を求めたあとでなければ分からない
+    let qlen_is_step = qlen_is_step && !trk!(song).q_opt.has_reserve();
     // Random / Range / Max
     let v = calc_note_param(song, NOTE_PARAM_V, v);
     let t = calc_note_param(song, NOTE_PARAM_T, t);

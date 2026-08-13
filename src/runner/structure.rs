@@ -75,6 +75,7 @@ pub(super) fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
     if flag_begin {
         song.flags.harmony_flag = true;
         song.flags.harmony_time = song.tracks[song.cur_track].timepos;
+        song.flags.harmony_qlen = None;
         return;
     }
     // end
@@ -84,13 +85,29 @@ pub(super) fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
         let note_len_s = t.data[0].to_s();
         let mut note_qlen = t.data[1].to_i();
         let note_vel = t.data[2].clone();
-        // `ceg`4,%70 のようなステップ単位のゲート指定 (#127)
+        // 'ceg'4,%70 のようなステップ単位のゲート指定 (#127)
         let mut note_qlen_is_step = t.data.get(3).map(|v| v.to_i()).unwrap_or(0) != 0;
         // parameters
-        if note_qlen < 0 && !note_qlen_is_step {
-            note_qlen = trk!(song).qlen;
-            note_qlen_is_step = trk!(song).qlen_is_step;
+        let has_note_qlen = note_qlen >= 0 || note_qlen_is_step;
+        // 和音の音符が実際に使ったゲート指定 --- 先行指定の結果を含む (#127)
+        match song.flags.harmony_qlen.take() {
+            Some((qlen, qlen_is_step, q_reserved)) => {
+                // 和音自身の指定がないとき、
+                // またはステップ指定でも先行指定(割合)が有効なときは、音符側の値を使う
+                if !has_note_qlen || (note_qlen_is_step && q_reserved) {
+                    note_qlen = qlen;
+                    note_qlen_is_step = qlen_is_step;
+                }
+            }
+            None => {
+                if !has_note_qlen {
+                    note_qlen = trk!(song).qlen;
+                    note_qlen_is_step = trk!(song).qlen_is_step;
+                }
+            }
         }
+        // 負のステップ指定は、現在のqの値からの相対指定 (#127)
+        note_qlen = resolve_step_qlen(song, note_qlen, note_qlen_is_step);
         let note_len = calc_length(&note_len_s, song.timebase, trk!(song).length);
         // 和音全体で一度だけ先行指定を書き出す (#78)
         if song.flags.harmony_events.len() > 0 {
