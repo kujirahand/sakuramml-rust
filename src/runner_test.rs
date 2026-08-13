@@ -762,4 +762,23 @@ mod test_issue_78 {
         // タイの音符と次の音符で、2回分の波形が書き込まれる
         assert_eq!(bends.len(), 32 * 2);
     }
+
+    #[test]
+    fn test_slur_second_arg_accepts_note_length_notation() {
+        // Slur(type, value) の value に音長記法(!8)を書けること (#112)
+        // 以前は計算式パーサが "!" を比較演算子として扱っていたため解釈に失敗し、
+        // 残った文字が後続のコマンドとして読まれてベロシティが化けていた
+        let song = exec_easy("TimeBase=96 BR(2) Slur(0,!8) l4 c&d");
+        assert_eq!(song.get_logs_str(), "");
+        let notes = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .collect::<Vec<_>>();
+        // ベロシティが既定値(100)のまま変化しないこと
+        assert_eq!(notes[0].v3, 100);
+        // グリッサンド開始位置(!8 = 48ステップ)にピッチベンドが書き込まれること
+        let bends = pitch_bends(&song);
+        assert_eq!(bends.first().unwrap().0, 49);
+    }
 }

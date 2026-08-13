@@ -285,9 +285,8 @@ Slur(モード[, 値])
 ```
 Slur(SLUR_BEND) c&d&e
 Slur(SLUR_GATE, 100) c&d&e      // 第2引数はモードに応じた値(SLUR_GATEならゲート値)
+Slur(SLUR_PORT, !8) c&d&e       // 第2引数には !8 のような音長表記も使える
 ```
-
-> `Slur` の引数に `!8` のような音長表記は使えません。数値で指定してください。
 
 ## 調号 `KeyFlag`
 
