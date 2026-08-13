@@ -123,16 +123,16 @@ pub(super) fn check_variables(cur: &mut SourceCursor, song: &mut Song, cmd: Stri
         // let str
         if cur.eq_char('{') {
             let body = cur.get_token_nest('{', '}');
-            let value = SValue::from_str_and_tag(&body, cur.line);
             let value_token = Token::new_const(
                 TokenType::ConstStr,
                 body.len() as isize,
                 Some(body),
                 TokenValueType::STR,
             );
-            // 後続の単独記述をMMLマクロとして字句解析できるよう型だけ登録し、
-            // 実際の値はLetVarトークンの実行時に代入する。
-            song.variables_insert(&cmd, value);
+            // 後続の単独記述をMMLマクロとして字句解析できるよう、
+            // Lexerには文字列型のプレースホルダーだけを登録する。
+            // 実際の本文はLetVarトークンの実行時に代入する。
+            song.variables_insert(&cmd, SValue::from_str(""));
             return Some(Token::new_data_tokens(
                 TokenType::LetVar,
                 0,
