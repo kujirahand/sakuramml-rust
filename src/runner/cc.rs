@@ -7,6 +7,7 @@ pub(super) fn with_write_ctx<F>(song: &mut Song, f: F)
 where
     F: FnOnce(&mut Track, &mut WriteCtx),
 {
+    if song.event_limit_exceeded() { return; }
     let timebase = song.timebase;
     let mut seed = song.rand_seed;
     let max_event_bytes = song.max_event_bytes();

@@ -308,9 +308,23 @@ mod event_limit_tests {
 
     #[test]
     fn event_limit_avoids_a_huge_repeated_wave_buffer() {
-        let song = exec_with_limit("M.onNoteWaveR(0,127,1) l%100000000 c", 64);
+        let song = exec_with_limit(
+            "M.Frequency(10000) M.onNoteWaveR(0,127,1) l%100000000 c",
+            64,
+        );
         assert!(song.event_limit_exceeded());
         assert!(song.tracks[0].events.len() <= 8);
+    }
+
+    #[test]
+    fn event_limit_prevents_later_write_contexts_from_resuming() {
+        let song = exec_with_limit(
+            "P.onCycle(1,10,20) M.onNoteWaveR(0,0,1) l%100000000 c",
+            64,
+        );
+        assert!(song.event_limit_exceeded());
+        assert_eq!(song.event_bytes(), 32);
+        assert_eq!(song.tracks[0].events.len(), 3);
     }
 
     #[test]

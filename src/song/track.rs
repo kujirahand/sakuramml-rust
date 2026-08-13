@@ -995,10 +995,8 @@ impl Track {
                 // 音符が鳴っている間くり返す
                 WaveMode::Repeat => {
                     // 巨大な音長から、予算検査前に巨大な一時配列を作らない。
-                    let freq = self.target_freq(wave.target, ctx.timebase) as usize;
                     let safe_len = ctx.remaining_event_capacity()
                         .saturating_add(1)
-                        .saturating_mul(freq.max(1))
                         .min(isize::MAX as usize) as isize;
                     truncated = note_len > safe_len;
                     Self::repeat_wave(&wave.data, note_len.min(safe_len))

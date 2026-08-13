@@ -50,7 +50,10 @@ fn usage() {
         "  -h, --help     Show help\n",
         "  -v, --version  Show version\n",
         "  -m, --dump     Dump midi file\n",
-        "      --max-event-bytes N  Set MIDI event data limit (default: 3145728)\n",
+        format!(
+            "      --max-event-bytes N  Set MIDI event data limit (default: {})\n",
+            SAKURA_DEFAULT_MAX_EVENT_BYTES,
+        ),
     );
 }
 
