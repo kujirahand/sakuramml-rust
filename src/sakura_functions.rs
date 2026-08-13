@@ -9,6 +9,15 @@ use crate::token::{Token, TokenType};
 /// Callback function
 pub type CallbackCalcFn = fn(&mut Song, Vec<SValue>) -> SValue;
 
+/// MML(yN)形式のCC番号を読む。NはASCII数字だけ、範囲は0〜127。
+pub(crate) fn parse_mml_cc_name(name: &str) -> Option<isize> {
+    let no = name.strip_prefix('y')?;
+    if no.is_empty() || !no.bytes().all(|ch| ch.is_ascii_digit()) {
+        return None;
+    }
+    no.parse::<isize>().ok().filter(|no| (0..=127).contains(no))
+}
+
 /// Random
 pub fn calc_randomint(song: &mut Song, args: Vec<SValue>) -> SValue {
     let arg_count = args.len();
@@ -199,30 +208,8 @@ pub fn calc_mml(song: &mut Song, args: Vec<SValue>) -> SValue {
         let v = song.tracks[song.cur_track].port;
         return SValue::from_i(v);
     }
-    if let Some(cc_no) = sa
-        .strip_prefix('y')
-        .and_then(|no| no.parse::<isize>().ok())
-        .filter(|no| (0..=127).contains(no))
-    {
-        let channel = song.tracks[song.cur_track].channel;
-        let current = song
-            .tracks
-            .iter()
-            .flat_map(|track| track.events.iter())
-            .filter(|event| {
-                event.etype == crate::song::EventType::ControllChange
-                    && event.channel == channel
-                    && event.v1 == cc_no
-            })
-            .last()
-            .map(|event| event.v2);
-        let default = match cc_no {
-            7 => 100,
-            10 => 64,
-            11 => 127,
-            _ => 0,
-        };
-        return SValue::from_i(current.unwrap_or(default));
+    if let Some(cc_no) = parse_mml_cc_name(&sa) {
+        return SValue::from_i(song.tracks[song.cur_track].current_cc_value(cc_no));
     }
     SValue::from_i(0)
 }
@@ -310,6 +297,15 @@ pub fn calc_pos(_: &mut Song, args: Vec<SValue>) -> SValue {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mml_cc_name_accepts_only_ascii_digits_in_range() {
+        assert_eq!(parse_mml_cc_name("y0"), Some(0));
+        assert_eq!(parse_mml_cc_name("y127"), Some(127));
+        assert_eq!(parse_mml_cc_name("y+7"), None);
+        assert_eq!(parse_mml_cc_name("y"), None);
+        assert_eq!(parse_mml_cc_name("y128"), None);
+    }
 
     #[test]
     fn random_functions_handle_empty_or_invalid_ranges() {

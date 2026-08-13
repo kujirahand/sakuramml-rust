@@ -1485,4 +1485,19 @@ mod test_issue_128 {
             song.get_logs_str()
         );
     }
+
+    #[test]
+    fn test_mml_cc_uses_current_track_and_time_position() {
+        let song = exec_easy("V(10) TIME(5:1:0) V(20) TIME(1:1:0) Print(MML(y7))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 10");
+
+        let song = exec_easy("TR(1) CH(1) V(20) TR(2) CH(1) Print(MML(y7))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 100");
+    }
+
+    #[test]
+    fn test_mml_cc_defaults_match_legacy_sakura() {
+        let song = exec_easy("Print(MML(y7),MML(y10),MML(y11),MML(y1))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 100 64 127 0");
+    }
 }

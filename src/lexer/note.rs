@@ -33,10 +33,12 @@ fn read_note_int_args_token(
     song: &mut Song,
     ttype: TokenType,
     value_i: isize,
-    ino: isize,
+    ino: Option<isize>,
 ) -> Token {
     let mut token = Token::new_tokens(ttype, value_i, read_int_args_tokens(cur, song));
-    token.data.push(SValue::from_i(ino));
+    if let Some(ino) = ino {
+        token.data.push(SValue::from_i(ino));
+    }
     token
 }
 
@@ -83,7 +85,7 @@ pub(super) fn read_note_param_option(
                 TokenType::OctaveOnTime,
                 TokenType::LengthOnTime,
             );
-            Some(read_note_int_args_token(cur, song, ttype, 0, ino))
+            Some(read_note_int_args_token(cur, song, ttype, 0, Some(ino)))
         }
         // 音符ごとの先行指定
         "onNote" | "N" => {
@@ -94,7 +96,7 @@ pub(super) fn read_note_param_option(
                 TokenType::OctaveOnNote,
                 TokenType::LengthOnNote,
             );
-            Some(read_note_int_args_token(cur, song, ttype, 0, ino))
+            Some(read_note_int_args_token(cur, song, ttype, 0, Some(ino)))
         }
         // 一定時間ごとの先行指定 (ステップ値, 値1, 値2, ...)
         "onCycle" | "C" => {
@@ -105,7 +107,7 @@ pub(super) fn read_note_param_option(
                 TokenType::OctaveOnCycle,
                 TokenType::LengthOnCycle,
             );
-            Some(read_note_int_args_token(cur, song, ttype, 0, ino))
+            Some(read_note_int_args_token(cur, song, ttype, 0, Some(ino)))
         }
         // 値の下限と上限を設定する
         "Range" => Some(read_note_int_args_token(
@@ -113,7 +115,7 @@ pub(super) fn read_note_param_option(
             song,
             TokenType::NoteParamRange,
             target,
-            ino,
+            None,
         )),
         // 先行指定の効果の遅延時間
         "Delay" => {

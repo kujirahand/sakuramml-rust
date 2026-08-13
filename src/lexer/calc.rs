@@ -244,10 +244,7 @@ fn is_mml_state_name(name: &str) -> bool {
     matches!(
         name,
         "l" | "v" | "o" | "q" | "t" | "@" | "BR" | "p%" | "Key" | "TimeKey" | "Port"
-    ) || name
-        .strip_prefix('y')
-        .and_then(|no| no.parse::<usize>().ok())
-        .is_some_and(|no| no <= 127)
+    ) || crate::sakura_functions::parse_mml_cc_name(name).is_some()
 }
 
 fn is_noteno_func_name(name: &str) -> bool {
