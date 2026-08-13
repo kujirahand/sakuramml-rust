@@ -1,5 +1,8 @@
+use crate::lexer::lex;
+use crate::runner::note::{get_note_info_from_token, set_note_info_with_default_value};
 use crate::song::{Song};
 use crate::svalue::{SValue};
+use crate::token::{Token, TokenType};
 
 /// Callback function
 pub type CallbackCalcFn = fn (&mut Song, Vec<SValue>) -> SValue;
@@ -187,6 +190,51 @@ pub fn calc_mml(song: &mut Song, args: Vec<SValue>) -> SValue {
         return SValue::from_i(v);
     }
     SValue::from_i(0)
+}
+
+/// トークン列から最初の音符を探して音符番号を返す
+/// オクターブ指定(o5 や > <)は音符の直前までを反映する
+fn find_note_no(song: &mut Song, tokens: &[Token]) -> Option<isize> {
+    // 現在のトラックのオクターブを初期値にする
+    let mut octave = song.tracks[song.cur_track].octave;
+    for t in tokens.iter() {
+        match t.ttype {
+            TokenType::Octave => { octave = t.value_i; },
+            TokenType::OctaveRel => { octave += t.value_i; },
+            TokenType::Note => {
+                let mut note = get_note_info_from_token(t);
+                // 音符自身にオクターブ指定(c,,,,5 など)がなければ、直前のオクターブを使う
+                if note.o < 0 {
+                    note.o = octave;
+                }
+                set_note_info_with_default_value(&mut note, song);
+                return Some(note.no);
+            },
+            TokenType::NoteN => {
+                // n コマンドは音符番号を直接指定する
+                if t.data.is_empty() { return Some(0); }
+                return Some(t.data[0].to_i());
+            },
+            _ => {},
+        }
+    }
+    None
+}
+
+/// NoteNo
+pub fn calc_noteno(song: &mut Song, args: Vec<SValue>) -> SValue {
+    if args.is_empty() {
+        return SValue::from_i(0);
+    }
+    let mml = args[0].to_s();
+    let tokens = lex(song, &mml, 0);
+    match find_note_no(song, &tokens) {
+        Some(no) => SValue::from_i(no),
+        None => {
+            song.add_log(format!("[WARN] NoteNo: 音符が見つかりません: {}", mml));
+            SValue::from_i(0)
+        },
+    }
 }
 
 /// Hex

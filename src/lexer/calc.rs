@@ -137,6 +137,14 @@ pub(super) fn read_value_word(cur: &mut SourceCursor, song: &mut Song) -> Token 
                 Some(arg_name.to_string()),
                 TokenValueType::STR,
             )]
+        } else if is_noteno_func_name(&varname) && is_raw_mml_note(arg_name) {
+            // NoteNo(o5e) のように、引数をMMLの音符としてそのまま渡す
+            vec![Token::new_const(
+                TokenType::ConstStr,
+                arg_name.len() as isize,
+                Some(arg_name.to_string()),
+                TokenValueType::STR,
+            )]
         } else {
             lex_calc(song, &arg_str, arg_lineno)
         };
@@ -191,6 +199,20 @@ fn is_mml_state_name(name: &str) -> bool {
             | "TimeKey"
             | "Port"
     )
+}
+
+fn is_noteno_func_name(name: &str) -> bool {
+    matches!(name, "NoteNo" | "NOTENO")
+}
+
+/// NoteNoの引数がMMLの音符表記かどうかを調べる
+/// 音符・オクターブ関連の文字で始まる場合はMMLと見なし、
+/// それ以外(変数名など)は従来どおり計算式として解析する
+fn is_raw_mml_note(arg: &str) -> bool {
+    match arg.chars().next() {
+        Some(c) => matches!(c, 'a'..='g' | 'n' | 'o' | '<' | '>'),
+        None => false,
+    }
 }
 
 pub(super) fn is_operator_char(c: char) -> bool {

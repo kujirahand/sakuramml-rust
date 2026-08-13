@@ -12,7 +12,7 @@ fn apply_v_sub_random(song: &mut Song, mut velocity: isize) -> isize {
     velocity
 }
 
-pub(super) fn get_note_info_from_token(t: &Token) -> NoteInfo {
+pub(crate) fn get_note_info_from_token(t: &Token) -> NoteInfo {
     let data = &t.data;
     if data.len() < 8 { // broken note
         return NoteInfo {
@@ -50,7 +50,7 @@ pub(super) fn get_note_info_from_token(t: &Token) -> NoteInfo {
 }
 
 /// get note info, and shift key
-pub(super) fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut Song) {
+pub(crate) fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut Song) {
     // set note with track's default value
     if note.qlen == 0 {
         note.qlen = trk!(song).qlen;

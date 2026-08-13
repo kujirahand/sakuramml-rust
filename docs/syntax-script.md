@@ -191,6 +191,7 @@ Print(Add(1, 2))    // 3
 | `SizeOf` | `SizeOf(A)` | 配列の要素数を返す。別名 `SIZEOF` |
 | `StrLen` | `StrLen(S)` | 文字列の長さを返す。別名 `STRLEN` |
 | `MML` | `MML(C)` | `l` `v` `o` `q` `t` `@` `BR` `p%` `Key` `TimeKey` `Port` の現在値を返す |
+| `NoteNo` | `NoteNo(MML)` | MMLで書いた音符の音符番号を返す。別名 `NOTENO` |
 | `Hex` | `Hex(V)` | 数値を16進文字列に変換する。別名 `HEX` |
 | `Pos` | `Pos(N, M)` | 文字列Mの中でNが現れる位置(1始まり)を返す。別名 `POS` |
 
@@ -210,6 +211,24 @@ l4 v100 o4
 Print(MML(l)) // 96
 Print(MML(v)) // 100
 Print(MML(o)) // 4
+```
+
+`NoteNo` の引数には、音符をMMLでそのまま書きます。オクターブ指定(`o5` や `>` `<`)や臨時記号(`+` `-`)、音符番号を指定する `n` 命令も使えます。オクターブを省略した場合は、その時点のトラックのオクターブを使います。`Key`(KeyShift)や `TrackKey` の指定も反映するため、実際に鳴る音の番号が返ります。
+
+```
+Int N = NoteNo(o5e)
+Print(N)             // 64
+Print(NoteNo(o4c))   // 48
+Print(NoteNo(o5e+))  // 65
+Print(NoteNo(n60))   // 60
+o6 Print(NoteNo(c))  // 72
+```
+
+引数を変数で渡すこともできます。その場合は、変数にMMLの文字列を入れておきます。
+
+```
+Str MMLA = {o5e}
+Print(NoteNo(MMLA)) // 64
 ```
 
 ### 乱数の種
