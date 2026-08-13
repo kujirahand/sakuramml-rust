@@ -61,7 +61,7 @@ pub(super) fn exec_sysex_command(song: &mut Song, t: &Token) {
                 else if data.len() == 1 { data[0].to_i() as u8 & 0x7F }
                 else { 0 };
             event = Some(Event::sysex(
-                time, &vec![
+                time, &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x7F), // Universal SysEx
                     SValue::from_i(0x7F), // Braodcast
@@ -82,7 +82,7 @@ pub(super) fn exec_sysex_command(song: &mut Song, t: &Token) {
             let val_lsb = (val & 0x7F) as isize;
             let val_msb = ((val >> 7) & 0x7F) as isize;
             event = Some(Event::sysex(
-                time, &vec![
+                time, &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x7F), // Universal SysEx
                     SValue::from_i(0x7F), // Braodcast
@@ -112,7 +112,7 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
             let val = if data.len() >= 2 { data[1].to_i() as u8 } else { 0 };
             event = Some(Event::sysex(
                 time,
-                &vec![
+                &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x41),
                     SValue::from_i(dev as isize),
@@ -137,7 +137,7 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
                 for ic in 0x11..=0x1F {
                     let e = Event::sysex(
                         time,
-                        &vec![
+                        &[
                             SValue::from_i(0xF0),
                             SValue::from_i(0x41),
                             SValue::from_i(dev as isize),
@@ -165,7 +165,7 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
             let sys_ch = if ch == 9 { 0 } else { if ch <= 9 { ch + 1 } else { ch } } as u8;
             event = Some(Event::sysex(
                 time,
-                &vec![
+                &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x41),
                     SValue::from_i(dev as isize),
@@ -187,7 +187,7 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
             let val = data[0].to_i() as u8;
             event = Some(Event::sysex(
                 time,
-                &vec![
+                &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x41),
                     SValue::from_i(dev as isize),
