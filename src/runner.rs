@@ -56,12 +56,12 @@ use track_state::*;
 use variable::*;
 
 /// run tokens and get arguments(=`Vec<Token>`)
-pub fn exec_args(song: &mut Song, tokens: &Vec<Token>) -> Vec<SValue> {
+pub fn exec_args(song: &mut Song, tokens: &[Token]) -> Vec<SValue> {
     let mut args: Vec<SValue> = vec![];
     let tmp_needs_return_values = song.flags.function_needs_return_value;
     song.flags.function_needs_return_value = true;
     for t in tokens {
-        exec(song, &vec![t.clone()]);
+        exec(song, std::slice::from_ref(t));
         let v = song.stack.pop().unwrap_or(SValue::None);
         args.push(v);
     }
@@ -70,7 +70,7 @@ pub fn exec_args(song: &mut Song, tokens: &Vec<Token>) -> Vec<SValue> {
 }
 
 /// run tokens and get value
-pub fn exec_value(song: &mut Song, tokens: &Vec<Token>) -> SValue {
+pub fn exec_value(song: &mut Song, tokens: &[Token]) -> SValue {
     let tmp_needs_return_values = song.flags.function_needs_return_value;
     song.flags.function_needs_return_value = true;
     exec(song, tokens);
@@ -80,7 +80,7 @@ pub fn exec_value(song: &mut Song, tokens: &Vec<Token>) -> SValue {
 }
 
 /// run tokens and get int value
-pub fn exec_value_int(song: &mut Song, tokens: &Vec<Token>) -> isize {
+pub fn exec_value_int(song: &mut Song, tokens: &[Token]) -> isize {
     exec_value(song, tokens).to_i()
 }
 
@@ -92,7 +92,7 @@ pub fn exec_value_int_by_token(song: &mut Song, tok: &Token) -> isize {
 }
 
 /// run tokens
-pub fn exec(song: &mut Song, tokens: &Vec<Token>) -> bool {
+pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
     let mut pos = 0;
     let mut loop_stack: Vec<LoopItem> = vec![];
     while pos < tokens.len() {

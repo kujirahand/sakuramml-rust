@@ -375,7 +375,7 @@ fn indent_line(src: &str, level: isize) -> String {
     s
 }
 
-pub fn tokens_to_str(tokens: &Vec<Token>) -> String {
+pub fn tokens_to_str(tokens: &[Token]) -> String {
     let mut s = String::new();
     for t in tokens.iter() {
         s.push_str(&t.to_debug_str(0));
@@ -390,7 +390,7 @@ fn opt_str_short(s: &Option<String>, head: &str) -> String {
     }
 }
 
-pub fn tokens_to_debug_str(tokens: &Vec<Token>, level: isize) -> String {
+pub fn tokens_to_debug_str(tokens: &[Token], level: isize) -> String {
     let mut lineno = 0;
     let mut s = String::new();
     for t in tokens.iter() {
