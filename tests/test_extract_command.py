@@ -23,6 +23,8 @@ class ExtractCommandTest(unittest.TestCase):
         self.assertEqual(current, generated)
 
     def test_output_is_unchanged_after_rustfmt(self) -> None:
+        if shutil.which("rustfmt") is None:
+            self.skipTest("rustfmt is required for this test")
         expected = extract_command.render_markdown(ROOT / "src")
         with tempfile.TemporaryDirectory() as temporary_dir:
             temporary_root = Path(temporary_dir)
