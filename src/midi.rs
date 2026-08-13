@@ -441,6 +441,37 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
     }
 }
 
+/// チャンネルイベントなら、サクラのCH命令に合わせた1〜16の番号を返す。
+fn midi_event_channel(bin: &Vec<u8>, pos: usize) -> Option<u8> {
+    let status = *bin.get(pos)?;
+    if (0x80..=0xEF).contains(&status) {
+        Some((status & 0x0F) + 1)
+    } else {
+        None
+    }
+}
+
+/// トラックの最初のチャンネルイベントから、初期チャンネルを先読みする。
+fn find_initial_channel(bin: &Vec<u8>, start_pos: usize, end_pos: usize) -> Option<u8> {
+    let mut pos = start_pos;
+    let mut info = MidiReaderInfo::new();
+    while pos < end_pos && !info.is_eot {
+        array_readl_delta_time(bin, &mut pos);
+        if pos >= end_pos {
+            break;
+        }
+        if let Some(channel) = midi_event_channel(bin, pos) {
+            return Some(channel);
+        }
+        let event_pos = pos;
+        let _ = dump_midi_event(bin, &mut pos, &mut info);
+        if pos <= event_pos {
+            break;
+        }
+    }
+    None
+}
+
 pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
     let mut info = MidiReaderInfo::new();
     let mut res = String::new();
@@ -482,8 +513,6 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
     pos += 2;
     // tracks
     for no in 0..track_count {
-        log(&format!("// ----- TRACK -----"));
-        log(&format!("TRACK({})", no));
         if bin.len().saturating_sub(pos) < 8 {
             log("// [ERROR] Truncated MIDI track header");
             return res;
@@ -506,6 +535,14 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
                 return res;
             }
         };
+        let initial_channel = find_initial_channel(bin, pos, end_pos);
+        // TRは0始まりで、SMFのMTrkチャンク順をそのまま使う。
+        // ここで1を加えると、ダンプを再コンパイルした際にトラックがずれる。
+        match initial_channel {
+            Some(channel) => log(&format!("TR({}) CH({})", no, channel)),
+            None => log(&format!("TR({})", no)),
+        }
+        let mut current_channel = initial_channel;
         while pos < end_pos && !info.is_eot {
             let delta_time = array_readl_delta_time(bin, &mut pos);
             if pos >= end_pos {
@@ -520,7 +557,15 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
             let beat = base %  info.frac + 1;
             let mes = base / info.frac + 1;
             //
+            let event_channel = midi_event_channel(bin, pos);
             let desc = dump_midi_event(bin, &mut pos, &mut info);
+            let desc = match event_channel {
+                Some(channel) if current_channel != Some(channel) => {
+                    current_channel = Some(channel);
+                    format!("CH({}) {}", channel, desc)
+                },
+                _ => desc,
+            };
             // log(&format!("{:5}|TIME({:03}:{:03}:{:03}) {}", time, mes, beat, tick, desc));
             log(&format!("TIME({:03}:{:03}:{:03}) {}", mes, beat, tick, desc));
         }

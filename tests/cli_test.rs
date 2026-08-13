@@ -60,6 +60,64 @@ fn eval_creates_a_midi_file() {
 }
 
 #[test]
+fn dump_outputs_midi_channels() {
+    let dir = TestDir::new("dump-channel");
+    let compile = run(
+        &[
+            "--eval",
+            "TR(1) o4 CH(1) c CH(2) d TR(2) CH(10) CC(1,100)",
+        ],
+        &dir,
+    );
+    assert!(
+        compile.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compile.stderr)
+    );
+
+    let dump = run(&["--dump", "eval.mid"], &dir);
+    assert!(
+        dump.status.success(),
+        "{}",
+        String::from_utf8_lossy(&dump.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&dump.stdout);
+    let lines: Vec<_> = stdout.lines().collect();
+    assert!(lines.contains(&"TR(0)"), "{stdout}");
+    assert!(lines.contains(&"TR(1) CH(1)"), "{stdout}");
+    assert!(stdout.contains("CH(2) NoteOn($32,$64)"), "{stdout}");
+    assert!(lines.contains(&"TR(2) CH(10)"), "{stdout}");
+    assert!(!lines.iter().any(|line| line.starts_with("TR(3)")), "{stdout}");
+    assert_eq!(stdout.matches("CH(1)").count(), 1, "{stdout}");
+    assert_eq!(stdout.matches("CH(2)").count(), 1, "{stdout}");
+    assert_eq!(stdout.matches("CH(10)").count(), 1, "{stdout}");
+}
+
+#[test]
+fn dump_uses_program_change_as_initial_channel() {
+    let dir = TestDir::new("dump-program-change-channel");
+    let compile = run(&["--eval", "TR(1) CH(4) Voice(2)"], &dir);
+    assert!(
+        compile.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compile.stderr)
+    );
+
+    let dump = run(&["--dump", "eval.mid"], &dir);
+    assert!(
+        dump.status.success(),
+        "{}",
+        String::from_utf8_lossy(&dump.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&dump.stdout);
+    let lines: Vec<_> = stdout.lines().collect();
+    assert!(lines.contains(&"TR(0)"), "{stdout}");
+    assert!(lines.contains(&"TR(1) CH(4)"), "{stdout}");
+    assert!(stdout.contains("Voice(2)"), "{stdout}");
+    assert_eq!(stdout.matches("CH(4)").count(), 1, "{stdout}");
+}
+
+#[test]
 fn input_file_uses_mid_as_the_default_extension() {
     let dir = TestDir::new("file");
     fs::write(dir.0.join("song.mml"), "o4c").unwrap();

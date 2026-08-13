@@ -11,6 +11,9 @@ Cargo.lock
 .DS_Store
 **/.DS_Store
 
+# original sakura repo
+/sakuramml/
+
 # Added by cargo
 
 /target

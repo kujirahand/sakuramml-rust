@@ -30,6 +30,7 @@ Voice(Flute)
 ```
 
 音色名の一覧は [voice.md](../voice.md) を参照してください。
+番号体系、Bank Select、MIDIダンプとの対応は [Voice（音色番号）の仕様](voice.md) を参照してください。
 
 | コマンド | 別名 |
 |---|---|
