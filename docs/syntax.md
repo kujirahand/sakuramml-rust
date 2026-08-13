@@ -145,6 +145,18 @@ sakuramml test.mml test.mid
 sakuramml --eval "o4l4 cege c1"
 ```
 
+### ビルド番号
+
+通常のビルドでは、バージョン番号だけを表示します。リリースやCIの成果物を識別したい場合は、
+コンパイル時に環境変数 `BUILD_NUMBER` を指定できます。
+
+```bash
+BUILD_NUMBER=123 cargo build --release
+```
+
+この場合、ヘルプ画面やWeb版のバージョン欄に `build:123` が追加されます。
+ビルド番号はリポジトリ内のファイルでは管理しません。
+
 ## サクラv1/v2との違い
 
 Rust版では、意図的に仕様を変更した箇所があります。
