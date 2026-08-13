@@ -44,8 +44,20 @@ pub fn get_version() -> String {
 }
 
 #[wasm_bindgen]
+/// コンパイル時に指定されたビルド番号を取得する。未指定の場合は空文字列を返す。
 pub fn get_build_number() -> String {
-    std::env::var("BUILD_NUMBER").unwrap_or_else(|_| "0".to_string())
+    option_env!("BUILD_NUMBER").unwrap_or("").trim().to_string()
+}
+
+#[cfg(test)]
+mod build_info_tests {
+    use super::get_build_number;
+
+    #[test]
+    fn build_number_uses_the_compile_time_environment() {
+        let expected = option_env!("BUILD_NUMBER").unwrap_or("").trim();
+        assert_eq!(get_build_number(), expected);
+    }
 }
 
 /// SakuraCompiler Object

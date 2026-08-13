@@ -37,7 +37,11 @@ fn help_and_version_succeed() {
     let dir = TestDir::new("help");
     let help = run(&["--help"], &dir);
     assert!(help.status.success());
-    assert!(String::from_utf8_lossy(&help.stdout).contains("USAGE:"));
+    let help_stdout = String::from_utf8_lossy(&help.stdout);
+    assert!(help_stdout.contains("USAGE:"));
+    if option_env!("BUILD_NUMBER").unwrap_or("").trim().is_empty() {
+        assert!(!help_stdout.contains("(build:"));
+    }
 
     let version = run(&["--version"], &dir);
     assert!(version.status.success());

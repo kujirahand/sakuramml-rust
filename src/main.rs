@@ -29,11 +29,19 @@ fn time_to_u64() -> u64 {
     duration.as_millis() as u64  // または as_secs() などを使用
 }
 
+fn version_label() -> String {
+    let build_number = get_build_number();
+    if build_number.is_empty() {
+        format!("ver.{}", SAKURA_VERSION)
+    } else {
+        format!("ver.{} (build:{})", SAKURA_VERSION, build_number)
+    }
+}
+
 /// show usage
 fn usage() {
-    println!("=== sakuramml ver.{} (build:{}) ===\n{}{}{}{}{}{}{}{}",
-        SAKURA_VERSION,
-        get_build_number(),
+    println!("=== sakuramml {} ===\n{}{}{}{}{}{}{}{}",
+        version_label(),
         "USAGE:\n",
         "  sakuramml (mmlfile) (midifile)\n",
         "OPTIONS:\n",
@@ -43,6 +51,23 @@ fn usage() {
         "  -v, --version  Show version\n",
         "  -m, --dump,    Dump midi file\n",
     );
+}
+
+#[cfg(test)]
+mod build_info_tests {
+    use super::version_label;
+    use sakuramml::sakura_version::SAKURA_VERSION;
+
+    #[test]
+    fn version_label_uses_the_compile_time_build_number() {
+        let expected = match option_env!("BUILD_NUMBER").map(str::trim) {
+            Some(build_number) if !build_number.is_empty() => {
+                format!("ver.{} (build:{})", SAKURA_VERSION, build_number)
+            }
+            _ => format!("ver.{}", SAKURA_VERSION),
+        };
+        assert_eq!(version_label(), expected);
+    }
 }
 
 /// show sakura version
