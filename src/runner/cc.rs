@@ -14,7 +14,7 @@ pub(super) fn exec_cc_rpn_nrpn(song: &mut Song, t: &Token, cc1: isize, cc2: isiz
 }
 
 pub(super) fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc2: isize, cc3: isize) {
-    let args = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
+    let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() != 3 {
         runtime_error(song, "RPN/NRPN needs 3 arguments");
         return;
@@ -67,7 +67,7 @@ pub(super) fn tempo_change(song: &mut Song, tempo: isize) {
 
 pub(super) fn exec_voice(song: &mut Song, t: &Token) {
     // voice no
-    let args = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
+    let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     let no = if args.len() >= 1 { args[0].to_i() } else { 1 };
     let no = value_range(1, no, 128) - 1;
     let bank_msb = if args.len() >= 2 { args[1].to_i() } else { 0 };
@@ -126,7 +126,7 @@ pub(super) fn exec_tempo(song: &mut Song, t: &Token) {
 
 /// テンポの変化 (TempoChange)
 pub(super) fn exec_tempo_change(song: &mut Song, t: &Token) {
-    let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let data = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if data.len() == 3 {
         tempo_change_a_to_b(song, data[0].to_i(), data[1].to_i(), data[2].to_i());
     } else if data.len() == 2 {

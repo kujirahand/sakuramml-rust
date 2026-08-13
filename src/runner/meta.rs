@@ -52,7 +52,7 @@ pub(super) fn exec_print(song: &mut Song, t: &Token) {
 
 /// メタテキストの書き込み
 pub(super) fn exec_meta_text(song: &mut Song, t: &Token) {
-    let txt_raw = exec_args(song, &t.children.clone().unwrap_or(vec![]))[0].to_s();
+    let txt_raw = exec_args(song, t.children.as_deref().unwrap_or(&[]))[0].to_s();
     let txt = trim_meta_text(&txt_raw);
     let e = Event::meta(
         trk!(song).timepos,
@@ -66,7 +66,7 @@ pub(super) fn exec_meta_text(song: &mut Song, t: &Token) {
 
 /// ポート番号の指定
 pub(super) fn exec_port(song: &mut Song, t: &Token) {
-    let port = exec_args(song, &t.children.clone().unwrap_or(vec![]))[0].to_i();
+    let port = exec_args(song, t.children.as_deref().unwrap_or(&[]))[0].to_i();
     trk!(song).port = port;
     let e = Event::meta(
         trk!(song).timepos,
@@ -80,7 +80,7 @@ pub(super) fn exec_port(song: &mut Song, t: &Token) {
 
 /// 拍子の指定
 pub(super) fn exec_time_signature(song: &mut Song, t: &Token) {
-    let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() < 2 {
         runtime_error(song, "[TimeSignature] argument must be 2");
         return;
@@ -116,7 +116,7 @@ pub(super) fn exec_time_signature(song: &mut Song, t: &Token) {
 
 /// SMFへバイト列を直接書き込む
 pub(super) fn exec_direct_smf(song: &mut Song, t: &Token) {
-    let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() >= 1 {
         let timepos = trk!(song).timepos;
         let args_u8 = args.iter().map(|v| v.to_i() as u8).collect();
@@ -126,7 +126,7 @@ pub(super) fn exec_direct_smf(song: &mut Song, t: &Token) {
 
 /// ノートオンを直接書き込む
 pub(super) fn exec_note_on(song: &mut Song, t: &Token) {
-    let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() >= 2 {
         let timepos = trk!(song).timepos;
         let mut args_u8: Vec<u8> = args.iter().map(|v| v.to_i() as u8).collect();
@@ -137,7 +137,7 @@ pub(super) fn exec_note_on(song: &mut Song, t: &Token) {
 
 /// ノートオフを直接書き込む
 pub(super) fn exec_note_off(song: &mut Song, t: &Token) {
-    let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() >= 2 {
         let timepos = trk!(song).timepos;
         let mut args_u8: Vec<u8> = args.iter().map(|v| v.to_i() as u8).collect();

@@ -6,7 +6,7 @@ pub(super) fn exec_def_int(song: &mut Song, t: &Token) {
     match &t.value_s {
         None => { runtime_error(song, "[SYSTEM ERROR][DefInt] variable name is empty"); return; },
         Some(var_name) => {
-            let val = exec_value(song, &t.children.clone().unwrap_or(vec![]));
+            let val = exec_value(song, t.children.as_deref().unwrap_or(&[]));
             if val.is_array() {
                 let msg = format!("{}: {}",
                     song.get_message(MessageKind::ErrorTypeMismatch),
@@ -23,7 +23,7 @@ pub(super) fn exec_def_str(song: &mut Song, t: &Token) {
     match &t.value_s {
         None => { runtime_error(song, "[SYSTEM ERROR][DefStr] variable name is empty"); return; },
         Some(var_name) => {
-            let val = exec_value(song, &t.children.clone().unwrap_or(vec![]));
+            let val = exec_value(song, t.children.as_deref().unwrap_or(&[]));
             song.variables_insert(var_name, val);
         }
     }
@@ -34,7 +34,7 @@ pub(super) fn exec_def_array(song: &mut Song, t: &Token) {
     match &t.value_s {
         None => { runtime_error(song, "[SYSTEM ERROR][DefArray] variable name is empty"); return; },
         Some(var_name) => {
-            let val = exec_value(song, &t.children.clone().unwrap_or(vec![]));
+            let val = exec_value(song, t.children.as_deref().unwrap_or(&[]));
             song.variables_insert(var_name, val);
         }
     }
@@ -76,7 +76,7 @@ pub(super) fn exec_let_var(song: &mut Song, t: &Token) {
 /// 文字列変数の置換
 pub(super) fn exec_str_var_replace(song: &mut Song, t: &Token) {
     let var_key = t.value_s.clone().unwrap_or(String::from("ERROR"));
-    let args = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() >= 2 {
         let mut val_s = song.variables_get(&var_key).unwrap_or(&SValue::None).to_s();
         val_s = val_s.replace(&args[0].to_s(), &args[1].to_s());
@@ -166,7 +166,7 @@ pub(super) fn exec_calc_tree(song: &mut Song, t: &Token) {
     }
     // get flag char
     let flag = t.operator_flag;
-    let values = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
+    let values = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     // only 1 value
     if flag == '!' { // flag "!(val)"
         let v = if values.len() >= 1 { values[0].to_b() } else { false };

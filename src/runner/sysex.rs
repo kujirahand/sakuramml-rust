@@ -11,7 +11,7 @@ pub(super) fn exec_device_number(song: &mut Song, t: &Token) {
 /// 任意のSysExを送信する
 pub(super) fn exec_sysex(song: &mut Song, t: &Token) {
     // check arguments
-    let mut args: Vec<SValue> = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let mut args: Vec<SValue> = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() == 0 {
         runtime_error(song, &format!("SysEx : {}", song.get_message(MessageKind::ErrorWrongArguments)));
         return;
@@ -51,7 +51,7 @@ pub(super) fn exec_sysex_reset(song: &mut Song, t: &Token) {
 pub(super) fn exec_sysex_command(song: &mut Song, t: &Token) {
     let time = trk!(song).timepos;
     let mut event: Option<Event> = Option::None;
-    let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let data = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     let sub_id = t.value_i as u8 & 0x7F;
     match sub_id {
         0x01 => { // Master Volume (0x01) 7bit
@@ -105,7 +105,7 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
     let time = trk!(song).timepos;
     let dev = song.device_number;
     let mut event: Option<Event> = Option::None;
-    let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let data = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     match &t.value_i {
         0x00 => { // basic
             let num = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };

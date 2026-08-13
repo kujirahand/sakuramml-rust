@@ -56,7 +56,7 @@ use track_state::*;
 use variable::*;
 
 /// run tokens and get arguments(=`Vec<Token>`)
-pub fn exec_args(song: &mut Song, tokens: &Vec<Token>) -> Vec<SValue> {
+pub fn exec_args(song: &mut Song, tokens: &[Token]) -> Vec<SValue> {
     let mut args: Vec<SValue> = vec![];
     let tmp_needs_return_values = song.flags.function_needs_return_value;
     song.flags.function_needs_return_value = true;
