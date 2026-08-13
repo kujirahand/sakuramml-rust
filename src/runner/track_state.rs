@@ -69,12 +69,28 @@ pub(super) fn exec_velocity_rel(song: &mut Song, t: &Token) {
 /// ゲートの指定 (q)
 pub(super) fn exec_qlen(song: &mut Song, t: &Token) {
     trk!(song).q_opt.clear_reserve();
-    let max = trk!(song).q_opt.max_or(100);
     let value = t
         .data
         .first()
         .map(|v| var_extract(v, song).to_i())
         .unwrap_or(t.value_i);
+    // q%n --- ステップ単位の指定 (#127)
+    // 割合ではないので、0〜100(.Max)の範囲に丸めない
+    let is_step = t.data.get(1).map(|v| v.to_i()).unwrap_or(0) != 0;
+    if is_step {
+        // q%-n は、現在のqの値からの相対指定
+        // (オリジナル(Pascal版)の SetNoteInfo.subSoutai と同じ動作)
+        let value = if value < 0 {
+            trk!(song).qlen.saturating_add(value).max(0)
+        } else {
+            value
+        };
+        trk!(song).qlen_is_step = true;
+        trk!(song).qlen = value;
+        return;
+    }
+    let max = trk!(song).q_opt.max_or(100);
+    trk!(song).qlen_is_step = false;
     trk!(song).qlen = value_range(0, value, max);
 }
 

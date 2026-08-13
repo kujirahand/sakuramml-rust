@@ -24,6 +24,8 @@ pub struct NoteInfo {
     pub natural: isize,
     pub len_s: String,
     pub qlen: isize,
+    /// ゲート長がステップ単位の指定か (c4,%70 のような `%` 付きの指定) (#127)
+    pub qlen_is_step: bool,
     pub vel: isize,
     pub t: isize,
     pub o: isize,
@@ -291,6 +293,10 @@ impl NoteParam {
         self.on_note = None;
         self.on_note_index = 0;
     }
+    /// 先行指定(.onTime/.onCycle/.onNote)が有効かどうか
+    pub fn has_reserve(&self) -> bool {
+        self.on_time.is_some() || self.on_cycle.is_some() || self.on_note.is_some()
+    }
     /// .onTime を予約する
     pub fn set_on_time(&mut self, timepos: isize, values: Vec<isize>) {
         self.clear_reserve();
@@ -415,6 +421,8 @@ pub struct Track {
     v_sub_on_note: Vec<Option<VelocitySubOnNote>>,
     v_sub_on_cycle: Vec<Option<OnCycleTime>>,
     pub qlen: isize,
+    /// ゲート長がステップ単位の指定か (q%n を指定したとき true) (#127)
+    pub qlen_is_step: bool,
     pub timing: isize,
     pub port: isize,
     pub track_key: isize,
@@ -462,6 +470,7 @@ impl Track {
             velocity: 100,
             octave: 5,
             qlen: 90,
+            qlen_is_step: false,
             timing: 0,
             track_key: 0,
             port: 0,
@@ -758,6 +767,8 @@ impl Track {
         let qlen = self.q_opt.calc_on_note(def);
         if self.q_opt.on_note.is_some() {
             self.qlen = qlen;
+            // 先行指定の値は割合指定なので、ステップ指定は解除する (#127)
+            self.qlen_is_step = false;
         }
         qlen
     }

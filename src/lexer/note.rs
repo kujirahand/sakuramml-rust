@@ -1,6 +1,18 @@
 //! lexer: 音符と演奏パラメータの読み取り
 use super::*;
 
+/// 音符に付随するゲート指定を読む (#127)
+/// `%` が付いていればステップ単位の指定として (値, true) を返す
+fn read_gate_arg(cur: &mut SourceCursor, def: isize) -> (isize, bool) {
+    cur.skip_space();
+    if cur.eq_char('%') {
+        cur.next(); // skip '%'
+        cur.skip_space();
+        return (cur.get_int(0), true);
+    }
+    (cur.get_int(def), false)
+}
+
 pub(super) fn read_harmony_flag(cur: &mut SourceCursor, flag_harmony: &mut bool) -> Token {
     // begin
     if !*flag_harmony {
@@ -11,6 +23,7 @@ pub(super) fn read_harmony_flag(cur: &mut SourceCursor, flag_harmony: &mut bool)
     *flag_harmony = false;
     let mut len_s = SValue::None;
     let mut qlen = SValue::from_i(-1);
+    let mut qlen_is_step = false;
     let mut vel = SValue::None;
     if cur.is_numeric() || cur.eq_char('^') {
         len_s = SValue::from_s(cur.get_note_length());
@@ -18,13 +31,19 @@ pub(super) fn read_harmony_flag(cur: &mut SourceCursor, flag_harmony: &mut bool)
     cur.skip_space();
     if cur.eq_char(',') {
         cur.next();
-        qlen = SValue::from_i(cur.get_int(-1));
+        let (q, is_step) = read_gate_arg(cur, -1);
+        qlen = SValue::from_i(q);
+        qlen_is_step = is_step;
         if cur.eq_char(',') {
             cur.next();
             vel = SValue::from_i(cur.get_int(-1));
         }
     }
-    Token::new(TokenType::HarmonyEnd, 0, vec![len_s, qlen, vel])
+    Token::new(
+        TokenType::HarmonyEnd,
+        0,
+        vec![len_s, qlen, vel, SValue::from_i(qlen_is_step as isize)],
+    )
 }
 
 /// 数値列を受け取る音符属性オプションを、実行時に評価する引数トークン付きで作る。
@@ -235,8 +254,22 @@ pub(super) fn read_qlen(cur: &mut SourceCursor, song: &mut Song) -> Token {
             return t;
         }
     }
+    // q%n --- ステップ単位のゲート指定 (#127)
+    if cur.eq_char('%') {
+        cur.next(); // skip '%'
+        let value = read_arg_value(cur, song);
+        return Token::new(
+            TokenType::QLen,
+            value.to_i(),
+            vec![value, SValue::from_i(1)],
+        );
+    }
     let value = read_arg_value(cur, song);
-    Token::new(TokenType::QLen, value.to_i(), vec![value])
+    Token::new(
+        TokenType::QLen,
+        value.to_i(),
+        vec![value, SValue::from_i(0)],
+    )
 }
 
 pub(super) fn read_velocity(cur: &mut SourceCursor, song: &mut Song) -> Token {
@@ -337,13 +370,12 @@ pub(super) fn read_note_n(cur: &mut SourceCursor, song: &mut Song) -> Token {
     // length
     let note_len = cur.get_note_length();
     cur.skip_space();
-    // qlen
-    let qlen = if !cur.eq_char(',') {
-        0
+    // qlen (%を付けるとステップ指定 #127)
+    let (qlen, qlen_is_step) = if !cur.eq_char(',') {
+        (0, false)
     } else {
         cur.next();
-        cur.skip_space();
-        cur.get_int(0)
+        read_gate_arg(cur, 0)
     };
     cur.skip_space();
     // velocity
@@ -386,6 +418,7 @@ pub(super) fn read_note_n(cur: &mut SourceCursor, song: &mut Song) -> Token {
             SValue::from_i(vel),
             SValue::from_i(timing),
             slur,
+            SValue::from_i(qlen_is_step as isize),
         ],
     )
 }
@@ -415,13 +448,12 @@ pub(super) fn read_note(cur: &mut SourceCursor, ch: char) -> Token {
     // 例外的に改行を許す
     let note_len = cur.get_note_length();
     cur.skip_space();
-    // qlen
-    let qlen = if !cur.eq_char(',') {
-        0
+    // qlen (%を付けるとステップ指定 #127)
+    let (qlen, qlen_is_step) = if !cur.eq_char(',') {
+        (0, false)
     } else {
         cur.next();
-        cur.skip_space();
-        cur.get_int(0)
+        read_gate_arg(cur, 0)
     };
     cur.skip_space();
     // velocity
@@ -484,6 +516,7 @@ pub(super) fn read_note(cur: &mut SourceCursor, ch: char) -> Token {
             SValue::from_i(timing),
             SValue::from_i(octabe),
             slur,
+            SValue::from_i(qlen_is_step as isize),
         ],
     )
 }

@@ -112,13 +112,13 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
                 result.push(Token::new_lineno(cur.line));
             }
             // lower command
-            'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ note - ドレミファソラシ c(l),(q),(v),(t),(o)
-            'n' => result.push(read_note_n(&mut cur, song)), // @ note no - 番号を指定して発音 n(no),(l),(q),(v),(t) - (ex) n60
+            'c' | 'd' | 'e' | 'f' | 'g' | 'a' | 'b' => result.push(read_note(&mut cur, ch)), // @ note - ドレミファソラシ c(l),(q),(v),(t),(o) / ゲートは %n でステップ単位の指定 (ex) c%96,%70,120,0
+            'n' => result.push(read_note_n(&mut cur, song)), // @ note no - 番号を指定して発音 n(no),(l),(q),(v),(t) - (ex) n60 / ゲートは %n でステップ単位の指定 (ex) n60,%96,%70
             'r' => result.push(read_rest(&mut cur)),         // @ rest - 休符
             'l' => result.push(read_length(&mut cur, song)), // @ length - 音長の指定 (ex) l4 c
             'o' => result.push(read_octave(&mut cur, song)), // @ octave - 音階の指定 range:0-10 (ex) o6 c
             'p' => result.push(read_pitch_bend_small(&mut cur, song)), // @ pitch bend - ピッチベンドの指定 range:0-127 (center:64) (ex) p64 / p.onTime(low,high,len) / p.onNoteWave(low,high,len) / (ref) PB(n) は -8192~0~8191
-            'q' => result.push(read_qlen(&mut cur, song)), // @ gate rate - ゲートの指定 range:0-100 (ex) q90
+            'q' => result.push(read_qlen(&mut cur, song)), // @ gate rate - ゲートの指定 range:0-100 (ex) q90 / q%n でステップ単位の指定 (ex) q%48
             'v' => result.push(read_velocity(&mut cur, song)), // @ velocity - ベロシティ音量の指定 range:0-127 (ex) v100 / v.Random=n
             't' => result.push(read_timing(&mut cur, song)), // @ timing - 発音タイミングの指定 (例 t-1) / t.Random=n
             'y' => result.push(read_cc(&mut cur, song, ch)), // @ Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len) / y1.onNoteWave(low,high,len)
@@ -207,7 +207,7 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '[' => result.push(read_loop(&mut cur, song)), // @ begin of loop - ループ開始 (ex) [4 cdeg]
             ':' => result.push(Token::new_value(TokenType::LoopBreak, 0)), // @ break of loop - ループ最終回に脱出 (ex)　[4 cde:g]e
             ']' => result.push(Token::new_value(TokenType::LoopEnd, 0)), // @ end of loop - ループ終了
-            '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)), // @ harmony - 和音 (ex) 'ceg' (format) 'ceg'(音長),(ゲート)
+            '\'' => result.push(read_harmony_flag(&mut cur, &mut flag_harmony)), // @ harmony - 和音 (ex) 'ceg' (format) 'ceg'(音長),(ゲート) / ゲートは %n でステップ単位の指定 (ex) 'ceg'4,%70
             '$' => read_def_rhythm_macro(&mut cur, song), // @ define rhythm macro - リズムマクロ定義 $(char){ defined } (ex) $c{n60,}
             '{' => result.push(read_command_div(&mut cur, song, true)), // @ tuplet - 連符 {note}(len) (ex) {ceg}4 {c^d}
             '`' => result.push(Token::new_value(TokenType::OctaveOnce, 1)), // @ Octave up once - 一度だけ音階を+1する
