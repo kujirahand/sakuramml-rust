@@ -274,6 +274,7 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
             TokenType::CCRepeat => exec_cc_repeat(song, t),
             TokenType::CConTimeFreq => exec_cc_on_time_freq(song, t),
             TokenType::Decresc => exec_decres(song, t),
+            TokenType::FadeIO => exec_fade_io(song, t),
             TokenType::PBonTime => exec_pb_on_time(song, t),
             TokenType::PBonNote => exec_pb_on_note(song, t),
             TokenType::PBonNoteWave => exec_pb_on_note_wave(song, t),
@@ -312,7 +313,6 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
             TokenType::Play => { exec_play(song, t); },
             TokenType::Rhythm => {},
             TokenType::ControlChangeCommand => {},
-            TokenType::FadeIO => {}, // replaced CConTime
             TokenType::Cresc => {}, // replaced CConTime
             TokenType::SetRandomSeed => {}, // replace SetConfig
             TokenType::DirectSMF => exec_direct_smf(song, t),

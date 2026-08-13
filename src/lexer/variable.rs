@@ -123,8 +123,22 @@ pub(super) fn check_variables(cur: &mut SourceCursor, song: &mut Song, cmd: Stri
         // let str
         if cur.eq_char('{') {
             let body = cur.get_token_nest('{', '}');
-            song.variables_insert(&cmd, SValue::from_str_and_tag(&body, cur.line));
-            return Some(Token::new_empty("DefStr", cur.line));
+            let value = SValue::from_str_and_tag(&body, cur.line);
+            let value_token = Token::new_const(
+                TokenType::ConstStr,
+                body.len() as isize,
+                Some(body),
+                TokenValueType::STR,
+            );
+            // 後続の単独記述をMMLマクロとして字句解析できるよう型だけ登録し、
+            // 実際の値はLetVarトークンの実行時に代入する。
+            song.variables_insert(&cmd, value);
+            return Some(Token::new_data_tokens(
+                TokenType::LetVar,
+                0,
+                vec![SValue::from_str(&cmd)],
+                vec![value_token],
+            ));
         }
         // let calc
         let body_tokens = read_calc_tokens(cur, song).unwrap_or(vec![]);

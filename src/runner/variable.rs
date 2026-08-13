@@ -48,18 +48,8 @@ pub(super) fn exec_get_variable(song: &mut Song, t: &Token) {
             return;
         },
         Some(var_name) => {
-            // get variable's value
-            let val = song.variables_get(&var_name);
-            // println!("GetVariable: {}={:?}", var_name, vals);
-            let val = match val {
-                Some(v) => v.clone(),
-                None => {
-                    match get_system_value(var_name, &song) {
-                        Some(v) => v,
-                        None => SValue::None,
-                    }
-                }
-            };
+            let reference = SValue::from_s(format!("={}", var_name));
+            let val = var_extract(&reference, song);
             song.stack.push(val);
         }
     }
@@ -70,7 +60,7 @@ pub(super) fn exec_let_var(song: &mut Song, t: &Token) {
     let var_key = t.data[0].to_s();
     let val_tokens = t.children.clone().unwrap_or(vec![]);
     let val = exec_value(song, &val_tokens);
-    song.variables_insert(&var_key, val);
+    song.variables_set(&var_key, val);
 }
 
 /// 文字列変数の置換
@@ -80,7 +70,7 @@ pub(super) fn exec_str_var_replace(song: &mut Song, t: &Token) {
     if args.len() >= 2 {
         let mut val_s = song.variables_get(&var_key).unwrap_or(&SValue::None).to_s();
         val_s = val_s.replace(&args[0].to_s(), &args[1].to_s());
-        song.variables_insert(&var_key, SValue::from_s(val_s));
+        song.variables_set(&var_key, SValue::from_s(val_s));
     }
 }
 
@@ -89,7 +79,7 @@ pub(super) fn exec_value_inc(song: &mut Song, t: &Token) {
     let varname = t.value_s.clone().unwrap_or(String::new());
     let val_inc = t.value_i;
     let val = song.variables_get(&varname).unwrap_or(&SValue::Int(0));
-    song.variables_insert(&varname, SValue::from_i(val.to_i() + val_inc));
+    song.variables_set(&varname, SValue::from_i(val.to_i() + val_inc));
     // let val = song.variables_get(&varname).unwrap_or(&SValue::Int(0));
     // println!("inc={}={}", varname, val.to_i());
 }

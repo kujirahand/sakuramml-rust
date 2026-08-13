@@ -113,7 +113,7 @@ pub(super) fn read_note_param_option(
             Some(Token::new(
                 TokenType::NoteParamRepeat,
                 target,
-                vec![SValue::from_i(if on { 1 } else { 0 })],
+                vec![on],
             ))
         }
         // 値の上限を変更する (v/q のみ)
@@ -193,7 +193,7 @@ pub(super) fn read_octave(cur: &mut SourceCursor, song: &mut Song) -> Token {
         }
     }
     let value = read_arg_value(cur, song);
-    Token::new(TokenType::Octave, value.to_i(), vec![])
+    Token::new(TokenType::Octave, value.to_i(), vec![value])
 }
 
 pub(super) fn read_qlen(cur: &mut SourceCursor, song: &mut Song) -> Token {
@@ -225,7 +225,7 @@ pub(super) fn read_qlen(cur: &mut SourceCursor, song: &mut Song) -> Token {
         }
     }
     let value = read_arg_value(cur, song);
-    Token::new(TokenType::QLen, value.to_i(), vec![])
+    Token::new(TokenType::QLen, value.to_i(), vec![value])
 }
 
 pub(super) fn read_velocity(cur: &mut SourceCursor, song: &mut Song) -> Token {
@@ -259,7 +259,7 @@ pub(super) fn read_velocity(cur: &mut SourceCursor, song: &mut Song) -> Token {
     }
     // v(no)
     let value = read_arg_value(cur, song);
-    Token::new(TokenType::Velocity, value.to_i(), vec![SValue::from_i(ino)])
+    Token::new(TokenType::Velocity, value.to_i(), vec![value, SValue::from_i(ino)])
 }
 
 pub(super) fn read_timing(cur: &mut SourceCursor, song: &mut Song) -> Token {
@@ -283,7 +283,7 @@ pub(super) fn read_timing(cur: &mut SourceCursor, song: &mut Song) -> Token {
     }
     // t(no)
     let value = read_arg_value(cur, song);
-    Token::new(TokenType::Timing, value.to_i(), vec![])
+    Token::new(TokenType::Timing, value.to_i(), vec![value])
 }
 
 pub(super) fn read_loop(cur: &mut SourceCursor, song: &mut Song) -> Token {

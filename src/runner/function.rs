@@ -63,7 +63,10 @@ pub(super) fn exec_userfunc_or_array_or_macro(song: &mut Song, t: &Token) -> boo
         let varname = &song.functions[func_id].arg_names[i].clone();
         let mut v: SValue = if i < args.len() { args[i].clone() } else { SValue::None };
         v = match v {
-            SValue::None => song.functions[func_id].arg_def_values[i].clone(),
+            SValue::None => {
+                let default_value = song.functions[func_id].arg_def_values[i].clone();
+                var_extract(&default_value, song)
+            },
             _ => v,
         };
         song.variables_insert(varname, v);
@@ -203,6 +206,9 @@ pub(super) fn var_extract(val: &SValue, song: &mut Song) -> SValue {
             } else {
                 SValue::from_str(&s)
             }
+        },
+        SValue::Array(values) => {
+            SValue::Array(values.iter().map(|value| var_extract(value, song)).collect())
         },
         // Other value
         _ => val.clone(),

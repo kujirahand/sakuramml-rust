@@ -62,12 +62,7 @@ pub(super) fn read_sysex(cur: &mut SourceCursor, _song: &mut Song) -> Token {
 
 pub(super) fn read_fadein(cur: &mut SourceCursor, song: &mut Song, dir: isize) -> Token {
     let arg = read_arg_value(cur, song);
-    let ia = if dir >= 1 {
-        SValue::from_int_array(vec![0, 127, song.timebase * 4 * arg.to_i()])
-    } else {
-        SValue::from_int_array(vec![127, 0, song.timebase * 4 * arg.to_i()])
-    };
-    return Token::new(TokenType::CConTime, 11, vec![ia]);
+    Token::new(TokenType::FadeIO, dir, vec![arg])
 }
 
 pub(super) fn read_decres(cur: &mut SourceCursor, song: &mut Song, dir: isize) -> Token {
@@ -210,7 +205,7 @@ pub(super) fn read_cc_option(
             Some(Token::new(
                 TokenType::CCRepeat,
                 tv,
-                vec![SValue::from_i(if on { 1 } else { 0 })],
+                vec![on],
             ))
         }
         _ => None,
