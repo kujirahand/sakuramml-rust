@@ -84,9 +84,12 @@ pub(super) fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
         let note_len_s = t.data[0].to_s();
         let mut note_qlen = t.data[1].to_i();
         let note_vel = t.data[2].clone();
+        // `ceg`4,%70 のようなステップ単位のゲート指定 (#127)
+        let mut note_qlen_is_step = t.data.get(3).map(|v| v.to_i()).unwrap_or(0) != 0;
         // parameters
-        if note_qlen < 0 {
+        if note_qlen < 0 && !note_qlen_is_step {
             note_qlen = trk!(song).qlen;
+            note_qlen_is_step = trk!(song).qlen_is_step;
         }
         let note_len = calc_length(&note_len_s, song.timebase, trk!(song).length);
         // 和音全体で一度だけ先行指定を書き出す (#78)
@@ -98,7 +101,9 @@ pub(super) fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
         while song.flags.harmony_events.len() > 0 {
             let mut e = song.flags.harmony_events.pop().unwrap();
             e.time = song.flags.harmony_time;
-            if note_qlen != 0 {
+            if note_qlen_is_step {
+                e.v2 = calc_gate_len(note_len, note_qlen, true);
+            } else if note_qlen != 0 {
                 e.v2 = note_len * note_qlen / 100;
             }
             if !note_vel.is_none() {

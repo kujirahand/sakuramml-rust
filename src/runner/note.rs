@@ -12,8 +12,8 @@ fn apply_v_sub_random(song: &mut Song, mut velocity: isize) -> isize {
     velocity
 }
 
-/// 音符属性の .Random / .Range / .Max を値に適用する
-fn calc_note_param(song: &mut Song, target: isize, value: isize) -> isize {
+/// 音符属性の .Random を値に適用する
+fn calc_note_param_random(song: &mut Song, target: isize, value: isize) -> isize {
     let trk = &song.tracks[song.cur_track];
     let param = match target {
         NOTE_PARAM_V => &trk.v_opt,
@@ -23,11 +23,16 @@ fn calc_note_param(song: &mut Song, target: isize, value: isize) -> isize {
         _ => &trk.l_opt,
     };
     let random = param.random;
-    let value = if random > 0 {
+    if random > 0 {
         song.calc_rand_value(value, random)
     } else {
         value
-    };
+    }
+}
+
+/// 音符属性の .Random / .Range / .Max を値に適用する
+fn calc_note_param(song: &mut Song, target: isize, value: isize) -> isize {
+    let value = calc_note_param_random(song, target, value);
     // 借用の都合で、ランダムを計算したあとに範囲を適用する
     let trk = &song.tracks[song.cur_track];
     let param = match target {
@@ -40,6 +45,20 @@ fn calc_note_param(song: &mut Song, target: isize, value: isize) -> isize {
     param.apply_limit(value)
 }
 
+/// ゲート長(実際の発音ステップ数)を求める (#127)
+/// - 割合指定(q90 など): 音長に対する百分率
+/// - ステップ指定(q%48 など): ステップ数をそのまま使う(音長を超える指定も可能)
+///   ただし負の値は「音長から引いた値」として扱い、0未満にはしない
+pub(crate) fn calc_gate_len(notelen: isize, qlen: isize, qlen_is_step: bool) -> isize {
+    if qlen_is_step {
+        if qlen >= 0 {
+            return qlen;
+        }
+        return notelen.saturating_add(qlen).max(0);
+    }
+    (notelen as f32 * qlen as f32 / 100.0) as isize
+}
+
 pub(crate) fn get_note_info_from_token(t: &Token) -> NoteInfo {
     let data = &t.data;
     if data.len() < 8 {
@@ -50,6 +69,7 @@ pub(crate) fn get_note_info_from_token(t: &Token) -> NoteInfo {
             natural: 0,
             len_s: "".to_string(),
             qlen: 0,
+            qlen_is_step: false,
             vel: 0,
             t: 0,
             o: 0,
@@ -65,12 +85,14 @@ pub(crate) fn get_note_info_from_token(t: &Token) -> NoteInfo {
     let data_note_t = data[5].to_i(); // isize::MIN
     let data_note_o = data[6].to_i(); // -1
     let data_slur = data[7].to_i(); // 0 or 1 --- TODO: #7
+    let data_qlen_is_step = data.get(8).map(|v| v.to_i()).unwrap_or(0) != 0; // c4,%70 (#127)
     NoteInfo {
         no: note_no,
         flag: data_note_flag,
         natural: data_note_natural,
         len_s: data_note_len,
         qlen: data_note_qlen,
+        qlen_is_step: data_qlen_is_step,
         vel: data_note_vel,
         t: data_note_t,
         o: data_note_o,
@@ -81,8 +103,10 @@ pub(crate) fn get_note_info_from_token(t: &Token) -> NoteInfo {
 /// get note info, and shift key
 pub(crate) fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut Song) {
     // set note with track's default value
-    if note.qlen == 0 {
+    // 音符側にゲート指定がなければ、トラックの指定(割合/ステップ)を受け継ぐ (#127)
+    if note.qlen == 0 && !note.qlen_is_step {
         note.qlen = trk!(song).qlen;
+        note.qlen_is_step = trk!(song).qlen_is_step;
     }
     if note.vel < 0 {
         note.vel = trk!(song).velocity;
@@ -148,8 +172,11 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     let v = trk!(song).calc_v_on_note(v);
     let t = trk!(song).calc_t_on_time(note.t);
     let t = trk!(song).calc_t_on_note(t);
+    // ゲートの先行指定は割合指定なので、有効ならステップ指定より優先する (#127)
+    let q_reserved = trk!(song).q_opt.has_reserve();
     let qlen = trk!(song).calc_qlen_on_time(note.qlen);
     let qlen = trk!(song).calc_qlen_on_note(qlen);
+    let qlen_is_step = note.qlen_is_step && !q_reserved;
     let o_abs = trk!(song).calc_o_on_time(-1);
     let o_abs = trk!(song).calc_o_on_note(o_abs);
     // 実際に使うオクターブを求め、.Random と .Range/.Max を適用する
@@ -165,7 +192,12 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     }
     let v = calc_note_param(song, NOTE_PARAM_V, v);
     let t = calc_note_param(song, NOTE_PARAM_T, t);
-    let qlen = calc_note_param(song, NOTE_PARAM_Q, qlen);
+    // ステップ指定のときは、割合向けの .Range/.Max を適用しない (#127)
+    let qlen = if qlen_is_step {
+        calc_note_param_random(song, NOTE_PARAM_Q, qlen)
+    } else {
+        calc_note_param(song, NOTE_PARAM_Q, qlen)
+    };
     let v = trk!(song).apply_v_sub(v);
     let v = apply_v_sub_random(song, v);
     // note len
@@ -179,7 +211,7 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     }
     // .Random / .Range / .Max は通常の音長にも適用する
     let notelen = calc_note_param(song, NOTE_PARAM_L, notelen).max(0);
-    let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
+    let notelen_real = calc_gate_len(notelen, qlen, qlen_is_step);
     // check range
     let v = value_range(0, v, trk!(song).v_opt.max_or(127));
     // event
@@ -239,6 +271,7 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     let data_note_qlen = var_extract(&t.data[2], song).to_i(); // 0
     let data_note_vel = var_extract(&t.data[3], song).to_i(); // -1
     let data_note_t = var_extract(&t.data[4], song).to_i(); // isize::MIN
+    let data_qlen_is_step = t.data.get(6).map(|v| v.to_i()).unwrap_or(0) != 0; // n60,4,%70 (#127)
     let start_pos = trk!(song).timepos;
     let track_key = trk!(song).track_key;
     let key_shift = song.key_shift;
@@ -246,10 +279,11 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     // check parameters
     let notelen = calc_length(&data_note_len, song.timebase, trk!(song).length);
     let notelen = calc_note_param(song, NOTE_PARAM_L, notelen).max(0);
-    let qlen = if data_note_qlen != 0 {
-        data_note_qlen
+    // ゲート指定 --- 音符側の指定がなければトラックの指定(割合/ステップ)を使う (#127)
+    let (qlen, qlen_is_step) = if data_note_qlen != 0 || data_qlen_is_step {
+        (data_note_qlen, data_qlen_is_step)
     } else {
-        trk!(song).qlen
+        (trk!(song).qlen, trk!(song).qlen_is_step)
     };
     let v = if data_note_vel >= 0 {
         data_note_vel
@@ -266,16 +300,24 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     let v = trk!(song).calc_v_on_note(v);
     let t = trk!(song).calc_t_on_time(t);
     let t = trk!(song).calc_t_on_note(t);
+    // ゲートの先行指定は割合指定なので、有効ならステップ指定より優先する (#127)
+    let q_reserved = trk!(song).q_opt.has_reserve();
     let qlen = trk!(song).calc_qlen_on_time(qlen);
     let qlen = trk!(song).calc_qlen_on_note(qlen);
+    let qlen_is_step = qlen_is_step && !q_reserved;
     // Random / Range / Max
     let v = calc_note_param(song, NOTE_PARAM_V, v);
     let t = calc_note_param(song, NOTE_PARAM_T, t);
-    let qlen = calc_note_param(song, NOTE_PARAM_Q, qlen);
+    // ステップ指定のときは、割合向けの .Range/.Max を適用しない (#127)
+    let qlen = if qlen_is_step {
+        calc_note_param_random(song, NOTE_PARAM_Q, qlen)
+    } else {
+        calc_note_param(song, NOTE_PARAM_Q, qlen)
+    };
     let v = trk!(song).apply_v_sub(v);
     let v = apply_v_sub_random(song, v);
     // calc
-    let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
+    let notelen_real = calc_gate_len(notelen, qlen, qlen_is_step);
     // range
     let v = value_range(0, v, trk!(song).v_opt.max_or(127));
     let event = Event::note(

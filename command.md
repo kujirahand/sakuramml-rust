@@ -7,13 +7,13 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | Command | Description |
 |---------|--------|
 | SPACE TAB CR LF ; CHR(0x7C) | space - 空白文字 / ';'や'|'も読み飛ばす |
-| c   d   e   f   g   a   b | note - ドレミファソラシ c(l),(q),(v),(t),(o) |
-| n | note no - 番号を指定して発音 n(no),(l),(q),(v),(t) - (ex) n60 |
+| c   d   e   f   g   a   b | note - ドレミファソラシ c(l),(q),(v),(t),(o) / ゲートは %n でステップ単位の指定 (ex) c%96,%70,120,0 |
+| n | note no - 番号を指定して発音 n(no),(l),(q),(v),(t) - (ex) n60 / ゲートは %n でステップ単位の指定 (ex) n60,%96,%70 |
 | r | rest - 休符 |
 | l | length - 音長の指定 (ex) l4 c |
 | o | octave - 音階の指定 range:0-10 (ex) o6 c |
 | p | pitch bend - ピッチベンドの指定 range:0-127 (center:64) (ex) p64 / p.onTime(low,high,len) / p.onNoteWave(low,high,len) / (ref) PB(n) は -8192~0~8191 |
-| q | gate rate - ゲートの指定 range:0-100 (ex) q90 |
+| q | gate rate - ゲートの指定 range:0-100 (ex) q90 / q%n でステップ単位の指定 (ex) q%48 |
 | v | velocity - ベロシティ音量の指定 range:0-127 (ex) v100 / v.Random=n |
 | t | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
 | y | Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len) / y1.onNoteWave(low,high,len) |
@@ -32,7 +32,7 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | [ | begin of loop - ループ開始 (ex) [4 cdeg] |
 | : | break of loop - ループ最終回に脱出 (ex)　[4 cde:g]e |
 | ] | end of loop - ループ終了 |
-| \ | harmony - 和音 (ex) 'ceg' (format) 'ceg'(音長),(ゲート) |
+| \ | harmony - 和音 (ex) 'ceg' (format) 'ceg'(音長),(ゲート) / ゲートは %n でステップ単位の指定 (ex) 'ceg'4,%70 |
 | $ | define rhythm macro - リズムマクロ定義 $(char){ defined } (ex) $c{n60,} |
 | { | tuplet - 連符 {note}(len) (ex) {ceg}4 {c^d} |
 | ` | Octave up once - 一度だけ音階を+1する |
@@ -563,7 +563,7 @@ Rhythm macro (リズムマクロ)
 | 音符 | 音符（ｎ分音符指定）//基本となる音符の長さをｎ分音符で指定する。（例）音符16//１６分音符の意味 (="l") |
 | 音量 | 音量（数値）//音量(実際は音の強さ)を設定する。初期値は、100。範囲は、0~127。（例）音量127 (="v") |
 | 連符 | 連符{音名}[音長]//３連符や５連符などを表現する。（例）連符{ドレミ}4 (="Div") |
-| ゲート | ゲート（割合）//音符の長さに対する実際の発音時間を割合（100分率）で指定する。範囲は、1～100～。（例）ゲート80 (="q") |
+| ゲート | ゲート（割合）//音符の長さに対する実際の発音時間を割合（100分率）で指定する。範囲は、1～100～。（例）ゲート80 / %を付けるとステップ単位で指定する（例）ゲート%48 (="q") |
 | テンポ | テンポ（数値）//テンポを設定する。初期値は、120。範囲は、20～240を推奨。（例）テンポ120 (="Tempo=") |
 | 曖昧さ | (コマンド)曖昧さ（数値）//各属性の曖昧さを設定する。範囲は、0～。初期値は、0。（例）音量曖昧さ80 【ドレミソ】 (=".Random=") |
 | トラック | トラック（番号）//トラック番号を指定する。初期値は、０。範囲は、0～。（例）トラック３ (="Track=") |
