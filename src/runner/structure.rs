@@ -12,7 +12,7 @@ pub(super) fn exec_play(song: &mut Song, t: &Token) -> bool {
         song.change_cur_track(index + 1);
         trk!(song).timepos = start_pos;
         // eval calc
-        let src = exec_value(song, &vec![arg.clone()]).to_s();
+        let src = exec_value(song, std::slice::from_ref(arg)).to_s();
         // println!("play(TR={})({}):{}", index+1, lineno, src);
         // eval tokens
         let tokens = lex(song, &src, lineno);

@@ -41,7 +41,7 @@ impl Event {
     pub fn direct_smf(time: isize, data_v: Vec<u8>) -> Self {
         Self { etype: EventType::DirectSMF, time, channel:0, v1: 0 , v2: 0, v3: 0, data: Some(data_v) }
     }
-    pub fn sysex(time: isize, data_v: &Vec<SValue>, checksum_mode: bool) -> Self {
+    pub fn sysex(time: isize, data_v: &[SValue], checksum_mode: bool) -> Self {
         // convert to u8 without checksum
         if checksum_mode == false {
             let mut a: Vec<u8> = vec![];

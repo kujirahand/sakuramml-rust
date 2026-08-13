@@ -145,7 +145,7 @@ pub(super) fn exec_length_on_note(song: &mut Song, t: &Token, is_cycle: bool) {
 
 /// タイ(&)の動作モードの指定
 pub(super) fn exec_tie_mode(song: &mut Song, t: &Token) {
-    let args = exec_args(song, t.children.as_ref().unwrap_or(&vec![]));
+    let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() >= 1 {
         trk!(song).tie_mode = TieMode::from_i(var_extract(&args[0], song).to_i());
     }

@@ -202,7 +202,7 @@ impl MidiReaderInfo {
     }
 }
 
-pub fn array_read_str(a: &Vec<u8>, pos: usize, len: usize) -> String {
+pub fn array_read_str(a: &[u8], pos: usize, len: usize) -> String {
     let mut s = String::new();
     let end = match pos.checked_add(len) {
         Some(end) => end,
@@ -226,7 +226,7 @@ pub fn array_read_str(a: &Vec<u8>, pos: usize, len: usize) -> String {
     }
 }
 
-pub fn array_read_u16(a: &Vec<u8>, pos: usize) ->u16 {
+pub fn array_read_u16(a: &[u8], pos: usize) ->u16 {
     let mut v: u16 = 0;
     if pos < a.len() {
         v = a[pos] as u16;
@@ -238,7 +238,7 @@ pub fn array_read_u16(a: &Vec<u8>, pos: usize) ->u16 {
     v
 }
 
-pub fn array_read_u32(a: &Vec<u8>, pos: usize) ->u32 {
+pub fn array_read_u32(a: &[u8], pos: usize) ->u32 {
     let mut v: u32 = 0;
     if pos < a.len() { v = a[pos] as u32; }
     if (pos + 1) < a.len() { v = v << 8 | a[pos+1] as u32; }
@@ -247,7 +247,7 @@ pub fn array_read_u32(a: &Vec<u8>, pos: usize) ->u32 {
     v
 }
 
-pub fn array_readl_delta_time(a: &Vec<u8>, pos: &mut usize) -> usize {
+pub fn array_readl_delta_time(a: &[u8], pos: &mut usize) -> usize {
     let mut v: usize = 0;
     while *pos < a.len() {
         let cv = a[*pos] as usize;
@@ -261,7 +261,7 @@ pub fn array_readl_delta_time(a: &Vec<u8>, pos: &mut usize) -> usize {
     v
 }
 
-pub fn dump_midi_event_meta(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo) -> String {
+pub fn dump_midi_event_meta(bin: &[u8], pos: &mut usize, info: &mut MidiReaderInfo) -> String {
     let p = *pos;
     if bin.len().saturating_sub(p) < 2 {
         *pos = bin.len();
@@ -377,7 +377,7 @@ pub fn note_no_dec(no: u8) -> String {
     )
 }
 
-pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo) -> String {
+pub fn dump_midi_event(bin: &[u8], pos: &mut usize, info: &mut MidiReaderInfo) -> String {
     if *pos >= bin.len() {
         return String::from("// [ERROR] Truncated MIDI event");
     }
@@ -442,7 +442,7 @@ pub fn dump_midi_event(bin: &Vec<u8>, pos: &mut usize, info: &mut MidiReaderInfo
 }
 
 /// チャンネルイベントなら、サクラのCH命令に合わせた1〜16の番号を返す。
-fn midi_event_channel(bin: &Vec<u8>, pos: usize) -> Option<u8> {
+fn midi_event_channel(bin: &[u8], pos: usize) -> Option<u8> {
     let status = *bin.get(pos)?;
     if (0x80..=0xEF).contains(&status) {
         Some((status & 0x0F) + 1)
@@ -452,7 +452,7 @@ fn midi_event_channel(bin: &Vec<u8>, pos: usize) -> Option<u8> {
 }
 
 /// トラックの最初のチャンネルイベントから、初期チャンネルを先読みする。
-fn find_initial_channel(bin: &Vec<u8>, start_pos: usize, end_pos: usize) -> Option<u8> {
+fn find_initial_channel(bin: &[u8], start_pos: usize, end_pos: usize) -> Option<u8> {
     let mut pos = start_pos;
     let mut info = MidiReaderInfo::new();
     while pos < end_pos && !info.is_eot {
@@ -472,7 +472,7 @@ fn find_initial_channel(bin: &Vec<u8>, start_pos: usize, end_pos: usize) -> Opti
     None
 }
 
-pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
+pub fn dump_midi(bin: &[u8], flag_stdout: bool) -> String {
     let mut info = MidiReaderInfo::new();
     let mut res = String::new();
     let mut log = |s: &str| {

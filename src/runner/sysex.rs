@@ -11,7 +11,7 @@ pub(super) fn exec_device_number(song: &mut Song, t: &Token) {
 /// 任意のSysExを送信する
 pub(super) fn exec_sysex(song: &mut Song, t: &Token) {
     // check arguments
-    let mut args: Vec<SValue> = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let mut args: Vec<SValue> = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() == 0 {
         runtime_error(song, &format!("SysEx : {}", song.get_message(MessageKind::ErrorWrongArguments)));
         return;
@@ -51,7 +51,7 @@ pub(super) fn exec_sysex_reset(song: &mut Song, t: &Token) {
 pub(super) fn exec_sysex_command(song: &mut Song, t: &Token) {
     let time = trk!(song).timepos;
     let mut event: Option<Event> = Option::None;
-    let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let data = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     let sub_id = t.value_i as u8 & 0x7F;
     match sub_id {
         0x01 => { // Master Volume (0x01) 7bit
@@ -61,7 +61,7 @@ pub(super) fn exec_sysex_command(song: &mut Song, t: &Token) {
                 else if data.len() == 1 { data[0].to_i() as u8 & 0x7F }
                 else { 0 };
             event = Some(Event::sysex(
-                time, &vec![
+                time, &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x7F), // Universal SysEx
                     SValue::from_i(0x7F), // Braodcast
@@ -82,7 +82,7 @@ pub(super) fn exec_sysex_command(song: &mut Song, t: &Token) {
             let val_lsb = (val & 0x7F) as isize;
             let val_msb = ((val >> 7) & 0x7F) as isize;
             event = Some(Event::sysex(
-                time, &vec![
+                time, &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x7F), // Universal SysEx
                     SValue::from_i(0x7F), // Braodcast
@@ -105,14 +105,14 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
     let time = trk!(song).timepos;
     let dev = song.device_number;
     let mut event: Option<Event> = Option::None;
-    let data = exec_args(song, &t.children.clone().unwrap_or(vec![]));
+    let data = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     match &t.value_i {
         0x00 => { // basic
             let num = if data.len() >= 1 { data[0].to_i() as u8 } else { 0 };
             let val = if data.len() >= 2 { data[1].to_i() as u8 } else { 0 };
             event = Some(Event::sysex(
                 time,
-                &vec![
+                &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x41),
                     SValue::from_i(dev as isize),
@@ -137,7 +137,7 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
                 for ic in 0x11..=0x1F {
                     let e = Event::sysex(
                         time,
-                        &vec![
+                        &[
                             SValue::from_i(0xF0),
                             SValue::from_i(0x41),
                             SValue::from_i(dev as isize),
@@ -165,7 +165,7 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
             let sys_ch = if ch == 9 { 0 } else { if ch <= 9 { ch + 1 } else { ch } } as u8;
             event = Some(Event::sysex(
                 time,
-                &vec![
+                &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x41),
                     SValue::from_i(dev as isize),
@@ -187,7 +187,7 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
             let val = data[0].to_i() as u8;
             event = Some(Event::sysex(
                 time,
-                &vec![
+                &[
                     SValue::from_i(0xF0),
                     SValue::from_i(0x41),
                     SValue::from_i(dev as isize),
