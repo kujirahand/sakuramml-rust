@@ -105,15 +105,24 @@
 | `RandomSeed` | `RANDOM_SEED` | [スクリプト](syntax-script.md#乱数の種) |
 | `Random` `RandomSelect` `Chr` `Asc` `Mid` `Replace` `SizeOf` `StrLen` `MML` `Hex` `Pos` | | [スクリプト](syntax-script.md#組み込み関数) |
 
+### 先行指定(リザーブ)
+
+| コマンド | 解説 |
+|---|---|
+| `.onNote` `.N` / `.onTime` `.T` / `.onCycle` `.C` | [先行指定](syntax-reserve.md) |
+| `.onNoteWave` `.W` / `.onNoteWaveEx` `.WE` / `.onNoteWaveR` `.WR` | [先行指定](syntax-reserve.md) ※CC系とピッチベンドのみ |
+| `.Sine` / `.onNoteSine` | [先行指定](syntax-reserve.md) ※CC系とピッチベンドのみ |
+| `.Random` `.Range` `.Delay` `.Repeat` | [先行指定](syntax-reserve.md) |
+| `.Frequency` | [先行指定](syntax-reserve.md) ※CC系とピッチベンドのみ |
+| `.Max` | [先行指定](syntax-reserve.md) ※`v` `q` のみ(値の上限指定) |
+
 ## 未実装のコマンド
 
 | コマンド | 状態 |
 |---|---|
 | `Include` / `System.Include` / `INCLUDE` | 未実装 |
 | `System.q2Add` / `q2Add` | 未実装 |
-| `l.Random` `l.onTime` `o.onTime` `q.onTime` | 未対応(エラー) |
-| `v` `q` `t` `o` `l` の `.onNoteWave` | 未対応(エラー) ※CC系とピッチベンドでは利用可 |
-| CC系の `.onNoteWaveEx` `.onNoteWaveR` `.onCycle` `.Sine` `.onNoteSine` | 未対応(警告を出して無視) |
+| `v` `q` `t` `o` `l` の `.onNoteWave` `.onNoteWaveEx` `.onNoteWaveR` `.Sine` `.onNoteSine` `.Frequency` | 未対応(エラー) ※CC系とピッチベンドでは利用可 |
 
 ## 自動生成ドキュメント
 

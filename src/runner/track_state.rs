@@ -1,15 +1,27 @@
 //! runner: トラックの演奏パラメータ(音長・オクターブ・音量・ゲート・タイミング)の設定
 use super::*;
 
+/// 音符属性(v/q/t/o/l)の先行指定の状態を取り出す
+fn note_param<'a>(song: &'a mut Song, target: isize) -> &'a mut NoteParam {
+    let trk = &mut song.tracks[song.cur_track];
+    match target {
+        NOTE_PARAM_V => &mut trk.v_opt,
+        NOTE_PARAM_Q => &mut trk.q_opt,
+        NOTE_PARAM_T => &mut trk.t_opt,
+        NOTE_PARAM_O => &mut trk.o_opt,
+        _ => &mut trk.l_opt,
+    }
+}
+
 /// 音長の指定 (l)
 pub(super) fn exec_length(song: &mut Song, t: &Token) {
-    trk!(song).l_on_note = None;
+    trk!(song).l_opt.clear_reserve();
     trk!(song).length = calc_length(&t.data[0].to_s(), song.timebase, song.timebase);
 }
 
 /// オクターブの指定 (o)
 pub(super) fn exec_octave(song: &mut Song, t: &Token) {
-    trk!(song).o_on_note = None;
+    trk!(song).o_opt.clear_reserve();
     trk!(song).octave = value_range(0, t.value_i, 10);
 }
 
@@ -32,22 +44,23 @@ pub(super) fn exec_velocity(song: &mut Song, t: &Token) {
         let velocity = value_range(-127, t.value_i, 127);
         trk!(song).set_v_sub(index, velocity);
     } else {
-        trk!(song).v_on_note = None;
-        trk!(song).v_on_time = None;
-        trk!(song).velocity = value_range(0, t.value_i, 127);
+        trk!(song).v_opt.clear_reserve();
+        let max = trk!(song).v_opt.max_or(127);
+        trk!(song).velocity = value_range(0, t.value_i, max);
     }
 }
 
 /// ベロシティの相対変更 ()( )
 pub(super) fn exec_velocity_rel(song: &mut Song, t: &Token) {
-    trk!(song).velocity = value_range(0, trk!(song).velocity + (song.v_add * t.value_i), 127);
+    let max = trk!(song).v_opt.max_or(127);
+    trk!(song).velocity = value_range(0, trk!(song).velocity + (song.v_add * t.value_i), max);
 }
 
 /// ゲートの指定 (q)
 pub(super) fn exec_qlen(song: &mut Song, t: &Token) {
-    trk!(song).q_on_note = None;
-    trk!(song).qlen = value_range(0, t.value_i, 100);
-    trk!(song).q_on_note = None;
+    trk!(song).q_opt.clear_reserve();
+    let max = trk!(song).q_opt.max_or(100);
+    trk!(song).qlen = value_range(0, t.value_i, max);
 }
 
 /// ゲートの相対変更
@@ -57,90 +70,94 @@ pub(super) fn exec_qlen_rel(song: &mut Song, t: &Token) {
 
 /// 発音タイミングの指定 (t)
 pub(super) fn exec_timing(song: &mut Song, t: &Token) {
-    trk!(song).t_on_note = None;
+    trk!(song).t_opt.clear_reserve();
     trk!(song).timing = t.value_i;
-    trk!(song).t_on_note = None;
 }
 
-/// オクターブのランダム変化
-pub(super) fn exec_octave_random(song: &mut Song, t: &Token) {
-    trk!(song).o_rand = var_extract(&t.data[0], song).to_i();
-}
-
-/// ベロシティのランダム変化
-pub(super) fn exec_velocity_random(song: &mut Song, t: &Token) {
+/// 音符属性のランダム変化 (.Random)
+pub(super) fn exec_note_param_random(song: &mut Song, t: &Token, target: isize) {
     let random = var_extract(&t.data[0], song).to_i();
     let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
-    if index >= 0 {
+    // サブベロシティ (v__n.Random)
+    if target == NOTE_PARAM_V && index >= 0 {
         trk!(song).set_v_sub_random(index as usize, random);
-    } else {
-        trk!(song).v_rand = random;
+        return;
     }
+    note_param(song, target).random = random;
 }
 
-/// タイミングのランダム変化
-pub(super) fn exec_timing_random(song: &mut Song, t: &Token) {
-    trk!(song).t_rand = var_extract(&t.data[0], song).to_i();
-}
-
-/// ゲートのランダム変化
-pub(super) fn exec_qlen_random(song: &mut Song, t: &Token) {
-    trk!(song).q_rand = var_extract(&t.data[0], song).to_i();
-}
-
-/// 時間経過によるベロシティ変化
-pub(super) fn exec_velocity_on_time(song: &mut Song, t: &Token) {
+/// 時間経過による音符属性の変化 (.onTime)
+pub(super) fn exec_note_param_on_time(song: &mut Song, t: &Token, target: isize) {
     let values = t.data[0].to_int_array();
     let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
-    if index >= 0 {
+    if target == NOTE_PARAM_V && index >= 0 {
         trk!(song).set_v_sub_on_time(index as usize, values);
-    } else {
-        trk!(song).v_on_note = None;
-        trk!(song).v_on_time_start = trk!(song).timepos;
-        trk!(song).v_on_time = Some(values);
+        return;
     }
+    let timepos = trk!(song).timepos;
+    note_param(song, target).set_on_time(timepos, values);
 }
 
-/// 音符ごとのベロシティ変化 (is_cycle=trueで繰り返し)
-pub(super) fn exec_velocity_on_note(song: &mut Song, t: &Token, is_cycle: bool) {
+/// 一定時間ごとの音符属性の変化 (.onCycle) --- (ステップ値, 値1, 値2, ...)
+pub(super) fn exec_note_param_on_cycle(song: &mut Song, t: &Token, target: isize) {
     let values = t.data[0].to_int_array();
     let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
-    if index >= 0 {
-        trk!(song).set_v_sub_on_note(index as usize, values, is_cycle);
-    } else {
-        trk!(song).v_on_time = None;
-        trk!(song).v_on_note_index = 0;
-        trk!(song).v_on_note = Some(values);
-        trk!(song).v_on_note_is_cycle = is_cycle;
+    if values.len() < 2 {
+        runtime_error(song, ".onCycle needs (step, v1, v2, ...)");
+        return;
     }
+    if target == NOTE_PARAM_V && index >= 0 {
+        trk!(song).set_v_sub_on_cycle(index as usize, values);
+        return;
+    }
+    let timepos = trk!(song).timepos;
+    note_param(song, target).set_on_cycle(timepos, values);
 }
 
-/// 音符ごとのタイミング変化 (is_cycle=trueで繰り返し)
-pub(super) fn exec_timing_on_note(song: &mut Song, t: &Token, is_cycle: bool) {
-    trk!(song).t_on_note_index = 0;
-    trk!(song).t_on_note = Some(t.data[0].to_int_array());
-    trk!(song).t_on_note_is_cycle = is_cycle;
+/// 音符ごとの音符属性の変化 (.onNote)
+pub(super) fn exec_note_param_on_note(song: &mut Song, t: &Token, target: isize) {
+    let values = t.data[0].to_int_array();
+    let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
+    if target == NOTE_PARAM_V && index >= 0 {
+        trk!(song).set_v_sub_on_note(index as usize, values);
+        return;
+    }
+    note_param(song, target).set_on_note(values);
 }
 
-/// 音符ごとのゲート変化 (is_cycle=trueで繰り返し)
-pub(super) fn exec_qlen_on_note(song: &mut Song, t: &Token, is_cycle: bool) {
-    trk!(song).q_on_note_index = 0;
-    trk!(song).q_on_note = Some(t.data[0].to_int_array());
-    trk!(song).q_on_note_is_cycle = is_cycle;
+/// 音符属性の値の範囲指定 (.Range)
+pub(super) fn exec_note_param_range(song: &mut Song, t: &Token) {
+    let target = t.value_i;
+    let args = t.data[0].to_int_array();
+    if args.len() < 2 {
+        runtime_error(song, ".Range needs (low, high)");
+        return;
+    }
+    note_param(song, target).range = Some((args[0], args[1]));
 }
 
-/// 音符ごとのオクターブ変化 (is_cycle=trueで繰り返し)
-pub(super) fn exec_octave_on_note(song: &mut Song, t: &Token, is_cycle: bool) {
-    trk!(song).o_on_note_index = 0;
-    trk!(song).o_on_note = Some(t.data[0].to_int_array());
-    trk!(song).o_on_note_is_cycle = is_cycle;
+/// 音符属性の先行指定の遅延 (.Delay)
+pub(super) fn exec_note_param_delay(song: &mut Song, t: &Token) {
+    let target = t.value_i;
+    let v = var_extract(&t.data[0], song).to_i();
+    note_param(song, target).delay = v;
 }
 
-/// 音符ごとの音長変化 (is_cycle=trueで繰り返し)
-pub(super) fn exec_length_on_note(song: &mut Song, t: &Token, is_cycle: bool) {
-    trk!(song).l_on_note_index = 0;
-    trk!(song).l_on_note = Some(t.data[0].to_int_array());
-    trk!(song).l_on_note_is_cycle = is_cycle;
+/// 音符属性の .onNote をくり返すかどうか (.Repeat)
+pub(super) fn exec_note_param_repeat(song: &mut Song, t: &Token) {
+    let target = t.value_i;
+    let on = t.data[0].to_i() != 0;
+    let param = note_param(song, target);
+    param.repeat = on;
+    // すでに予約されている .onNote にも反映する
+    param.on_note_is_cycle = on;
+}
+
+/// v/q の値の上限を変更する (.Max)
+pub(super) fn exec_note_param_max(song: &mut Song, t: &Token) {
+    let target = t.value_i;
+    let v = var_extract(&t.data[0], song).to_i();
+    note_param(song, target).max = v;
 }
 
 /// タイ(&)の動作モードの指定

@@ -127,6 +127,37 @@ pub(super) fn read_arg_int_array(cur: &mut SourceCursor, song: &mut Song) -> SVa
     }
 }
 
+/// on/off の指定を読み取る (.Repeat(on) など)
+/// on/off のほか 1/0 などの数値も受け付ける。省略時は on とみなす
+pub(super) fn read_arg_on_off(cur: &mut SourceCursor, song: &mut Song) -> bool {
+    cur.skip_space();
+    if cur.eq_char('=') {
+        cur.next();
+    }
+    let has_paren = cur.eq_char('(');
+    if has_paren {
+        cur.next();
+    }
+    cur.skip_space();
+    let result = match cur.peek_n(0) {
+        'a'..='z' | 'A'..='Z' => {
+            let word = cur.get_word();
+            let word = word.to_lowercase();
+            !(word == "off" || word == "false" || word == "no")
+        }
+        '-' | '0'..='9' | '$' => cur.get_int(0) != 0,
+        _ => {
+            let _ = read_arg_value(cur, song);
+            true
+        }
+    };
+    cur.skip_space();
+    if has_paren && cur.eq_char(')') {
+        cur.next();
+    }
+    result
+}
+
 pub(super) fn read_args_tokens(cur: &mut SourceCursor, song: &mut Song) -> Vec<Token> {
     cur.skip_space();
     let skip_paren = if cur.eq_char('(') {

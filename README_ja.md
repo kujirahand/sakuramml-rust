@@ -172,17 +172,23 @@ v127 c ( c ( c (( c )) c ) c ) c
 
 先行指定が使えます。
 
-- v.onTime(low, high, len, ...)　/ 省略形 v.T(low,high,len,...)
-- v.onNote(v1, v2, v3, ...)　/ 省略形 v.N(v1,v2,v3,...)
-- v__n.onTime/onNote/onCycle(...)　/ 通常のベロシティに加算するレイヤー別先行指定（省略形 T/N/C）
-- v__n.Random(width)　/ レイヤー別のランダム補正（0で解除）
-- t.onNote(v1, v2, v3, ...)　/ 省略形 t.N(v1,v2,v3,...)
-- (ControlChange または PB または p).onTime(low, high, len, ...)
+音符属性(`v` `q` `t` `o` `l`)とCC・ピッチベンドで、次の先行指定が使えます。
+
+- .onNote(v1, v2, ...)　/ 省略形 .N(...)　音符ごとに値を切り替える
+- .onTime(low, high, len, ...)　/ 省略形 .T(...)　時間経過に沿って値を推移させる
+- .onCycle(step, v1, v2, ...)　/ 省略形 .C(...)　stepステップごとに値を切り替える
+- .Random(n) / .Range(low, high) / .Delay(n) / .Repeat(on/off)
+- v.Max(n) / q.Max(n)　値の上限を変更する（先行指定ではなく範囲の指定）
+- CC・PB専用: .onNoteWave / .onNoteWaveEx / .onNoteWaveR / .Sine / .onNoteSine / .Frequency
+  （.Frequency は書き込み間隔の指定。CCとピッチベンドで別々に設定できます）
+- v__n.onTime/onNote/onCycle/Random(...)　通常のベロシティに加算するレイヤー別先行指定
 
 ```mml
 v.onTime(0,127,!1)l8cccccccc
-v70 v__1.onCycle(10,-10) cdef // ベロシティは80,60,80,60
+v70 v__1.onCycle(!4,10,-10) cdef // ベロシティは80,60,80,60
+t.onCycle(!16,0,8) l16 cccc cccc // 16分音符ごとにハーフシャッフル
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
+M.onNoteWaveEx(0,0,!4,0,96,!8) l4 cdef // 音符の長さに合わせたビブラート
 ```
 
 `v__n(value)`（nは0以上）は、通常のベロシティへ加算する独立した補正レイヤーです。

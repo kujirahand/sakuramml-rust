@@ -148,12 +148,12 @@ fn init_items() -> SutotonList {
     items.set_item("方向前", "P(64)"); // @ ステレオの前から音が出るようにする
     items.set_item("方向右前", "P(96)"); // @ ステレオの右前から音が出るようにする
     items.set_item("方向右", "P(127)"); // @ ステレオの右から音が出るようにする
-    items.set_item("方向回す", "P.onNoteWaveEx(0,127,!1,127,0,!1);"); // @ ステレオの左右を回す ※onNoteWaveEx未対応のため現在は動作しない
+    items.set_item("方向回す", "P.onNoteWaveEx(0,127,!1,127,0,!1);"); // @ ステレオの左右を回す
     items.set_item("ビブラートオフ", "M(0)"); // @ ビブラートをやめる
     items.set_item("ペダル", "y64,127;"); // @ ペダルを踏む
     items.set_item("放す", "y64,0;"); // @ ペダルを放す
     items.set_item("テンポ改", "TempoChange="); // @ テンポ改(開始テンポ),(終了テンポ),(長さ)//テンポを推移的に変更する。長さはステップ数。省略すると全音符の間に推移する。（例）テンポ改80,120,384
-    items.set_item("ビブラート", "M.onNoteWaveEx(0,0,!4,0,96,!8);"); // @ 推移的なビブラートをかける ※onNoteWaveEx未対応のため現在は動作しない
+    items.set_item("ビブラート", "M.onNoteWaveEx(0,0,!4,0,96,!8);"); // @ 推移的なビブラートをかける
     items.set_item("ここから演奏", "PlayFrom(Time);"); // @ 途中から演奏したいときに書く
     // </SUTOTON>
     items.sort_items();
