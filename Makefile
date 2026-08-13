@@ -6,7 +6,7 @@ TARGET_ZIP = ./mac-sakuramml-bin.zip
 SCRIPT_DIR = $(PWD)
 
 # Default target
-.PHONY: all build bin wasm doc clean help
+.PHONY: all build bin wasm doc doc-check clean help
 
 all: build
 
@@ -35,8 +35,12 @@ wasm:
 # Build documentation
 doc:
 	@echo "--- build doc ---"
-	cd $(SCRIPT_DIR)/src && cnako3 batch_extract_command.nako3
+	python3 $(SCRIPT_DIR)/scripts/extract_command.py
 	@echo "Documentation build completed"
+
+# Verify generated documentation
+doc-check:
+	python3 $(SCRIPT_DIR)/scripts/extract_command.py --check
 
 # Clean build artifacts
 clean:
@@ -51,6 +55,7 @@ debug:
 
 # Run tests
 test:
+	python3 -m unittest discover -s tests -p 'test_*.py'
 	cargo test
 
 # Format code
@@ -61,9 +66,10 @@ fmt:
 clippy:
 	cargo clippy
 
-# Install dependencies (requires cnako3)
+# Install dependencies (requires Python 3 and cnako3 for WASM builds)
 deps:
-	@echo "Please ensure cnako3 is installed for WASM and doc builds"
+	@echo "Please ensure Python 3 is installed for doc builds"
+	@echo "Please ensure cnako3 is installed for WASM builds"
 
 # Help
 help:
@@ -73,6 +79,7 @@ help:
 	@echo "  bin       - Build binary distribution package"
 	@echo "  wasm      - Build WebAssembly version"
 	@echo "  doc       - Build documentation"
+	@echo "  doc-check - Verify generated documentation"
 	@echo "  debug     - Build debug version"
 	@echo "  test      - Run tests"
 	@echo "  fmt       - Format code with cargo fmt"
