@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use sakuramml::song::SAKURA_DEFAULT_MAX_EVENT_BYTES;
+
 struct TestDir(PathBuf);
 
 impl TestDir {
@@ -39,6 +41,10 @@ fn help_and_version_succeed() {
     assert!(help.status.success());
     let help_stdout = String::from_utf8_lossy(&help.stdout);
     assert!(help_stdout.contains("USAGE:"));
+    assert!(help_stdout.contains(&format!(
+        "--max-event-bytes N  Set MIDI event data limit (default: {})",
+        SAKURA_DEFAULT_MAX_EVENT_BYTES,
+    )));
     if option_env!("BUILD_NUMBER").unwrap_or("").trim().is_empty() {
         assert!(!help_stdout.contains("(build:"));
     }
@@ -153,4 +159,28 @@ fn eval_without_source_reports_an_error() {
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("requires MML text"));
     assert!(!dir.0.join("eval.mid").exists());
+}
+
+#[test]
+fn max_event_bytes_stops_compilation_and_writes_a_partial_file() {
+    let dir = TestDir::new("event-limit");
+    let output = run(
+        &["--max-event-bytes", "64", "--eval", "[1000000 y1,64]"],
+        &dir,
+    );
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr)
+        .contains("MIDI event data exceeds max_event_bytes (64)"));
+    assert!(fs::read(dir.0.join("eval.mid")).unwrap().starts_with(b"MThd"));
+}
+
+#[test]
+fn max_event_bytes_accepts_a_custom_cli_limit() {
+    let dir = TestDir::new("event-limit-custom");
+    let output = run(
+        &["--max-event-bytes", "16", "--eval", "y1,64 y2,64"],
+        &dir,
+    );
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(fs::read(dir.0.join("eval.mid")).unwrap().starts_with(b"MThd"));
 }

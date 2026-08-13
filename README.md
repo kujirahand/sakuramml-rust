@@ -50,6 +50,17 @@ To convert `test.mml` to `test.mid`, run the following command from the command 
 $ sakuramml test.mml
 ```
 
+For safety, generated MIDI event data is limited to 3 MiB by default. The command-line
+edition can change this limit when compiling trusted MML:
+
+```sh
+$ sakuramml --max-event-bytes 10485760 test.mml
+```
+
+The WebAssembly limit is fixed at 3 MiB. See the
+[MIDI event data limit](docs/event-limit.md) for details.
+When the limit is exceeded, the compiler records an error and returns the partial MIDI generated up to that point.
+
 ### Basic Usage
 
 ```mml

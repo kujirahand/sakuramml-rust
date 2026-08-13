@@ -28,6 +28,26 @@ pub struct Event {
 }
 
 impl Event {
+    /// MIDIへ書き出す際に必要となるバイト数を保守的に見積もる。
+    ///
+    /// デルタタイムなどの可変長部分には余裕を持たせる。NoteOnは
+    /// `normalize` でNoteOffも生成されるため、2イベント分を数える。
+    pub fn estimated_midi_bytes(&self) -> usize {
+        const EVENT_OVERHEAD: usize = 8;
+        match self.etype {
+            EventType::NoteOn => EVENT_OVERHEAD * 2,
+            EventType::PitchBendRange => EVENT_OVERHEAD * 2,
+            EventType::NoteOff | EventType::ControllChange | EventType::PitchBend |
+            EventType::Voice => EVENT_OVERHEAD,
+            EventType::Meta | EventType::SysEx => {
+                12usize.saturating_add(self.data.as_ref().map_or(0, Vec::len))
+            },
+            EventType::DirectSMF => {
+                EVENT_OVERHEAD.saturating_add(self.data.as_ref().map_or(0, Vec::len))
+            },
+        }
+    }
+
     pub fn note(time: isize, channel: isize, note_no: isize, len: isize, vel: isize) -> Self {
         Self { etype: EventType::NoteOn, time, channel, v1: note_no, v2: len, v3: vel, data: None }
     }

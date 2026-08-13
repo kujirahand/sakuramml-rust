@@ -6,7 +6,7 @@ use std::io::{Write, Read};
 use sakuramml::get_build_number;
 use sakuramml::sakura_version::SAKURA_VERSION;
 use sakuramml::lexer::lex;
-use sakuramml::song::{Song, SAKURA_DEFAULT_RANDOM_SEED};
+use sakuramml::song::{Song, SAKURA_DEFAULT_RANDOM_SEED, SAKURA_DEFAULT_MAX_EVENT_BYTES};
 use sakuramml::midi::{generate, dump_midi};
 use sakuramml::runner::exec;
 
@@ -40,7 +40,7 @@ fn version_label() -> String {
 
 /// show usage
 fn usage() {
-    println!("=== sakuramml {} ===\n{}{}{}{}{}{}{}{}",
+    println!("=== sakuramml {} ===\n{}{}{}{}{}{}{}{}{}",
         version_label(),
         "USAGE:\n",
         "  sakuramml (mmlfile) (midifile)\n",
@@ -49,7 +49,11 @@ fn usage() {
         "  -e, --eval     Compile (MML)\n",
         "  -h, --help     Show help\n",
         "  -v, --version  Show version\n",
-        "  -m, --dump,    Dump midi file\n",
+        "  -m, --dump     Dump midi file\n",
+        format!(
+            "      --max-event-bytes N  Set MIDI event data limit (default: {})\n",
+            SAKURA_DEFAULT_MAX_EVENT_BYTES,
+        ),
     );
 }
 
@@ -81,6 +85,7 @@ fn main() {
     let mut eval_mml = String::new();
     let mut mode = String::from("mml2mid");
     let mut debug = false;
+    let mut max_event_bytes = SAKURA_DEFAULT_MAX_EVENT_BYTES;
     let mut i = 1;
     while i < args.len() {
         let arg = &args[i];
@@ -106,6 +111,20 @@ fn main() {
         }
         else if arg == "--dump" || arg == "dump" || arg == "-m" {
             mode = String::from("dump");
+        }
+        else if arg == "--max-event-bytes" {
+            i += 1;
+            if i >= args.len() {
+                eprintln!("[ERROR](0): --max-event-bytes requires a non-negative integer");
+                std::process::exit(1);
+            }
+            max_event_bytes = match args[i].parse::<usize>() {
+                Ok(value) => value,
+                Err(_) => {
+                    eprintln!("[ERROR](0): invalid --max-event-bytes value: {}", args[i]);
+                    std::process::exit(1);
+                }
+            };
         }
         else if filename == "" {
             filename = arg.clone();
@@ -153,11 +172,14 @@ fn main() {
         };
     }
     // --- compile mml to midi ---
-    compile_to_midi(&src, &outfile, debug);
+    if !compile_to_midi(&src, &outfile, debug, max_event_bytes) {
+        std::process::exit(1);
+    }
 }
 
-fn compile_to_midi(src: &str, midifile: &str, debug: bool) {
+fn compile_to_midi(src: &str, midifile: &str, debug: bool, max_event_bytes: usize) -> bool {
     let mut song = Song::new();
+    song.set_max_event_bytes(max_event_bytes);
     song.debug = debug;
     song.rand_seed = SAKURA_DEFAULT_RANDOM_SEED ^ (time_to_u64() ^ thread_id_to_u64()) as u32;
     // sutoton
@@ -171,9 +193,15 @@ fn compile_to_midi(src: &str, midifile: &str, debug: bool) {
     }
     // println!("lex= {:?}", tokens);
     exec(&mut song, &tokens);
+    if song.event_limit_exceeded() {
+        save_to_file(&mut song, &midifile);
+        eprintln!("{}", song.get_logs_str().trim());
+        return false;
+    }
     // println!("song= {:?}", song);
     save_to_file(&mut song, &midifile);
     println!("{}\nok.", song.get_logs_str().trim());
+    true
 }
 
 /// save song to file
@@ -190,6 +218,7 @@ fn save_to_file(song: &mut Song, path: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     /// mml -> midi -> dump
     fn mml_dump(mml: &str) -> String {
@@ -200,6 +229,25 @@ mod tests {
         let buf = generate(&mut song);
         // midi to dump
         dump_midi(&buf, true)
+    }
+
+    #[test]
+    fn event_limit_failure_creates_a_partial_midi_file() {
+        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "sakuramml-event-limit-{}-{}.mid",
+            std::process::id(),
+            unique,
+        ));
+        let ok = compile_to_midi(
+            "[1000000 y1,64]",
+            path.to_str().unwrap(),
+            false,
+            64,
+        );
+        assert!(!ok);
+        assert!(fs::read(&path).unwrap().starts_with(b"MThd"));
+        fs::remove_file(path).unwrap();
     }
 
     #[test]

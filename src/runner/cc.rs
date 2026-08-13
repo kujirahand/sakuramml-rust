@@ -7,14 +7,25 @@ pub(super) fn with_write_ctx<F>(song: &mut Song, f: F)
 where
     F: FnOnce(&mut Track, &mut WriteCtx),
 {
+    if song.event_limit_exceeded() { return; }
     let timebase = song.timebase;
     let mut seed = song.rand_seed;
-    {
-        let mut ctx = WriteCtx { timebase, rand_seed: &mut seed };
+    let max_event_bytes = song.max_event_bytes();
+    let event_bytes = song.event_bytes();
+    let (result_event_bytes, event_limit_exceeded) = {
+        let mut ctx = WriteCtx {
+            timebase,
+            rand_seed: &mut seed,
+            max_event_bytes,
+            event_bytes,
+            event_limit_exceeded: false,
+        };
         let trk = &mut song.tracks[song.cur_track];
         f(trk, &mut ctx);
-    }
+        (ctx.event_bytes, ctx.event_limit_exceeded)
+    };
     song.rand_seed = seed;
+    song.update_event_budget(result_event_bytes, event_limit_exceeded);
 }
 
 /// トークンの value_i から書き込み先を求める
@@ -34,9 +45,9 @@ pub(super) fn exec_cc_rpn_nrpn(song: &mut Song, t: &Token, cc1: isize, cc2: isiz
     if cc1 == 101 && cc2 == 100 && msb == 0 && lsb == 0 {
         trk!(song).bend_range = val;
     }
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb));
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb));
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val)); 
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb)) { return; }
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb)) { return; }
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val));
 }
 
 pub(super) fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc2: isize, cc3: isize) {
@@ -48,9 +59,9 @@ pub(super) fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc
     let msb = args[0].to_i();
     let lsb = args[1].to_i();
     let val = args[2].to_i();
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb));
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb));
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val)); 
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb)) { return; }
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb)) { return; }
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val));
 }
 
 pub(super) fn tempo_change_a_to_b(song: &mut Song, a: isize, b: isize, len: isize) {
@@ -61,6 +72,10 @@ pub(super) fn tempo_change_a_to_b(song: &mut Song, a: isize, b: isize, len: isiz
     for i in 0..step_cnt {
         let v = (a as f32) + (width as f32) * (i as f32 / step_cnt as f32);
         tempo_change(song, v as isize);
+        if song.event_limit_exceeded() {
+            trk!(song).timepos = timepos;
+            return;
+        }
         trk!(song).timepos += step;
     }
     trk!(song).timepos = timepos + len;
@@ -103,8 +118,8 @@ pub(super) fn exec_voice(song: &mut Song, t: &Token) {
     if args.len() == 1 {
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
     } else {
-        song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x00, bank_msb)); // msb
-        song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x20, bank_lsb)); // lsb
+        if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x00, bank_msb)) { return; } // msb
+        if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x20, bank_lsb)) { return; } // lsb
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
         // println!("voice: no={}, bank_msb={}, bank_lsb={}", no, bank_msb, bank_lsb);
     }

@@ -117,6 +117,23 @@ pub(super) fn write_on_note_events(song: &mut Song, start_pos: isize) {
     });
 }
 
+/// イベント上限で音符を書き込めない場合も、演奏位置と一時状態を確定する。
+/// すでに予算を確保済みの和音・タイ音符は、途中までのMIDIとして保持する。
+fn finish_note_after_event_limit(song: &mut Song, notelen: isize) {
+    trk!(song).timepos = trk!(song).timepos.saturating_add(notelen);
+    if song.flags.octave_once != 0 {
+        trk!(song).octave = trk!(song).octave.saturating_sub(song.flags.octave_once);
+        song.flags.octave_once = 0;
+    }
+
+    song.flags.harmony_flag = false;
+    let mut pending = std::mem::take(&mut song.flags.harmony_events);
+    pending.append(&mut std::mem::take(&mut trk!(song).tie_notes));
+    for event in pending {
+        song.add_reserved_event(event);
+    }
+}
+
 pub(super) fn exec_note(song: &mut Song, t: &Token) {
     // get note parameters
     let mut note = get_note_info_from_token(t);
@@ -163,13 +180,17 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     // check range
     let v = value_range(0, v, trk!(song).v_opt.max_or(127));
     // event
-    let event = Event::note(timepos + t, trk!(song).channel, note.no, notelen_real, v);
+    let event = Event::note(timepos.saturating_add(t), trk!(song).channel, note.no, notelen_real, v);
+    if !song.reserve_event(&event) {
+        finish_note_after_event_limit(song, notelen);
+        return;
+    }
     // println!("- {}: note(no={},len={},qlen={},v={},t={},o={})", trk.timepos, noteno, notelen_real, qlen, v, t, o);
-    trk!(song).timepos += notelen;
+    trk!(song).timepos = trk!(song).timepos.saturating_add(notelen);
 
     // octave_once?
     if song.flags.octave_once != 0 {
-        trk!(song).octave = trk!(song).octave - song.flags.octave_once;
+        trk!(song).octave = trk!(song).octave.saturating_sub(song.flags.octave_once);
         song.flags.octave_once = 0;
     }
 
@@ -197,7 +218,7 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     // onNote / onNoteWave event
     write_on_note_events(song, start_pos);
     // write note event
-    trk!(song).events.push(event);
+    song.add_reserved_event(event);
     // 音符の中にある .onCycle の書き込みを確定する
     flush_cc_on_cycle(song);
 }
@@ -249,18 +270,22 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     // range
     let v = value_range(0, v, trk!(song).v_opt.max_or(127));
     let event = Event::note(
-        trk!(song).timepos + t,
+        trk!(song).timepos.saturating_add(t),
         trk!(song).channel,
         data_note_no + track_key + key_shift,
         notelen_real,
         v,
     );
+    if !song.reserve_event(&event) {
+        finish_note_after_event_limit(song, notelen);
+        return;
+    }
     // println!("- {}: note(no={},len={},qlen={},v={},t={})", trk!(song).timepos, notelen_real, notelen, qlen, v, t);
     // onNote / onNoteWave event
     write_on_note_events(song, start_pos);
     // write event
-    trk!(song).events.push(event);
-    trk!(song).timepos += notelen;
+    song.add_reserved_event(event);
+    trk!(song).timepos = trk!(song).timepos.saturating_add(notelen);
     // 音符の中にある .onCycle の書き込みを確定する
     flush_cc_on_cycle(song);
 }
@@ -269,7 +294,7 @@ pub(super) fn exec_rest(song: &mut Song, t: &Token) {
     let trk = &mut song.tracks[song.cur_track];
     let data_note_len = t.data[0].to_s();
     let notelen = calc_length(&data_note_len, song.timebase, trk.length);
-    trk.timepos += notelen * t.value_i;
+    trk.timepos = trk.timepos.saturating_add(notelen.saturating_mul(t.value_i));
     // 休符の間にある .onCycle の書き込みを確定する
     flush_cc_on_cycle(song);
 }

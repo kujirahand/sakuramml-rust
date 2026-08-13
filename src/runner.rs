@@ -102,6 +102,7 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
     let mut pos = 0;
     let mut loop_stack: Vec<LoopItem> = vec![];
     while pos < tokens.len() {
+        if song.event_limit_exceeded() { break; }
         if song.flags.break_flag != 0 { break; }
         let t = &tokens[pos];
         if song.debug {
