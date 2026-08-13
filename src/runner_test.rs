@@ -441,6 +441,13 @@ mod test_for_runner {
         // 計算式の中でも使える / 変数に入れたMMLも使える
         let song = exec_easy("STR MMLA={o5e} PRINT(NoteNo(MMLA)) PRINT(NoteNo(o5c) + 1)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 64\n[PRINT](0) 61");
+        // NoteNo内のo/nも、通常のRunnerと同じく変数を実行時に解決する
+        let song = exec_easy(
+            "Int OCT=5; Int NOTE=61; \
+             PRINT(NoteNo({o(OCT)c})) PRINT(NoteNo({n(NOTE)})) \
+             PRINT(NoteNo({o(OCT)n(NOTE)}))",
+        );
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 60\n[PRINT](0) 61\n[PRINT](0) 61");
     }
     #[test]
     fn test_add_len() {

@@ -41,7 +41,7 @@ macro_rules! trk {
 
 mod cc;
 mod control;
-mod function;
+pub(crate) mod function;
 mod meta;
 pub(crate) mod note;
 mod structure;

@@ -184,7 +184,7 @@ pub(super) fn get_system_value(cmd: &str, song: &Song) -> Option<SValue> {
     None
 }
 
-pub(super) fn var_extract(val: &SValue, song: &mut Song) -> SValue {
+pub(crate) fn var_extract(val: &SValue, song: &mut Song) -> SValue {
     match val {
         // String
         SValue::Str(s, _) => {
