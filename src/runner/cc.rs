@@ -240,7 +240,7 @@ pub(super) fn exec_tempo_change(song: &mut Song, t: &Token) {
 /// 時間経過によるCCの変化
 pub(super) fn exec_cc_on_time(song: &mut Song, t: &Token) {
     let no = t.value_i;
-    let ia = var_extract(&t.data[0], song).to_int_array();
+    let ia = exec_int_args(song, t);
     trk!(song).remove_cc_on(no);
     with_write_ctx(song, |trk, ctx| trk.write_cc_on_time(no, ia, ctx));
 }
@@ -248,14 +248,14 @@ pub(super) fn exec_cc_on_time(song: &mut Song, t: &Token) {
 /// 音符ごとのCCの変化
 pub(super) fn exec_cc_on_note(song: &mut Song, t: &Token) {
     let no = t.value_i;
-    let ia = var_extract(&t.data[0], song).to_int_array();
+    let ia = exec_int_args(song, t);
     trk!(song).set_cc_on_note(no, ia);
 }
 
 /// 音符ごとのCCの波形変化
 pub(super) fn exec_cc_on_note_wave(song: &mut Song, t: &Token) {
     let no = t.value_i;
-    let ia = var_extract(&t.data[0], song).to_int_array();
+    let ia = exec_int_args(song, t);
     trk!(song).set_cc_on_note_wave(no, ia);
 }
 
@@ -273,34 +273,34 @@ pub(super) fn exec_cc_on_time_freq(song: &mut Song, t: &Token) {
 pub(super) fn exec_pb_on_time(song: &mut Song, t: &Token) {
     trk!(song).remove_pb_on_note_wave();
     let is_big = t.value_i;
-    let ia = var_extract(&t.data[0], song).to_int_array();
+    let ia = exec_int_args(song, t);
     with_write_ctx(song, |trk, ctx| trk.write_pb_on_time(is_big, ia, ctx));
 }
 
 /// 音符ごとのピッチベンドの波形変化
 pub(super) fn exec_pb_on_note_wave(song: &mut Song, t: &Token) {
-    let values = var_extract(&t.data[0], song).to_int_array();
+    let values = exec_int_args(song, t);
     trk!(song).set_pb_on_note_wave(t.value_i, values);
 }
 
 /// 音符ごとのピッチベンドの変化 (PB.onNote/p.onNote)
 pub(super) fn exec_pb_on_note(song: &mut Song, t: &Token) {
     let target = WriteTarget::PitchBend(t.value_i);
-    let ia = var_extract(&t.data[0], song).to_int_array();
+    let ia = exec_int_args(song, t);
     trk!(song).set_on_note(target, ia);
 }
 
 /// 音符ごとの波形変化 --- 音符の長さに合わせて伸縮する (.onNoteWaveEx)
 pub(super) fn exec_cc_on_note_wave_ex(song: &mut Song, t: &Token) {
     let target = write_target_from_value(t.value_i);
-    let ia = var_extract(&t.data[0], song).to_int_array();
+    let ia = exec_int_args(song, t);
     trk!(song).set_on_note_wave(target, ia, WaveMode::Expand);
 }
 
 /// 音符ごとの波形変化 --- 音符が鳴っている間くり返す (.onNoteWaveR)
 pub(super) fn exec_cc_on_note_wave_r(song: &mut Song, t: &Token) {
     let target = write_target_from_value(t.value_i);
-    let ia = var_extract(&t.data[0], song).to_int_array();
+    let ia = exec_int_args(song, t);
     trk!(song).set_on_note_wave(target, ia, WaveMode::Repeat);
 }
 
@@ -320,7 +320,7 @@ pub(super) fn flush_cc_on_cycle(song: &mut Song) {
 /// 一定時間ごとの値の先行指定 (.onCycle)
 pub(super) fn exec_cc_on_cycle(song: &mut Song, t: &Token) {
     let target = write_target_from_value(t.value_i);
-    let args = var_extract(&t.data[0], song).to_int_array();
+    let args = exec_int_args(song, t);
     if args.len() < 2 {
         runtime_error(song, ".onCycle needs (step, v1, v2, ...)");
         return;
@@ -333,7 +333,7 @@ pub(super) fn exec_cc_on_cycle(song: &mut Song, t: &Token) {
 /// .Sine / .onNoteSine の引数を読み取る (type, low, high, len, times)
 fn get_sine_args(song: &mut Song, t: &Token) -> Option<OnNoteSine> {
     let target = write_target_from_value(t.value_i);
-    let args = var_extract(&t.data[0], song).to_int_array();
+    let args = exec_int_args(song, t);
     if args.len() < 4 {
         runtime_error(song, ".Sine needs (type, low, high, len [,times])");
         return None;
@@ -394,7 +394,7 @@ pub(super) fn exec_cc_random(song: &mut Song, t: &Token) {
 /// 書き込む値の下限と上限を設定する (.Range)
 pub(super) fn exec_cc_range(song: &mut Song, t: &Token) {
     let target = write_target_from_value(t.value_i);
-    let args = var_extract(&t.data[0], song).to_int_array();
+    let args = exec_int_args(song, t);
     if args.len() < 2 {
         runtime_error(song, ".Range needs (low, high)");
         return;

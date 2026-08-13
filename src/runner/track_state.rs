@@ -107,8 +107,8 @@ pub(super) fn exec_note_param_random(song: &mut Song, t: &Token, target: isize) 
 
 /// 時間経過による音符属性の変化 (.onTime)
 pub(super) fn exec_note_param_on_time(song: &mut Song, t: &Token, target: isize) {
-    let values = var_extract(&t.data[0], song).to_int_array();
-    let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
+    let values = exec_int_args(song, t);
+    let index = t.data.first().map(|value| value.to_i()).unwrap_or(-1);
     if target == NOTE_PARAM_V && index >= 0 {
         trk!(song).set_v_sub_on_time(index as usize, values);
         return;
@@ -119,8 +119,8 @@ pub(super) fn exec_note_param_on_time(song: &mut Song, t: &Token, target: isize)
 
 /// 一定時間ごとの音符属性の変化 (.onCycle) --- (ステップ値, 値1, 値2, ...)
 pub(super) fn exec_note_param_on_cycle(song: &mut Song, t: &Token, target: isize) {
-    let values = var_extract(&t.data[0], song).to_int_array();
-    let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
+    let values = exec_int_args(song, t);
+    let index = t.data.first().map(|value| value.to_i()).unwrap_or(-1);
     if values.len() < 2 {
         runtime_error(song, ".onCycle needs (step, v1, v2, ...)");
         return;
@@ -135,8 +135,8 @@ pub(super) fn exec_note_param_on_cycle(song: &mut Song, t: &Token, target: isize
 
 /// 音符ごとの音符属性の変化 (.onNote)
 pub(super) fn exec_note_param_on_note(song: &mut Song, t: &Token, target: isize) {
-    let values = var_extract(&t.data[0], song).to_int_array();
-    let index = t.data.get(1).map(|value| value.to_i()).unwrap_or(-1);
+    let values = exec_int_args(song, t);
+    let index = t.data.first().map(|value| value.to_i()).unwrap_or(-1);
     if target == NOTE_PARAM_V && index >= 0 {
         trk!(song).set_v_sub_on_note(index as usize, values);
         return;
@@ -147,7 +147,7 @@ pub(super) fn exec_note_param_on_note(song: &mut Song, t: &Token, target: isize)
 /// 音符属性の値の範囲指定 (.Range)
 pub(super) fn exec_note_param_range(song: &mut Song, t: &Token) {
     let target = t.value_i;
-    let args = var_extract(&t.data[0], song).to_int_array();
+    let args = exec_int_args(song, t);
     if args.len() < 2 {
         runtime_error(song, ".Range needs (low, high)");
         return;

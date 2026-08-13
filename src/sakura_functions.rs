@@ -199,6 +199,31 @@ pub fn calc_mml(song: &mut Song, args: Vec<SValue>) -> SValue {
         let v = song.tracks[song.cur_track].port;
         return SValue::from_i(v);
     }
+    if let Some(cc_no) = sa
+        .strip_prefix('y')
+        .and_then(|no| no.parse::<isize>().ok())
+        .filter(|no| (0..=127).contains(no))
+    {
+        let channel = song.tracks[song.cur_track].channel;
+        let current = song
+            .tracks
+            .iter()
+            .flat_map(|track| track.events.iter())
+            .filter(|event| {
+                event.etype == crate::song::EventType::ControllChange
+                    && event.channel == channel
+                    && event.v1 == cc_no
+            })
+            .last()
+            .map(|event| event.v2);
+        let default = match cc_no {
+            7 => 100,
+            10 => 64,
+            11 => 127,
+            _ => 0,
+        };
+        return SValue::from_i(current.unwrap_or(default));
+    }
     SValue::from_i(0)
 }
 

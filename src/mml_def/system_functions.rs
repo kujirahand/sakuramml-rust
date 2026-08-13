@@ -293,7 +293,7 @@ pub fn init_system_calc_functions() -> HashMap<String, sakura_functions::Callbac
     syscalc_add!(sf, "ARRAYFLATTEN", sakura_functions::calc_array_flatten); // ARRAYFLATTEN(A) // flatten nested arrays
     syscalc_add!(sf, "StrLen", sakura_functions::calc_strlen); // StrLen(S) // return length of S (ex) StrLen({abc}) // => 3
     syscalc_add!(sf, "STRLEN", sakura_functions::calc_strlen); // STRLEN(S) // return length of S (ex) STRLEN({abc}) // => 3
-    syscalc_add!(sf, "MML", sakura_functions::calc_mml); // MML(C) // return C(o/v/q/t/@/BR) value (ex) MML({o})
+    syscalc_add!(sf, "MML", sakura_functions::calc_mml); // MML(C) // return C(o/v/q/t/@/BR/yN) value (ex) MML({o})
     syscalc_add!(sf, "NoteNo", sakura_functions::calc_noteno); // NoteNo(MML) // return note no of the note written in MML (ex) NoteNo(o5e) // => 64
     syscalc_add!(sf, "NOTENO", sakura_functions::calc_noteno); // NOTENO(MML) // return note no of the note written in MML (ex) NOTENO(o5e) // => 64
     syscalc_add!(sf, "Hex", sakura_functions::calc_hex); // Hex(V) // return Hex value (ex) Hex(255) // => FF

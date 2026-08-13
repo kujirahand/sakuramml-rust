@@ -1395,3 +1395,94 @@ mod test_issue_129 {
         assert_eq!(qlens[1], 59);
     }
 }
+
+mod test_issue_128 {
+    use super::*;
+    use crate::song::EventType;
+
+    #[test]
+    fn test_rrs_sample_accepts_nested_mml_call() {
+        let song = exec_easy(
+            "Function RRS(Len){
+                Int Now_Vol=MML(y7)
+                If(Len==0){Len=!32}
+                r-%(Len)
+                V.T(MML(y7),40,Len)
+                r%(Len)
+                V(Now_Vol)
+            }
+            V(90)
+            RRS(!4)",
+        );
+        assert_eq!(song.get_logs_str(), "");
+        let values: Vec<isize> = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::ControllChange && event.v1 == 7)
+            .map(|event| event.v2)
+            .collect();
+        assert!(values.iter().any(|value| *value < 90), "{values:?}");
+        assert_eq!(values.last(), Some(&90));
+    }
+
+    #[test]
+    fn test_reserve_arguments_accept_functions_and_expressions() {
+        let song = exec_easy(
+            "TimeBase=96
+            V(90)
+            V.T(MML(y7)+10,20*2,!4)
+            Function CurrentPan(){RETURN(80)}
+            Panpot.onTime(CurrentPan(),127,!4)
+            Function StartPB(){RETURN(-4096)}
+            PB.T(StartPB(),0,!4)
+            Function BaseVel(){RETURN(20)}
+            v.onTime(BaseVel()+10,90-10,!4)
+            l4c",
+        );
+        assert_eq!(song.get_logs_str(), "");
+        let volume = song.tracks[0]
+            .events
+            .iter()
+            .find(|event| event.etype == EventType::ControllChange && event.v1 == 7)
+            .map(|event| event.v2);
+        let panpot = song.tracks[0]
+            .events
+            .iter()
+            .find(|event| event.etype == EventType::ControllChange && event.v1 == 10)
+            .map(|event| event.v2);
+        let pitch_bend = song.tracks[0]
+            .events
+            .iter()
+            .find(|event| event.etype == EventType::PitchBend)
+            .map(|event| event.v1);
+        let velocity = song.tracks[0]
+            .events
+            .iter()
+            .find(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v3);
+        assert_eq!(volume, Some(100));
+        assert_eq!(panpot, Some(80));
+        assert_eq!(pitch_bend, Some(4096));
+        assert_eq!(velocity, Some(30));
+
+        // 従来のイコール形式でも計算式を利用できる
+        let song = exec_easy("TimeBase=96 M.T=10+10,40,!4");
+        let modulation = song.tracks[0]
+            .events
+            .iter()
+            .find(|event| event.etype == EventType::ControllChange && event.v1 == 1)
+            .map(|event| event.v2);
+        assert_eq!(modulation, Some(20));
+    }
+
+    #[test]
+    fn test_reserve_arguments_report_missing_parenthesis() {
+        let song = exec_easy("V.T(MML(y7),40,!4");
+        assert!(
+            song.get_logs_str().contains("Missing Parenthesis")
+                || song.get_logs_str().contains("括弧が閉じられていません"),
+            "{}",
+            song.get_logs_str()
+        );
+    }
+}
