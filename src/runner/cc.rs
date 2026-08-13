@@ -45,9 +45,9 @@ pub(super) fn exec_cc_rpn_nrpn(song: &mut Song, t: &Token, cc1: isize, cc2: isiz
     if cc1 == 101 && cc2 == 100 && msb == 0 && lsb == 0 {
         trk!(song).bend_range = val;
     }
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb));
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb));
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val)); 
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb)) { return; }
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb)) { return; }
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val));
 }
 
 pub(super) fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc2: isize, cc3: isize) {
@@ -59,9 +59,9 @@ pub(super) fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc
     let msb = args[0].to_i();
     let lsb = args[1].to_i();
     let val = args[2].to_i();
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb));
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb));
-    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val)); 
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb)) { return; }
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb)) { return; }
+    song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val));
 }
 
 pub(super) fn tempo_change_a_to_b(song: &mut Song, a: isize, b: isize, len: isize) {
@@ -118,8 +118,8 @@ pub(super) fn exec_voice(song: &mut Song, t: &Token) {
     if args.len() == 1 {
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
     } else {
-        song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x00, bank_msb)); // msb
-        song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x20, bank_lsb)); // lsb
+        if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x00, bank_msb)) { return; } // msb
+        if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x20, bank_lsb)) { return; } // lsb
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
         // println!("voice: no={}, bank_msb={}, bank_lsb={}", no, bank_msb, bank_lsb);
     }

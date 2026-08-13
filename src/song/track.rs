@@ -132,6 +132,13 @@ impl<'a> WriteCtx<'a> {
     fn remaining_event_capacity(&self) -> usize {
         self.max_event_bytes.saturating_sub(self.event_bytes) / 8
     }
+    /// イベント予算から、連続書き込みで走査してよい最大ステップ数を求める。
+    /// 1イベント分余計に走査し、上限超過を検出できるようにする。
+    fn safe_iteration_limit(&self) -> isize {
+        self.remaining_event_capacity()
+            .saturating_add(1)
+            .min(isize::MAX as usize) as isize
+    }
 }
 
 /// 音符ごとの値の先行指定 (.onNote/.onCycle)
@@ -746,11 +753,11 @@ impl Track {
     /// 先行指定(low,high,len...)が書き込む長さの合計を求める
     /// len が0以下の組は書き込まれないので合計に含めない
     fn calc_on_time_length(ia: &[isize]) -> isize {
-        let mut total = 0;
+        let mut total: isize = 0;
         for i in 0..ia.len() / 3 {
             let len = ia[i*3+2];
             if len <= 0 { continue; }
-            total += len;
+            total = total.saturating_add(len);
         }
         total
     }
@@ -807,7 +814,7 @@ impl Track {
         if let Some((low, high)) = opt.range {
             v = value_range(low, v, high);
         }
-        let time = time + opt.delay;
+        let time = time.saturating_add(opt.delay);
         let ch = self.channel;
         let event = match target {
             WriteTarget::CC(no) => {
@@ -815,7 +822,7 @@ impl Track {
                 Event::cc(time, ch, no, v)
             }
             WriteTarget::PitchBend(is_big) => {
-                let v = if is_big == 0 { v * 128 } else { v + 8192 };
+                let v = if is_big == 0 { v.saturating_mul(128) } else { v.saturating_add(8192) };
                 let v = value_range(0, v, 0x7f7f);
                 Event::pitch_bend(time, ch, v)
             }
@@ -834,27 +841,37 @@ impl Track {
         // 重なった古い書き込みを削除する (#78)
         let total = Self::calc_on_time_length(&ia);
         let cc_no = match target { WriteTarget::CC(no) => no, _ => 0 };
-        let start = self.timepos + delay;
-        self.remove_events_in_range(Self::target_event_type(target), cc_no, start, start + total);
+        let start = self.timepos.saturating_add(delay);
+        self.remove_events_in_range(
+            Self::target_event_type(target), cc_no, start, start.saturating_add(total),
+        );
         let mut elapsed = 0;
+        let mut steps_left = ctx.safe_iteration_limit();
         let mut last_v: Option<isize> = None;
         for i in 0..ia.len() / 3 {
             let low = ia[i*3+0];
             let high = ia[i*3+1];
             let len = ia[i*3+2];
             if len <= 0 { continue; }
-            for j in 0..len {
+            let safe_len = len.min(steps_left);
+            for j in 0..safe_len {
                 if (j % freq) == 0 {
-                    let v = (high - low) as f32 * (j as f32 / len as f32) + low as f32;
+                    let v = high.saturating_sub(low) as f32
+                        * (j as f32 / len as f32) + low as f32;
                     let v = v as isize;
                     // 直前と同じ値なら書き込まない (#78)
                     if skip_same && last_v == Some(v) { continue; }
                     last_v = Some(v);
-                    let time = self.timepos + elapsed + j;
+                    let time = self.timepos.saturating_add(elapsed).saturating_add(j);
                     if !self.push_value_event(target, time, v, ctx) { return; }
                 }
             }
-            elapsed += len;
+            if safe_len < len {
+                ctx.event_limit_exceeded = true;
+                return;
+            }
+            steps_left -= safe_len;
+            elapsed = elapsed.saturating_add(len);
         }
     }
     /// 正弦波を書き込む (.Sine の本体)
@@ -876,14 +893,18 @@ impl Track {
         let delay = opt.delay;
         // .Random を使うときは、同じ基準値でも書き込む値が変わるので重複を抑制しない
         let skip_same = opt.random <= 0;
-        let total = len * times;
+        let total = len.saturating_mul(times);
+        let safe_total = total.min(ctx.safe_iteration_limit());
+        let truncated = safe_total < total;
         let cc_no = match target { WriteTarget::CC(no) => no, _ => 0 };
-        let start = self.timepos + delay;
-        self.remove_events_in_range(Self::target_event_type(target), cc_no, start, start + total);
-        let center = (low + high) as f32 / 2.0;
-        let amp = (high - low) as f32 / 2.0;
+        let start = self.timepos.saturating_add(delay);
+        self.remove_events_in_range(
+            Self::target_event_type(target), cc_no, start, start.saturating_add(total),
+        );
+        let center = (low as f64 + high as f64) as f32 / 2.0;
+        let amp = (high as f64 - low as f64) as f32 / 2.0;
         let mut last_v: Option<isize> = None;
-        for j in 0..total {
+        for j in 0..safe_total {
             if (j % freq) != 0 { continue; }
             let rate = (j % len) as f32 / len as f32;
             let v = match stype {
@@ -893,17 +914,22 @@ impl Track {
                 }
                 // 1: 1/4周期で low から high へ上がる
                 SineType::UpSine => {
-                    low as f32 + (high - low) as f32 * (rate * std::f32::consts::PI / 2.0).sin()
+                    low as f32 + high.saturating_sub(low) as f32
+                        * (rate * std::f32::consts::PI / 2.0).sin()
                 }
                 // 2: 1/4周期で high から low へ下がる
                 SineType::DownSine => {
-                    low as f32 + (high - low) as f32 * (rate * std::f32::consts::PI / 2.0).cos()
+                    low as f32 + high.saturating_sub(low) as f32
+                        * (rate * std::f32::consts::PI / 2.0).cos()
                 }
             };
             let v = v.round() as isize;
             if skip_same && last_v == Some(v) { continue; }
             last_v = Some(v);
-            if !self.push_value_event(target, self.timepos + j, v, ctx) { return; }
+            if !self.push_value_event(target, self.timepos.saturating_add(j), v, ctx) { return; }
+        }
+        if truncated {
+            ctx.event_limit_exceeded = true;
         }
     }
     /// (旧API) CCの時間変化を書き込む
@@ -987,19 +1013,20 @@ impl Track {
         self.timepos = start_pos;
         for wave in self.cc_on_note_wave.clone().iter() {
             if ctx.event_limit_exceeded { break; }
+            let safe_note_len = note_len.min(ctx.safe_iteration_limit());
             let mut truncated = false;
             let data = match wave.mode {
                 WaveMode::Normal => wave.data.clone(),
                 // 音符の長さに合わせて各区間を伸縮させる
-                WaveMode::Expand => Self::expand_wave(&wave.data, note_len),
+                WaveMode::Expand => {
+                    truncated = note_len > safe_note_len;
+                    Self::expand_wave(&wave.data, safe_note_len)
+                },
                 // 音符が鳴っている間くり返す
                 WaveMode::Repeat => {
                     // 巨大な音長から、予算検査前に巨大な一時配列を作らない。
-                    let safe_len = ctx.remaining_event_capacity()
-                        .saturating_add(1)
-                        .min(isize::MAX as usize) as isize;
-                    truncated = note_len > safe_len;
-                    Self::repeat_wave(&wave.data, note_len.min(safe_len))
+                    truncated = note_len > safe_note_len;
+                    Self::repeat_wave(&wave.data, safe_note_len)
                 },
             };
             self.write_on_time(wave.target, data, ctx);
@@ -1063,16 +1090,18 @@ impl Track {
         if self.cc_on_cycle.len() == 0 { return; }
         // 前回の書き込みから周期が経過していれば、その分だけ値を書き込む
         let mut writes: Vec<(WriteTarget, isize, isize)> = vec![];
+        let max_writes = ctx.remaining_event_capacity().saturating_add(1).min(10000);
         for item in self.cc_on_cycle.iter_mut() {
             // 無限ループを避けるため、1回あたりの書き込み回数を制限する
             let mut count = 0;
-            while item.next_time <= until && count < 10000 {
+            while item.next_time <= until && count < 10000 && writes.len() < max_writes {
                 let v = item.data[item.index % item.data.len()];
                 writes.push((item.target, item.next_time, v));
                 item.index += 1;
-                item.next_time += item.len;
+                item.next_time = item.next_time.saturating_add(item.len);
                 count += 1;
             }
+            if writes.len() >= max_writes { break; }
         }
         for (target, time, v) in writes.into_iter() {
             if !self.push_value_event(target, time, v, ctx) { break; }

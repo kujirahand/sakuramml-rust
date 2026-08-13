@@ -155,7 +155,7 @@ pub(super) fn exec_gs_effect(song: &mut Song, t: &Token) {
                             SValue::from_i(0xf7)
                         ],
                         true);
-                    song.add_event(e);
+                    if !song.add_event(e) { break; }
                 }
             }
         },

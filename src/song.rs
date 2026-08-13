@@ -317,6 +317,21 @@ mod event_limit_tests {
     }
 
     #[test]
+    fn event_limit_bounds_a_huge_constant_sine_loop() {
+        let source = format!("M.Sine(0,0,0,{},2)", isize::MAX);
+        let song = exec_with_limit(&source, 64);
+        assert!(song.event_limit_exceeded());
+        assert!(song.tracks[0].events.len() <= 8);
+    }
+
+    #[test]
+    fn event_limit_bounds_a_huge_expanded_wave() {
+        let song = exec_with_limit("M.onNoteWaveEx(0,0,1) l%100000000 c", 64);
+        assert!(song.event_limit_exceeded());
+        assert!(song.tracks[0].events.len() <= 8);
+    }
+
+    #[test]
     fn event_limit_prevents_later_write_contexts_from_resuming() {
         let song = exec_with_limit(
             "P.onCycle(1,10,20) M.onNoteWaveR(0,0,1) l%100000000 c",
@@ -332,6 +347,33 @@ mod event_limit_tests {
         let song = exec_with_limit("TempoChange(60,120,100000000)", 64);
         assert!(song.event_limit_exceeded());
         assert!(song.tracks[0].events.len() <= 8);
+    }
+
+    #[test]
+    fn failed_note_still_finishes_one_shot_state() {
+        let initial_octave = Song::new().tracks[0].octave;
+        let song = exec_with_limit("`c", 15);
+        assert!(song.event_limit_exceeded());
+        assert!(song.tracks[0].timepos > 0);
+        assert_eq!(song.tracks[0].octave, initial_octave);
+        assert_eq!(song.flags.octave_once, 0);
+    }
+
+    #[test]
+    fn failed_harmony_note_keeps_already_reserved_notes() {
+        let song = exec_with_limit("'ce'", 16);
+        assert!(song.event_limit_exceeded());
+        assert!(!song.flags.harmony_flag);
+        assert!(song.flags.harmony_events.is_empty());
+        assert_eq!(song.tracks[0].events.len(), 1);
+    }
+
+    #[test]
+    fn failed_tied_note_keeps_already_reserved_notes() {
+        let song = exec_with_limit("c&e", 16);
+        assert!(song.event_limit_exceeded());
+        assert!(song.tracks[0].tie_notes.is_empty());
+        assert_eq!(song.tracks[0].events.len(), 1);
     }
 
     #[test]
