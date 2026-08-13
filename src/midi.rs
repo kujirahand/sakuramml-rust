@@ -451,7 +451,7 @@ fn midi_event_channel(bin: &Vec<u8>, pos: usize) -> Option<u8> {
     }
 }
 
-/// トラックの最初のNoteOnまたはCCから、初期チャンネルを先読みする。
+/// トラックの最初のチャンネルイベントから、初期チャンネルを先読みする。
 fn find_initial_channel(bin: &Vec<u8>, start_pos: usize, end_pos: usize) -> Option<u8> {
     let mut pos = start_pos;
     let mut info = MidiReaderInfo::new();
@@ -536,9 +536,11 @@ pub fn dump_midi(bin: &Vec<u8>, flag_stdout: bool) -> String {
             }
         };
         let initial_channel = find_initial_channel(bin, pos, end_pos);
+        // TRは0始まりで、SMFのMTrkチャンク順をそのまま使う。
+        // ここで1を加えると、ダンプを再コンパイルした際にトラックがずれる。
         match initial_channel {
-            Some(channel) => log(&format!("TR({}) CH({})", no + 1, channel)),
-            None => log(&format!("TR({})", no + 1)),
+            Some(channel) => log(&format!("TR({}) CH({})", no, channel)),
+            None => log(&format!("TR({})", no)),
         }
         let mut current_channel = initial_channel;
         while pos < end_pos && !info.is_eot {
