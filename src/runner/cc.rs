@@ -1,6 +1,32 @@
 //! runner: コントロールチェンジ・テンポ・音色の実行
 use super::*;
 
+/// 先行指定の書き込みに必要な情報(乱数など)を用意して処理を実行する
+/// 乱数は曲全体で1つの系列を使うので、処理のあとに種を書き戻す
+pub(super) fn with_write_ctx<F>(song: &mut Song, f: F)
+where
+    F: FnOnce(&mut Track, &mut WriteCtx),
+{
+    let timebase = song.timebase;
+    let mut seed = song.rand_seed;
+    {
+        let mut ctx = WriteCtx { timebase, rand_seed: &mut seed };
+        let trk = &mut song.tracks[song.cur_track];
+        f(trk, &mut ctx);
+    }
+    song.rand_seed = seed;
+}
+
+/// トークンの value_i から書き込み先を求める
+/// 0以上はCC番号、負ならピッチベンド
+pub(super) fn write_target_from_value(value_i: isize) -> WriteTarget {
+    match value_i {
+        WRITE_TARGET_PB_SMALL => WriteTarget::PitchBend(0),
+        WRITE_TARGET_PB_BIG => WriteTarget::PitchBend(1),
+        no => WriteTarget::CC(no),
+    }
+}
+
 pub(super) fn exec_cc_rpn_nrpn(song: &mut Song, t: &Token, cc1: isize, cc2: isize, cc3: isize) {
     let val = exec_value_int_by_token(song, t);
     let msb = t.data[0].to_i();
@@ -92,7 +118,7 @@ pub(super) fn exec_decres(song: &mut Song, t: &Token) {
     let len = calc_length(&len_s, song.timebase, trk!(song).length);
     let ia = vec![v1, v2, len];
     // write EP
-    trk!(song).write_cc_on_time(11, ia);
+    with_write_ctx(song, |trk, ctx| trk.write_cc_on_time(11, ia, ctx));
 }
 
 /// コントロールチェンジの送信
@@ -101,14 +127,15 @@ pub(super) fn exec_control_change(song: &mut Song, t: &Token) {
     let val_tokens = t.children.clone().unwrap_or(vec![]);
     let val_v = exec_value(song, &val_tokens);
     let val = val_v.to_i();
-    trk!(song).remove_cc_on_note_wave(no);
+    // 値を直接指定すると先行指定は解除される
+    trk!(song).remove_reserve(WriteTarget::CC(no));
     song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, no, val));
 }
 
 /// ピッチベンドの送信
 pub(super) fn exec_pitch_bend(song: &mut Song, t: &Token) {
-    // 単発のピッチベンド指定で、音符ごとの波形変化を解除する
-    trk!(song).remove_pb_on_note_wave();
+    // 単発のピッチベンド指定で、先行指定を解除する
+    trk!(song).remove_reserve(WriteTarget::PitchBend(1));
     let val = var_extract(&t.data[0], song).to_i();
     trk!(song).pitch_bend = if t.value_i == 0 { val * 128 - 8192 } else { val };
     let val = if t.value_i == 0 { val * 128 } else { val + 8192 };
@@ -143,7 +170,7 @@ pub(super) fn exec_cc_on_time(song: &mut Song, t: &Token) {
     let no = t.value_i;
     let ia = t.data[0].to_int_array();
     trk!(song).remove_cc_on(no);
-    trk!(song).write_cc_on_time(no, ia);
+    with_write_ctx(song, |trk, ctx| trk.write_cc_on_time(no, ia, ctx));
 }
 
 /// 音符ごとのCCの変化
@@ -160,18 +187,135 @@ pub(super) fn exec_cc_on_note_wave(song: &mut Song, t: &Token) {
     trk!(song).set_cc_on_note_wave(no, ia);
 }
 
-/// 時間経過によるCC変化の頻度
+/// 時間経過によるCC・ピッチベンドの書き込み頻度 (.Frequency)
 pub(super) fn exec_cc_on_time_freq(song: &mut Song, t: &Token) {
-    trk!(song).cc_on_time_freq = var_extract(&t.data[0], song).to_i();
+    let freq = var_extract(&t.data[0], song).to_i();
+    match write_target_from_value(t.value_i) {
+        // CCの頻度はトラック全体で共通
+        WriteTarget::CC(_) => trk!(song).cc_on_time_freq = freq,
+        WriteTarget::PitchBend(_) => trk!(song).pb_on_time_freq = freq,
+    }
 }
 
 /// 時間経過によるピッチベンドの変化
 pub(super) fn exec_pb_on_time(song: &mut Song, t: &Token) {
     trk!(song).remove_pb_on_note_wave();
-    trk!(song).write_pb_on_time(t.value_i, t.data[0].to_int_array(), song.timebase);
+    let is_big = t.value_i;
+    let ia = t.data[0].to_int_array();
+    with_write_ctx(song, |trk, ctx| trk.write_pb_on_time(is_big, ia, ctx));
 }
 
 /// 音符ごとのピッチベンドの波形変化
 pub(super) fn exec_pb_on_note_wave(song: &mut Song, t: &Token) {
     trk!(song).set_pb_on_note_wave(t.value_i, t.data[0].to_int_array());
+}
+
+/// 音符ごとのピッチベンドの変化 (PB.onNote/p.onNote)
+pub(super) fn exec_pb_on_note(song: &mut Song, t: &Token) {
+    let target = WriteTarget::PitchBend(t.value_i);
+    let ia = t.data[0].to_int_array();
+    trk!(song).set_on_note(target, ia);
+}
+
+/// 音符ごとの波形変化 --- 音符の長さに合わせて伸縮する (.onNoteWaveEx)
+pub(super) fn exec_cc_on_note_wave_ex(song: &mut Song, t: &Token) {
+    let target = write_target_from_value(t.value_i);
+    let ia = t.data[0].to_int_array();
+    trk!(song).set_on_note_wave(target, ia, WaveMode::Expand);
+}
+
+/// 音符ごとの波形変化 --- 音符が鳴っている間くり返す (.onNoteWaveR)
+pub(super) fn exec_cc_on_note_wave_r(song: &mut Song, t: &Token) {
+    let target = write_target_from_value(t.value_i);
+    let ia = t.data[0].to_int_array();
+    trk!(song).set_on_note_wave(target, ia, WaveMode::Repeat);
+}
+
+/// 一定時間ごとの値の先行指定 (.onCycle)
+pub(super) fn exec_cc_on_cycle(song: &mut Song, t: &Token) {
+    let target = write_target_from_value(t.value_i);
+    let args = t.data[0].to_int_array();
+    if args.len() < 2 {
+        runtime_error(song, ".onCycle needs (step, v1, v2, ...)");
+        return;
+    }
+    let len = args[0];
+    let values = args[1..].to_vec();
+    trk!(song).set_on_cycle(target, len, values);
+}
+
+/// .Sine / .onNoteSine の引数を読み取る (type, low, high, len, times)
+fn get_sine_args(song: &mut Song, t: &Token) -> Option<OnNoteSine> {
+    let target = write_target_from_value(t.value_i);
+    let args = t.data[0].to_int_array();
+    if args.len() < 4 {
+        runtime_error(song, ".Sine needs (type, low, high, len [,times])");
+        return None;
+    }
+    Some(OnNoteSine {
+        target,
+        stype: SineType::from_i(args[0]),
+        low: args[1],
+        high: args[2],
+        len: args[3],
+        times: if args.len() >= 5 { args[4] } else { 1 },
+    })
+}
+
+/// 正弦波を1回書き込む (.Sine)
+pub(super) fn exec_cc_sine(song: &mut Song, t: &Token) {
+    let sine = match get_sine_args(song, t) {
+        Some(v) => v,
+        None => return,
+    };
+    trk!(song).remove_reserve(sine.target);
+    with_write_ctx(song, |trk, ctx| {
+        trk.write_sine(sine.target, sine.stype, sine.low, sine.high, sine.len, sine.times, ctx)
+    });
+}
+
+/// 音符ごとに正弦波を書き込む (.onNoteSine)
+pub(super) fn exec_cc_on_note_sine(song: &mut Song, t: &Token) {
+    let sine = match get_sine_args(song, t) {
+        Some(v) => v,
+        None => return,
+    };
+    trk!(song).set_on_note_sine(sine.target, sine);
+}
+
+/// 先行指定の効果の遅延時間 (.Delay)
+pub(super) fn exec_cc_delay(song: &mut Song, t: &Token) {
+    let target = write_target_from_value(t.value_i);
+    let v = var_extract(&t.data[0], song).to_i();
+    trk!(song).update_write_opt(target, |opt| opt.delay = v);
+}
+
+/// 書き込む値をランダムにばらつかせる (.Random)
+pub(super) fn exec_cc_random(song: &mut Song, t: &Token) {
+    let target = write_target_from_value(t.value_i);
+    let v = var_extract(&t.data[0], song).to_i();
+    trk!(song).update_write_opt(target, |opt| opt.random = v);
+}
+
+/// 書き込む値の下限と上限を設定する (.Range)
+pub(super) fn exec_cc_range(song: &mut Song, t: &Token) {
+    let target = write_target_from_value(t.value_i);
+    let args = t.data[0].to_int_array();
+    if args.len() < 2 {
+        runtime_error(song, ".Range needs (low, high)");
+        return;
+    }
+    let (low, high) = (args[0], args[1]);
+    trk!(song).update_write_opt(target, |opt| opt.range = Some((low, high)));
+}
+
+/// .onNote などで値をくり返すかどうか (.Repeat)
+pub(super) fn exec_cc_repeat(song: &mut Song, t: &Token) {
+    let target = write_target_from_value(t.value_i);
+    let on = t.data[0].to_i() != 0;
+    trk!(song).update_write_opt(target, |opt| opt.repeat = on);
+    // すでに予約されている .onNote にも反映する
+    for it in trk!(song).cc_on_note.iter_mut() {
+        it.is_cycle = on;
+    }
 }

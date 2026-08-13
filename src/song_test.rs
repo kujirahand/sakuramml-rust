@@ -145,13 +145,14 @@ mod note_tests {
     #[test]
     fn on_note_values_stop_or_cycle_as_configured() {
         let mut track = Track::new(96, 0);
-        track.v_on_note = Some(vec![10, 20]);
+        track.v_opt.on_note = Some(vec![10, 20]);
         assert_eq!(track.calc_v_on_note(99), 10);
         assert_eq!(track.calc_v_on_note(99), 20);
         assert_eq!(track.calc_v_on_note(99), 99);
 
-        track.v_on_note = Some(vec![30, 40]);
-        track.v_on_note_is_cycle = true;
+        track.v_opt.on_note = Some(vec![30, 40]);
+        track.v_opt.on_note_index = 0;
+        track.v_opt.on_note_is_cycle = true;
         assert_eq!(track.calc_v_on_note(99), 30);
         assert_eq!(track.calc_v_on_note(99), 40);
         assert_eq!(track.calc_v_on_note(99), 30);

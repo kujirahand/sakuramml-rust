@@ -12,6 +12,34 @@ fn apply_v_sub_random(song: &mut Song, mut velocity: isize) -> isize {
     velocity
 }
 
+/// 音符属性の .Random / .Range / .Max を値に適用する
+fn calc_note_param(song: &mut Song, target: isize, value: isize) -> isize {
+    let trk = &song.tracks[song.cur_track];
+    let param = match target {
+        NOTE_PARAM_V => &trk.v_opt,
+        NOTE_PARAM_Q => &trk.q_opt,
+        NOTE_PARAM_T => &trk.t_opt,
+        NOTE_PARAM_O => &trk.o_opt,
+        _ => &trk.l_opt,
+    };
+    let random = param.random;
+    let value = if random > 0 {
+        song.calc_rand_value(value, random)
+    } else {
+        value
+    };
+    // 借用の都合で、ランダムを計算したあとに範囲を適用する
+    let trk = &song.tracks[song.cur_track];
+    let param = match target {
+        NOTE_PARAM_V => &trk.v_opt,
+        NOTE_PARAM_Q => &trk.q_opt,
+        NOTE_PARAM_T => &trk.t_opt,
+        NOTE_PARAM_O => &trk.o_opt,
+        _ => &trk.l_opt,
+    };
+    param.apply_limit(value)
+}
+
 pub(super) fn get_note_info_from_token(t: &Token) -> NoteInfo {
     let data = &t.data;
     if data.len() < 8 { // broken note
@@ -82,10 +110,11 @@ pub(super) fn set_note_info_with_default_value(note: &mut NoteInfo, song: &mut S
 /// 音符の発音開始時に、先行指定(onNote/onNoteWave)を書き出す
 /// タイ・スラーや和音では、つながった音符の先頭で一度だけ呼ぶ
 pub(super) fn write_on_note_events(song: &mut Song, start_pos: isize) {
-    let timebase = song.timebase;
-    trk!(song).write_cc_on_note(start_pos);
-    trk!(song).write_cc_on_note_wave(start_pos);
-    trk!(song).write_pb_on_note_wave(start_pos, timebase);
+    with_write_ctx(song, |trk, ctx| {
+        trk.write_cc_on_cycle(start_pos, ctx);
+        trk.write_cc_on_note(start_pos, ctx);
+        trk.write_cc_on_note_wave(start_pos, ctx);
+    });
 }
 
 pub(super) fn exec_note(song: &mut Song, t: &Token) {
@@ -99,46 +128,38 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     // onTime / onNote
     let v = trk!(song).calc_v_on_time(note.vel);
     let v = trk!(song).calc_v_on_note(v);
-    let t = trk!(song).calc_t_on_note(note.t);
-    let qlen = trk!(song).calc_qlen_on_note(note.qlen);
-    let o_abs = trk!(song).calc_o_on_note(-1);
+    let t = trk!(song).calc_t_on_time(note.t);
+    let t = trk!(song).calc_t_on_note(t);
+    let qlen = trk!(song).calc_qlen_on_time(note.qlen);
+    let qlen = trk!(song).calc_qlen_on_note(qlen);
+    let o_abs = trk!(song).calc_o_on_time(-1);
+    let o_abs = trk!(song).calc_o_on_note(o_abs);
     if o_abs != -1 {// ノートはそのままでオクターブだけ変える
         note.no = note.no % 12 + o_abs * 12; // set absolute octave
     }
     // Random
-    if trk!(song).o_rand > 0 { // octave randomize
-        let r = song.calc_rand_value(0, trk!(song).o_rand);
+    if trk!(song).o_opt.random > 0 { // octave randomize
+        let r = song.calc_rand_value(0, trk!(song).o_opt.random);
         if r != 0 {
             note.no += r * 12;
         }
     }
-    let v = if trk!(song).v_rand > 0 {
-        song.calc_rand_value(v, trk!(song).v_rand)
-    } else {
-        v
-    };
-    let t = if trk!(song).t_rand > 0 {
-        song.calc_rand_value(t, trk!(song).t_rand)
-    } else {
-        t
-    };
-    let qlen = if trk!(song).q_rand > 0 {
-        song.calc_rand_value(qlen, trk!(song).q_rand)
-    } else {
-        qlen
-    };
+    let v = calc_note_param(song, NOTE_PARAM_V, v);
+    let t = calc_note_param(song, NOTE_PARAM_T, t);
+    let qlen = calc_note_param(song, NOTE_PARAM_Q, qlen);
     let v = trk!(song).apply_v_sub(v);
     let v = apply_v_sub_random(song, v);
     // note len
     let mut notelen = calc_length(&note.len_s, song.timebase, trk!(song).length);
-    // note len onNote / onCycle
-    let notelen_on_note = trk!(song).calc_l_on_note(-1);
-    if notelen_on_note != -1 { // onNote / onCycle の値があれば強制的に上書き
-        notelen = notelen_on_note;
+    // note len onTime / onNote / onCycle
+    let notelen_on_note = trk!(song).calc_l_on_time(-1);
+    let notelen_on_note = trk!(song).calc_l_on_note(notelen_on_note);
+    if notelen_on_note != -1 { // 先行指定の値があれば強制的に上書き
+        notelen = calc_note_param(song, NOTE_PARAM_L, notelen_on_note);
     }
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // check range
-    let v = value_range(0, v, 127);
+    let v = value_range(0, v, trk!(song).v_opt.max_or(127));
     // event
     let event = Event::note(timepos + t, trk!(song).channel, note.no, notelen_real, v);
     // println!("- {}: note(no={},len={},qlen={},v={},t={},o={})", trk.timepos, noteno, notelen_real, qlen, v, t, o);
@@ -205,33 +226,23 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     } else {
         trk!(song).timing
     };
-    // onTime / onNote
+    // onTime / onCycle / onNote
     let v = trk!(song).calc_v_on_time(v);
     let v = trk!(song).calc_v_on_note(v);
+    let t = trk!(song).calc_t_on_time(t);
     let t = trk!(song).calc_t_on_note(t);
+    let qlen = trk!(song).calc_qlen_on_time(qlen);
     let qlen = trk!(song).calc_qlen_on_note(qlen);
-    // Random
-    let v = if trk!(song).v_rand > 0 {
-        song.calc_rand_value(v, trk!(song).v_rand)
-    } else {
-        v
-    };
-    let t = if trk!(song).t_rand > 0 {
-        song.calc_rand_value(t, trk!(song).t_rand)
-    } else {
-        t
-    };
-    let qlen = if trk!(song).q_rand > 0 {
-        song.calc_rand_value(qlen, trk!(song).q_rand)
-    } else {
-        qlen
-    };
+    // Random / Range / Max
+    let v = calc_note_param(song, NOTE_PARAM_V, v);
+    let t = calc_note_param(song, NOTE_PARAM_T, t);
+    let qlen = calc_note_param(song, NOTE_PARAM_Q, qlen);
     let v = trk!(song).apply_v_sub(v);
     let v = apply_v_sub_random(song, v);
     // calc
     let notelen_real = (notelen as f32 * qlen as f32 / 100.0) as isize;
     // range
-    let v = value_range(0, v, 127);
+    let v = value_range(0, v, trk!(song).v_opt.max_or(127));
     let event = Event::note(
         trk!(song).timepos + t,
         trk!(song).channel,

@@ -12,11 +12,11 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | r | rest - 休符 |
 | l | length - 音長の指定 (ex) l4 c |
 | o | octave - 音階の指定 range:0-10 (ex) o6 c |
-| p | pitch bend - ピッチベンドの指定 range:0-127 (center:64) (ex) p64 / (ref) PB(n) は -8192~0~8191 |
+| p | pitch bend - ピッチベンドの指定 range:0-127 (center:64) (ex) p64 / p.onTime(low,high,len) / p.onNoteWave(low,high,len) / (ref) PB(n) は -8192~0~8191 |
 | q | gate rate - ゲートの指定 range:0-100 (ex) q90 |
 | v | velocity - ベロシティ音量の指定 range:0-127 (ex) v100 / v.Random=n |
 | t | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
-| y | Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len) |
+| y | Control change - コントロールチェンジ range:0-127 y(cc_no),(value) / (ex) y1,100 / y1.onTime(low,high,len) / y1.onNoteWave(low,high,len) |
 | # | Macro - マクロ定義 (ex) #A={cdefg} |
 | @ | Voice select(音色の指定) range:1-128 (format) @(no),(Bank_MSB),(Bank_LSB) |
 | > | Octave up (音階を1つ上げる) |
@@ -127,8 +127,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | Chorus | CC#93 Chorus range:0-127 (ex) Chorus(100) |
 | VAR | CC#94 Variation range:0-127 (ex) VAR(100) |
 | Variation | CC#94 Variation range:0-127 (ex) Variation(100) |
-| PitchBend | Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~64~127 |
-| PB | Pitchbend range: -8192~0~8191 (ex) PB(10) |
+| PitchBend | Pitchbend range: -8192~0~8191 (ex) PitchBend(10) / p(value) range: 0~64~127 / PitchBend.onTime(low,high,len) / PitchBend.onNoteWave(low,high,len) |
+| PB | Pitchbend range: -8192~0~8191 (ex) PB(10) / PB.onTime(low,high,len) / PB.onNoteWave(low,high,len) |
 | PitchBendSensitivity | PitchBendSensitivity (ex) BR(10) |
 | BEND_RANGE | PitchBendSensitivity (ex) BEND_RANGE(10) |
 | BendRange | PitchBendSensitivity (ex) BendRange(10) |
@@ -620,10 +620,10 @@ Rhythm macro (リズムマクロ)
 | 方向前 | ステレオの前から音が出るようにする (="P(64)") |
 | 方向右前 | ステレオの右前から音が出るようにする (="P(96)") |
 | 方向右 | ステレオの右から音が出るようにする (="P(127)") |
-| 方向回す | ステレオの左右を回す ※onNoteWaveEx未対応のため現在は動作しない (="P.onNoteWaveEx(0) |
+| 方向回す | ステレオの左右を回す (="P.onNoteWaveEx(0) |
 | ビブラートオフ | ビブラートをやめる (="M(0)") |
 | ペダル | ペダルを踏む (="y64) |
 | 放す | ペダルを放す (="y64) |
 | テンポ改 | テンポ改(開始テンポ),(終了テンポ),(長さ)//テンポを推移的に変更する。長さはステップ数。省略すると全音符の間に推移する。（例）テンポ改80,120,384 (="TempoChange=") |
-| ビブラート | 推移的なビブラートをかける ※onNoteWaveEx未対応のため現在は動作しない (="M.onNoteWaveEx(0) |
+| ビブラート | 推移的なビブラートをかける (="M.onNoteWaveEx(0) |
 | ここから演奏 | 途中から演奏したいときに書く (="PlayFrom(Time") |

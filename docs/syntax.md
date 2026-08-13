@@ -14,7 +14,8 @@
 | [音符と演奏パラメータ](syntax-note.md) | 音名 `cdefgab` / 音長 `l` / オクターブ `o` / 音量 `v` / ゲート `q` / 発音タイミング `t` / タイ・スラー `&` |
 | [トラック・チャンネル・タイム](syntax-track.md) | `TR` `CH` `Time` `Sub` `TrackSync` `Play` `PlayFrom` `KeyShift` など |
 | [繰り返し・和音・連符・マクロ](syntax-macro.md) | ループ `[ ]` / 和音 `' '` / 連符 `{ }` / マクロ `#A={}` / リズムマクロ `$c{}` |
-| [音色とMIDI制御](syntax-voice.md) | 音色 `@` / コントロールチェンジ `CC` `y` / ピッチベンド `p` `PB` / RPN・NRPN / 先行指定 `.onTime` `.onNote` |
+| [音色とMIDI制御](syntax-voice.md) | 音色 `@` / コントロールチェンジ `CC` `y` / ピッチベンド `p` `PB` / RPN・NRPN |
+| [先行指定(リザーブ)](syntax-reserve.md) | `.onNote` `.onTime` `.onCycle` `.onNoteWave` `.Sine` `.Random` `.Range` `.Delay` `.Repeat` `.Frequency` `.Max` |
 | [メタイベントとテンポ](syntax-meta.md) | `Tempo` `TimeSignature` `TrackName` `Copyright` `Lyric` / `SysEx` / GS/XGリセット |
 | [スクリプト機能](syntax-script.md) | 変数 `Int` `Str` `Array` / 演算子 / `IF` `FOR` `WHILE` / ユーザー関数 `Function` / 組み込み関数 |
 | [ストトン表記(日本語表記)](syntax-sutoton.md) | 「ドレミ」「音量」「テンポ」などの日本語命令 |
@@ -193,9 +194,7 @@ l4 {cde} f {gab} >c<
 
 - `Include` / `System.Include` … 外部ファイルの読み込み
 - `System.q2Add` / `q2Add`
-- `l.Random` / `l.onTime` / `o.onTime` / `q.onTime`
-- `v` `q` `t` `o` `l` の `.onNoteWave`(CC系とピッチベンドでのみ利用できます)
-- CC系の `.onNoteWaveEx` / `.onNoteWaveR` / `.onCycle` / `.Sine` / `.onNoteSine`
+- `v` `q` `t` `o` `l` の `.onNoteWave` 系(CC系とピッチベンドでのみ利用できます。[先行指定](syntax-reserve.md)を参照)
 
 ## 関連リンク
 

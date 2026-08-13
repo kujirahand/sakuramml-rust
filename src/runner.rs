@@ -2,9 +2,15 @@
 use crate::mml_def::TieMode;
 use crate::token::TokenValueType;
 use super::lexer::lex;
-use super::song::{Event, NoteInfo, Song};
+use super::song::{
+    Event, NoteInfo, NoteParam, OnNoteSine, SineType, Song, Track, WaveMode, WriteCtx, WriteTarget,
+};
 use super::svalue::SValue;
-use super::token::{Token, TokenType, COMMENT_DEBUG};
+use super::token::{
+    Token, TokenType, COMMENT_DEBUG,
+    NOTE_PARAM_L, NOTE_PARAM_O, NOTE_PARAM_Q, NOTE_PARAM_T, NOTE_PARAM_V,
+    WRITE_TARGET_PB_BIG, WRITE_TARGET_PB_SMALL,
+};
 use super::sakura_message::MessageKind;
 use super::note_length::calc_length;
 
@@ -228,27 +234,48 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
             TokenType::PlayFromHere => exec_play_from_here(song),
             TokenType::SongVelocityAdd => exec_song_velocity_add(song, t),
             TokenType::SongQAdd => exec_song_q_add(song, t),
-            TokenType::OctaveRandom => exec_octave_random(song, t),
-            TokenType::VelocityRandom => exec_velocity_random(song, t),
-            TokenType::TimingRandom => exec_timing_random(song, t),
-            TokenType::QLenRandom => exec_qlen_random(song, t),
-            TokenType::VelocityOnTime => exec_velocity_on_time(song, t),
-            TokenType::VelocityOnNote => exec_velocity_on_note(song, t, false),
-            TokenType::VelocityOnCycle => exec_velocity_on_note(song, t, true),
-            TokenType::TimingOnNote => exec_timing_on_note(song, t, false),
-            TokenType::TimingOnCycle => exec_timing_on_note(song, t, true),
-            TokenType::QLenOnNote => exec_qlen_on_note(song, t, false),
-            TokenType::QLenOnCycle => exec_qlen_on_note(song, t, true),
-            TokenType::OctaveOnNote => exec_octave_on_note(song, t, false),
-            TokenType::OctaveOnCycle => exec_octave_on_note(song, t, true),
-            TokenType::LengthOnNote => exec_length_on_note(song, t, false),
-            TokenType::LengthOnCycle => exec_length_on_note(song, t, true),
+            // 音符属性(v/q/t/o/l)の先行指定
+            TokenType::OctaveRandom => exec_note_param_random(song, t, NOTE_PARAM_O),
+            TokenType::VelocityRandom => exec_note_param_random(song, t, NOTE_PARAM_V),
+            TokenType::TimingRandom => exec_note_param_random(song, t, NOTE_PARAM_T),
+            TokenType::QLenRandom => exec_note_param_random(song, t, NOTE_PARAM_Q),
+            TokenType::LengthRandom => exec_note_param_random(song, t, NOTE_PARAM_L),
+            TokenType::VelocityOnTime => exec_note_param_on_time(song, t, NOTE_PARAM_V),
+            TokenType::QLenOnTime => exec_note_param_on_time(song, t, NOTE_PARAM_Q),
+            TokenType::TimingOnTime => exec_note_param_on_time(song, t, NOTE_PARAM_T),
+            TokenType::OctaveOnTime => exec_note_param_on_time(song, t, NOTE_PARAM_O),
+            TokenType::LengthOnTime => exec_note_param_on_time(song, t, NOTE_PARAM_L),
+            TokenType::VelocityOnNote => exec_note_param_on_note(song, t, NOTE_PARAM_V),
+            TokenType::QLenOnNote => exec_note_param_on_note(song, t, NOTE_PARAM_Q),
+            TokenType::TimingOnNote => exec_note_param_on_note(song, t, NOTE_PARAM_T),
+            TokenType::OctaveOnNote => exec_note_param_on_note(song, t, NOTE_PARAM_O),
+            TokenType::LengthOnNote => exec_note_param_on_note(song, t, NOTE_PARAM_L),
+            TokenType::VelocityOnCycle => exec_note_param_on_cycle(song, t, NOTE_PARAM_V),
+            TokenType::QLenOnCycle => exec_note_param_on_cycle(song, t, NOTE_PARAM_Q),
+            TokenType::TimingOnCycle => exec_note_param_on_cycle(song, t, NOTE_PARAM_T),
+            TokenType::OctaveOnCycle => exec_note_param_on_cycle(song, t, NOTE_PARAM_O),
+            TokenType::LengthOnCycle => exec_note_param_on_cycle(song, t, NOTE_PARAM_L),
+            TokenType::NoteParamRange => exec_note_param_range(song, t),
+            TokenType::NoteParamDelay => exec_note_param_delay(song, t),
+            TokenType::NoteParamRepeat => exec_note_param_repeat(song, t),
+            TokenType::NoteParamMax => exec_note_param_max(song, t),
+            // CC・ピッチベンドの先行指定
             TokenType::CConTime => exec_cc_on_time(song, t),
             TokenType::CConNote => exec_cc_on_note(song, t),
             TokenType::CConNoteWave => exec_cc_on_note_wave(song, t),
+            TokenType::CConNoteWaveEx => exec_cc_on_note_wave_ex(song, t),
+            TokenType::CConNoteWaveR => exec_cc_on_note_wave_r(song, t),
+            TokenType::CConCycle => exec_cc_on_cycle(song, t),
+            TokenType::CCSine => exec_cc_sine(song, t),
+            TokenType::CConNoteSine => exec_cc_on_note_sine(song, t),
+            TokenType::CCDelay => exec_cc_delay(song, t),
+            TokenType::CCRandom => exec_cc_random(song, t),
+            TokenType::CCRange => exec_cc_range(song, t),
+            TokenType::CCRepeat => exec_cc_repeat(song, t),
             TokenType::CConTimeFreq => exec_cc_on_time_freq(song, t),
             TokenType::Decresc => exec_decres(song, t),
             TokenType::PBonTime => exec_pb_on_time(song, t),
+            TokenType::PBonNote => exec_pb_on_note(song, t),
             TokenType::PBonNoteWave => exec_pb_on_note_wave(song, t),
             TokenType::MeasureShift => exec_measure_shift(song, t),
             TokenType::TrackSync => song.track_sync(),

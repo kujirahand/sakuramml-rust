@@ -169,18 +169,21 @@ Chords using zero-valued notes, such as `c0e0g`, are not supported. Use ordinary
 
 ### Reservation Notation and Continuous CC/PB Writing
 
-Reservation notation is available.
+Advance specifications are available for note parameters (`v` `q` `t` `o` `l`) and for
+control changes / pitch bend.
 
-- `v.onTime(low, high, len, ...)` / abbreviated form: `v.T(low,high,len,...)`
-- `v.onNote(v1, v2, v3, ...)` / abbreviated form: `v.N(v1,v2,v3,...)`
-- `v__n.onTime/onNote/onCycle(...)` / per-layer advance specification added to the base velocity (abbreviated forms: `T`/`N`/`C`)
-- `v__n.Random(width)` / per-layer random adjustment (use 0 to disable it)
-- `t.onNote(v1, v2, v3, ...)` / abbreviated form: `t.N(v1,v2,v3,...)`
-- `(ControlChange`, `PB`, or `p`).onTime(low, high, len, ...)
+- `.onNote(v1, v2, ...)` / abbreviated form: `.N(...)` — switch the value on every note
+- `.onTime(low, high, len, ...)` / abbreviated form: `.T(...)` — move the value over time
+- `.onCycle(step, v1, v2, ...)` / abbreviated form: `.C(...)` — switch the value every `step` steps
+- `.Random(n)` / `.Range(low, high)` / `.Delay(n)` / `.Repeat(on/off)`
+- `v.Max(n)` / `q.Max(n)` — change the upper limit of the value (a range setting, not an advance specification)
+- CC / PB only: `.onNoteWave` / `.onNoteWaveEx` / `.onNoteWaveR` / `.Sine` / `.onNoteSine` / `.Frequency`
+  (`.Frequency` sets the write interval; CC and pitch bend are configured separately)
+- `v__n.onTime/onNote/onCycle/Random(...)` / per-layer advance specification added to the base velocity
 
 ```mml
 v.onTime(0,127,!1)l8cccccccc
-v70 v__1.onCycle(10,-10) cdef // velocities: 80,60,80,60
+v70 v__1.onCycle(!4,10,-10) cdef // velocities: 80,60,80,60
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```
 

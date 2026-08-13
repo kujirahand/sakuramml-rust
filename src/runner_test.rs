@@ -434,7 +434,7 @@ mod test_issue_102 {
     #[test]
     fn test_sub_velocity_on_note_and_cycle() {
         let song = exec_easy(
-            "v.onCycle(70,80) v__1.onCycle(10,20) cde v__1.onNote(-10,-20) fga",
+            "v.onCycle(!4,70,80) v__1.onCycle(!4,10,20) cde v__1.onNote(-10,-20) fga",
         );
         let velocities = song.tracks[0]
             .events
@@ -479,7 +479,7 @@ mod test_issue_102 {
 
     #[test]
     fn test_sub_velocity_layer_zero_is_distinct_from_base_velocity() {
-        let song = exec_easy("v70 v__0(10) c v__0.onCycle(20,-20) def");
+        let song = exec_easy("v70 v__0(10) c v__0.onCycle(!4,20,-20) def");
         let velocities = song.tracks[0]
             .events
             .iter()
@@ -493,7 +493,7 @@ mod test_issue_102 {
 
     #[test]
     fn test_single_underscore_still_targets_base_velocity() {
-        let song = exec_easy("v70 v_.onCycle(80,60) cd");
+        let song = exec_easy("v70 v_.onCycle(!4,80,60) cd");
         let velocities = song.tracks[0]
             .events
             .iter()
@@ -785,5 +785,235 @@ mod test_issue_78 {
         // ただし開始時点のベンド値は0で直前の値と同じため出力されず、
         // 最初に書き込まれるイベントは49ステップ目になる
         assert_eq!(bends.first().unwrap().0, 49);
+    }
+}
+
+/// 先行指定(mml_const.pas の OPTION_*)のテスト (#65)
+mod test_issue_65 {
+    use super::exec_easy;
+    use crate::song::{EventType, Song};
+
+    /// 指定したCC番号の (時間, 値) を取り出す
+    fn cc_events(song: &Song, no: isize) -> Vec<(isize, isize)> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::ControllChange && e.v1 == no)
+            .map(|e| (e.time, e.v2))
+            .collect()
+    }
+
+    /// ピッチベンドの (時間, 値) を取り出す
+    fn pitch_bends(song: &Song) -> Vec<(isize, isize)> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::PitchBend)
+            .map(|e| (e.time, e.v1))
+            .collect()
+    }
+
+    /// ノートオンのベロシティを取り出す
+    fn velocities(song: &Song) -> Vec<isize> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::NoteOn)
+            .map(|e| e.v3)
+            .collect()
+    }
+
+    /// ノートオンの (時間, 長さ) を取り出す
+    fn note_times(song: &Song) -> Vec<(isize, isize)> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::NoteOn)
+            .map(|e| (e.time, e.v2))
+            .collect()
+    }
+
+    #[test]
+    fn test_cc_unknown_option_is_error() {
+        // 未対応の指定を、無言で `M(10)` に化けさせないこと
+        let song = exec_easy("M.Foo(10) c");
+        assert_eq!(cc_events(&song, 1).len(), 0);
+        assert!(song.get_logs_str().contains("not supported : CC(1).Foo"));
+    }
+
+    #[test]
+    fn test_pitch_bend_unknown_option_is_error() {
+        let song = exec_easy("PB.Foo(10) c");
+        assert_eq!(pitch_bends(&song).len(), 0);
+        assert!(song.get_logs_str().contains("not supported : PB.Foo"));
+    }
+
+    #[test]
+    fn test_cc_on_cycle_writes_values_by_step() {
+        // .onCycle(ステップ値, 値1, 値2, ...) --- 解除するまでくり返す
+        let song = exec_easy("TimeBase=96 M.onCycle(!4,0,127) l8 [8 c]");
+        assert_eq!(
+            cc_events(&song, 1),
+            vec![(0, 0), (96, 127), (192, 0), (288, 127)]
+        );
+    }
+
+    #[test]
+    fn test_note_param_on_cycle_is_time_based() {
+        // t.onCycle(!16,0,8) は t.onTime(0,0,!16, 8,8,!16) と同じ意味
+        let song = exec_easy("TimeBase=96 t.onCycle(!8,0,8) l8 cdcd");
+        let times: Vec<isize> = note_times(&song).iter().map(|(t, _)| *t).collect();
+        assert_eq!(times, vec![0, 56, 96, 152]);
+    }
+
+    #[test]
+    fn test_velocity_on_cycle_is_time_based() {
+        let song = exec_easy("TimeBase=96 v.onCycle(!8,50,120) l8 cdcd");
+        assert_eq!(velocities(&song), vec![50, 120, 50, 120]);
+    }
+
+    #[test]
+    fn test_qlen_on_time() {
+        // q.onTime は以前は未対応だった
+        let song = exec_easy("TimeBase=96 q.onTime(50,100,!1) l4 cdef");
+        let qlens: Vec<isize> = note_times(&song).iter().map(|(_, len)| *len).collect();
+        assert_eq!(qlens, vec![48, 59, 72, 83]);
+    }
+
+    #[test]
+    fn test_octave_on_time() {
+        let song = exec_easy("TimeBase=96 o.onTime(4,6,!1) l4 cccc");
+        let notes: Vec<isize> = song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::NoteOn)
+            .map(|e| e.v1)
+            .collect();
+        assert_eq!(notes, vec![48, 48, 60, 60]);
+    }
+
+    #[test]
+    fn test_length_random_is_supported() {
+        // l.Random は以前は未対応だった
+        let song = exec_easy("TimeBase=96 l.Random(8) l4 c");
+        assert!(!song.get_logs_str().contains("not supported"));
+        assert_eq!(song.tracks[0].l_opt.random, 8);
+    }
+
+    #[test]
+    fn test_velocity_max_limits_value() {
+        // v.Max は先行指定ではなく、値の上限を変える指定
+        let song = exec_easy("v.Max(50) v100 c");
+        assert_eq!(velocities(&song), vec![50]);
+    }
+
+    #[test]
+    fn test_qlen_max_limits_value() {
+        let song = exec_easy("TimeBase=96 q.Max(50) q100 l4 c");
+        let qlens: Vec<isize> = note_times(&song).iter().map(|(_, len)| *len).collect();
+        assert_eq!(qlens, vec![48]);
+    }
+
+    #[test]
+    fn test_note_param_range_limits_value() {
+        let song = exec_easy("v.Range(30,60) v100 c v10 d");
+        assert_eq!(velocities(&song), vec![60, 30]);
+    }
+
+    #[test]
+    fn test_cc_range_limits_written_value() {
+        let song = exec_easy("TimeBase=96 M.Range(0,50) M.onTime(0,127,!4) c");
+        let values: Vec<isize> = cc_events(&song, 1).iter().map(|(_, v)| *v).collect();
+        assert!(values.iter().all(|v| *v <= 50));
+        assert_eq!(*values.last().unwrap(), 50);
+    }
+
+    #[test]
+    fn test_cc_delay_shifts_write_position() {
+        let song = exec_easy("TimeBase=96 M.Delay(48) M.onTime(0,127,!4) c");
+        assert_eq!(cc_events(&song, 1).first().unwrap().0, 48);
+    }
+
+    #[test]
+    fn test_cc_repeat_makes_on_note_loop() {
+        let song = exec_easy("TimeBase=96 M.onNote(1,2) M.Repeat(on) l4 cdef");
+        let values: Vec<isize> = cc_events(&song, 1).iter().map(|(_, v)| *v).collect();
+        assert_eq!(values, vec![1, 2, 1, 2]);
+        // .Repeat(off) なら値を使い切ったところで終わる
+        let song = exec_easy("TimeBase=96 M.onNote(1,2) M.Repeat(off) l4 cdef");
+        let values: Vec<isize> = cc_events(&song, 1).iter().map(|(_, v)| *v).collect();
+        assert_eq!(values, vec![1, 2]);
+    }
+
+    #[test]
+    fn test_pitch_bend_on_note() {
+        let song = exec_easy("TimeBase=96 PB.onNote(-8192,0,8191) l4 cde");
+        assert_eq!(pitch_bends(&song), vec![(0, 0), (96, 8192), (192, 16383)]);
+    }
+
+    #[test]
+    fn test_cc_on_note_wave_ex_fits_note_length() {
+        // .onNoteWaveEx は波形を音符の長さに合わせて伸縮する
+        let song = exec_easy("TimeBase=96 M.onNoteWaveEx(0,127,!1) l4 cd");
+        let events = cc_events(&song, 1);
+        // 1音目(0〜96)と2音目(96〜192)のそれぞれに波形が収まること
+        assert!(events.iter().all(|(time, _)| *time < 192));
+        assert!(events.iter().any(|(time, _)| *time >= 96));
+    }
+
+    #[test]
+    fn test_cc_on_note_wave_r_repeats_while_note_is_on() {
+        // .onNoteWaveR は音符が鳴っている間くり返す
+        let song = exec_easy("TimeBase=96 M.onNoteWaveR(0,120,!8) l2 c");
+        let events = cc_events(&song, 1);
+        // 2分音符(192)の間に、8分音符(48)の波形が4回くり返される
+        let zero_count = events.iter().filter(|(_, v)| *v == 0).count();
+        assert_eq!(zero_count, 4);
+        assert!(events.iter().all(|(time, _)| *time < 192));
+    }
+
+    #[test]
+    fn test_cc_sine_writes_wave_once() {
+        // .Sine(type,low,high,len,times) --- 0はlow→high→lowの正弦波
+        let song = exec_easy("TimeBase=96 CC.Frequency(24) M.Sine(0,0,100,!1,1) c1");
+        let events = cc_events(&song, 1);
+        assert_eq!(events.first().unwrap(), &(0, 0));
+        // 半周した位置(全音符の半分=192)で最大値になる
+        assert_eq!(events.iter().find(|(t, _)| *t == 192).unwrap().1, 100);
+    }
+
+    #[test]
+    fn test_cc_on_note_sine_writes_for_each_note() {
+        let song = exec_easy("TimeBase=96 CC.Frequency(24) M.onNoteSine(1,0,100,!4,1) l4 cd");
+        let events = cc_events(&song, 1);
+        // 音符ごとに書き込まれる
+        assert!(events.iter().any(|(t, _)| *t == 0));
+        assert!(events.iter().any(|(t, _)| *t == 96));
+    }
+
+    #[test]
+    fn test_pitch_bend_frequency() {
+        // PB.Frequency で書き込み頻度を変えられること
+        // 既定は timebase/32 = 3ステップおき
+        let song = exec_easy("TimeBase=96 PB.onTime(-8192,8191,!4) c");
+        let times: Vec<isize> = pitch_bends(&song).iter().map(|(t, _)| *t).collect();
+        assert_eq!(times[0], 0);
+        assert_eq!(times[1], 3);
+        // 24ステップおきに変更する
+        let song = exec_easy("TimeBase=96 PB.Frequency(24) PB.onTime(-8192,8191,!4) c");
+        let times: Vec<isize> = pitch_bends(&song).iter().map(|(t, _)| *t).collect();
+        assert_eq!(times, vec![0, 24, 48, 72]);
+        // p でも同じ設定が使える
+        let song = exec_easy("TimeBase=96 p.Frequency(24) p.onTime(0,127,!4) c");
+        let times: Vec<isize> = pitch_bends(&song).iter().map(|(t, _)| *t).collect();
+        assert_eq!(times, vec![0, 24, 48, 72]);
+    }
+
+    #[test]
+    fn test_direct_value_clears_reserve() {
+        // 値を直接指定すると先行指定は解除される
+        let song = exec_easy("TimeBase=96 M.onNote(10,20) l4 c M(0) d");
+        let values: Vec<isize> = cc_events(&song, 1).iter().map(|(_, v)| *v).collect();
+        assert_eq!(values, vec![10, 0]);
     }
 }

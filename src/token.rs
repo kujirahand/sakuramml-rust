@@ -37,6 +37,24 @@ pub enum TokenType {
     CConTime,
     CConNote,
     CConNoteWave,
+    /// CC・PBの .onNoteWaveEx --- 音符の長さに合わせて波形を伸縮する
+    CConNoteWaveEx,
+    /// CC・PBの .onNoteWaveR --- 音符が鳴っている間くり返す
+    CConNoteWaveR,
+    /// CC・PBの .onCycle --- 一定時間ごとに値を切り替える
+    CConCycle,
+    /// CC・PBの .Sine --- 正弦波を1回書き込む
+    CCSine,
+    /// CC・PBの .onNoteSine --- 音符ごとに正弦波を書き込む
+    CConNoteSine,
+    /// CC・PBの .Delay --- 書き込み位置の遅延
+    CCDelay,
+    /// CC・PBの .Random --- 書き込む値をランダムにばらつかせる
+    CCRandom,
+    /// CC・PBの .Range --- 書き込む値の下限と上限
+    CCRange,
+    /// CC・PBの .Repeat --- .onNote の値をくり返すか
+    CCRepeat,
     CConTimeFreq,
     Decresc,
     Tempo,
@@ -49,6 +67,8 @@ pub enum TokenType {
     PitchBend,
     PBonTime,
     PBonNoteWave,
+    /// ピッチベンドの .onNote --- 音符ごとに値を切り替える
+    PBonNote,
     LoopBegin,
     LoopEnd,
     LoopBreak,
@@ -72,6 +92,7 @@ pub enum TokenType {
     OctaveRandom,
     OctaveOnNote,
     OctaveOnCycle,
+    OctaveOnTime,
     QLenRandom,
     TimingRandom,
     VelocityRandom,
@@ -80,10 +101,22 @@ pub enum TokenType {
     VelocityOnCycle,
     QLenOnNote,
     QLenOnCycle,
+    QLenOnTime,
     LengthOnNote,
     LengthOnCycle,
+    LengthOnTime,
+    LengthRandom,
     TimingOnNote,
     TimingOnCycle,
+    TimingOnTime,
+    /// 音符属性(v/q/t/o/l)の .Range --- 値の下限と上限 (value_i=対象)
+    NoteParamRange,
+    /// 音符属性(v/q/t/o/l)の .Delay --- 先行指定の遅延 (value_i=対象)
+    NoteParamDelay,
+    /// 音符属性(v/q/t/o/l)の .Repeat --- .onNote の値をくり返すか (value_i=対象)
+    NoteParamRepeat,
+    /// v/q の .Max --- 値の上限を変更する (value_i=対象)
+    NoteParamMax,
     MeasureShift,
     TrackSync,
     TieMode,
@@ -124,6 +157,20 @@ pub enum TokenType {
     NoteOff,
     StrVarReplace,
 }
+
+/// CC・ピッチベンドの先行指定の書き込み先を value_i で表す
+/// 0以上ならCC番号、負ならピッチベンド
+/// p (0〜127) の書式
+pub const WRITE_TARGET_PB_SMALL: isize = -1;
+/// PB (-8192〜8191) の書式
+pub const WRITE_TARGET_PB_BIG: isize = -2;
+
+/// 音符属性の先行指定の対象 (NoteParamRange などの value_i)
+pub const NOTE_PARAM_V: isize = 0;
+pub const NOTE_PARAM_Q: isize = 1;
+pub const NOTE_PARAM_T: isize = 2;
+pub const NOTE_PARAM_O: isize = 3;
+pub const NOTE_PARAM_L: isize = 4;
 
 /// Token.value_type
 pub const VALUE_UNKNOWN: isize = 0x00;

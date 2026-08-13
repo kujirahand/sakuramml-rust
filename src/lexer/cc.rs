@@ -93,61 +93,159 @@ pub(super) fn read_decres(cur: &mut SourceCursor, song: &mut Song, dir: isize) -
     ]);
 }
 
+/// 先行指定の書き込み先(CC番号 / ピッチベンド)
+#[derive(Clone, Copy)]
+pub(super) enum CCTarget {
+    /// コントロールチェンジ(番号)
+    CC(isize),
+    /// ピッチベンド (is_big: 1=PB / 0=p)
+    PitchBend(isize),
+}
+
+impl CCTarget {
+    /// 書き込み先を表す value_i
+    fn value_i(&self) -> isize {
+        match self {
+            CCTarget::CC(no) => *no,
+            CCTarget::PitchBend(is_big) => {
+                if *is_big == 0 { WRITE_TARGET_PB_SMALL } else { WRITE_TARGET_PB_BIG }
+            }
+        }
+    }
+    /// エラーメッセージ用の名前
+    fn name(&self) -> String {
+        match self {
+            CCTarget::CC(no) => format!("CC({})", no),
+            CCTarget::PitchBend(is_big) => {
+                String::from(if *is_big == 0 { "p" } else { "PB" })
+            }
+        }
+    }
+}
+
+/// CC・ピッチベンドの先行指定を読み取る (#65)
+/// 対応していないコマンドのときは None を返す
+pub(super) fn read_cc_option(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    target: CCTarget,
+    cmd: &str,
+) -> Option<Token> {
+    let tv = target.value_i();
+    match cmd {
+        // 一度に low から high へ値を書き込む
+        "onTime" | "T" => {
+            let ia = read_arg_int_array(cur, song);
+            Some(match target {
+                CCTarget::CC(no) => Token::new(TokenType::CConTime, no, vec![ia]),
+                CCTarget::PitchBend(is_big) => Token::new(TokenType::PBonTime, is_big, vec![ia]),
+            })
+        }
+        // ノートオン毎の値の先行指定
+        "onNote" | "N" => {
+            let ia = read_arg_int_array(cur, song);
+            Some(match target {
+                CCTarget::CC(no) => Token::new(TokenType::CConNote, no, vec![ia]),
+                CCTarget::PitchBend(is_big) => Token::new(TokenType::PBonNote, is_big, vec![ia]),
+            })
+        }
+        // ノートオン毎に直線的な値の推移を書き込む
+        "onNoteWave" | "W" => {
+            let ia = read_arg_int_array(cur, song);
+            Some(match target {
+                CCTarget::CC(no) => Token::new(TokenType::CConNoteWave, no, vec![ia]),
+                CCTarget::PitchBend(is_big) => {
+                    Token::new(TokenType::PBonNoteWave, is_big, vec![ia])
+                }
+            })
+        }
+        // ノートオン毎に、ノートの長さに応じた波形を書き込む
+        "onNoteWaveEx" | "WE" => {
+            let ia = read_arg_int_array(cur, song);
+            Some(Token::new(TokenType::CConNoteWaveEx, tv, vec![ia]))
+        }
+        // ノートオンしている間、波形をくり返す
+        "onNoteWaveR" | "WR" => {
+            let ia = read_arg_int_array(cur, song);
+            Some(Token::new(TokenType::CConNoteWaveR, tv, vec![ia]))
+        }
+        // 一定時間ごとの値の先行指定 (ステップ値, 値1, 値2, ...)
+        "onCycle" | "C" => {
+            let ia = read_arg_int_array(cur, song);
+            Some(Token::new(TokenType::CConCycle, tv, vec![ia]))
+        }
+        // 正弦波を1回だけ書き込む (type,low,high,len,times)
+        "Sine" => {
+            let ia = read_arg_int_array(cur, song);
+            Some(Token::new(TokenType::CCSine, tv, vec![ia]))
+        }
+        // ノートオン毎に正弦波を書き込む (type,low,high,len,times)
+        "onNoteSine" => {
+            let ia = read_arg_int_array(cur, song);
+            Some(Token::new(TokenType::CConNoteSine, tv, vec![ia]))
+        }
+        // 書き込み頻度の指定
+        "Frequency" => {
+            let a = read_arg_value(cur, song);
+            Some(Token::new(TokenType::CConTimeFreq, tv, vec![a]))
+        }
+        // 先行指定の効果の遅延時間
+        "Delay" => {
+            let a = read_arg_value(cur, song);
+            Some(Token::new(TokenType::CCDelay, tv, vec![a]))
+        }
+        // 書き込まれる値にランダムな値を足す
+        "Random" => {
+            let a = read_arg_value(cur, song);
+            Some(Token::new(TokenType::CCRandom, tv, vec![a]))
+        }
+        // 書き込まれる値に下限と上限を設定する
+        "Range" => {
+            let ia = read_arg_int_array(cur, song);
+            Some(Token::new(TokenType::CCRange, tv, vec![ia]))
+        }
+        // .onNote などで値をくり返すかどうか
+        "Repeat" => {
+            let on = read_arg_on_off(cur, song);
+            Some(Token::new(
+                TokenType::CCRepeat,
+                tv,
+                vec![SValue::from_i(if on { 1 } else { 0 })],
+            ))
+        }
+        _ => None,
+    }
+}
+
+/// 未対応の先行指定コマンドを検出してエラーを出す (#65)
+/// 引数を読み飛ばさないと `M.Delay(10)` が `M(10)` に化けてしまう
+pub(super) fn read_cc_unknown_option(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    target: CCTarget,
+    cmd: &str,
+) -> Token {
+    let _ = read_arg_int_array(cur, song); // 引数を読み飛ばす
+    let msg = format!("not supported : {}.{}", target.name(), cmd);
+    song.add_log(format!("[ERROR]({}) {}", cur.line, msg));
+    Token::new_empty(&msg, cur.line)
+}
+
 /// read command CC
 pub(super) fn read_command_cc(cur: &mut SourceCursor, no: isize, song: &mut Song) -> Token {
     if cur.eq_char('.') {
         cur.next(); // skip '.'
         let cmd = cur.get_word();
-        if cmd == "onTime" || cmd == "T" {
-            let ia = read_arg_int_array(cur, song);
-            return Token::new(TokenType::CConTime, no, vec![ia]);
-        } else if cmd == "onNote" || cmd == "N" {
-            let ia = read_arg_int_array(cur, song);
-            return Token::new(TokenType::CConNote, no, vec![ia]);
-        } else if cmd == "Frequency" {
-            let a = read_arg_value(cur, song);
-            return Token::new(TokenType::CConTimeFreq, 0, vec![a]);
-        } else if cmd == "onNoteWave" || cmd == "W" {
-            let ia = read_arg_int_array(cur, song);
-            return Token::new(TokenType::CConNoteWave, no, vec![ia]);
-        } else if cmd == "onNoteWaveEx" || cmd == "WE" {
-            // TODO: not supported
-            let _ = read_arg_int_array(cur, song);
-            song.add_log(format!("[WARN]({}) not supported : onNoteWaveEx", cur.line));
-            return Token::new_empty("not supported : onNoteWave", cur.line);
-        } else if cmd == "onNoteWaveR" || cmd == "WR"{ // (命令).onNoteWaveR(low,high,len...) // ノートオンしている間、low,higi,len...を繰り返す
-            // TODO: not supported
-            let a = read_arg_int_array(cur, song);
-            song.add_log(format!("[WARN]({}) not supported : onNoteWaveR : {:?}", cur.line, a));
-            return Token::new_empty("not supported : onNoteWaveR", cur.line);
-        } else if cmd == "onCycle" || cmd == "C" {
-            // TODO: not supported
-            let _ = read_arg_int_array(cur, song);
-            song.add_log(format!("[WARN]({}) not supported : onCycle", cur.line));
-            return Token::new_empty("not supported : onCycle", cur.line);
-        } else if cmd == "Sine" { // .Sine(type,low,high,len,times) // type=0:sine/1:up sine/2:down sine
-            // TODO: not supported
-            let _ = read_arg_int_array(cur, song);
-            song.add_log(format!("[WARN]({}) not supported : Sine", cur.line));
-            return Token::new_empty("not supported : Sine", cur.line);
-        } else if cmd == "onNoteSine" { // .onNoteSine(type,low,high,len,times) // type=0:sine/1:up sine/2:down sine
-            // TODO: not supported
-            let _ = read_arg_int_array(cur, song);
-            song.add_log(format!("[WARN]({}) not supported : onNoteSine", cur.line));
-            return Token::new_empty("not supported : onNoteSine", cur.line);
+        let target = CCTarget::CC(no);
+        if let Some(t) = read_cc_option(cur, song, target, &cmd) {
+            return t;
         }
-        /*
-        https://sakuramml.com/doc/reference/cc-option.htm
-        Delay	先行指定の効果の遅延時間
-        Repeat	予約指定で.onNoteなどで繰り返すかどうか
-        Random	書き込まれる値に、vのランダムな値を足す
-        Range	書き込まれる値に、上限と下限を設定する
-        Frequency	コントロールチェンジの書き込み頻度を指定する
-        */
+        // 解釈できない指定を、無言で `CC(値)` に化けさせない
+        return read_cc_unknown_option(cur, song, target, &cmd);
     }
     if cur.eq_char('=') { cur.next(); }
     let value_tokens = read_args_tokens(cur, song);
-    
+
     return Token::new_tokens(TokenType::ControlChange, no, value_tokens);
 }
 
@@ -168,24 +266,20 @@ pub(super) fn read_voice(cur: &mut SourceCursor, song: &mut Song) -> Token {
     Token::new_tokens(TokenType::Voice, 0, args)
 }
 
-/// ピッチベンドの先行指定(.onTime/.onNoteWave)を読み取る
+/// ピッチベンドの先行指定を読み取る
 /// is_big: 1=PB(-8192〜8191) / 0=p(0〜127)
 fn read_command_pitch_bend(cur: &mut SourceCursor, song: &mut Song, is_big: isize) -> Option<Token> {
-    for (cmd, short, ttype) in [
-        (".onTime", ".T", TokenType::PBonTime),
-        (".onNoteWave", ".W", TokenType::PBonNoteWave),
-    ] {
-        if cur.eq(cmd) {
-            cur.index += cmd.len();
-        } else if cur.eq(short) {
-            cur.index += short.len();
-        } else {
-            continue;
-        }
-        let ia = read_arg_int_array(cur, song);
-        return Some(Token::new(ttype, is_big, vec![ia]));
+    if !cur.eq_char('.') {
+        return None;
     }
-    None
+    cur.next(); // skip '.'
+    let cmd = cur.get_word();
+    let target = CCTarget::PitchBend(is_big);
+    if let Some(t) = read_cc_option(cur, song, target, &cmd) {
+        return Some(t);
+    }
+    // 解釈できない指定を、無言で値指定に化けさせない
+    Some(read_cc_unknown_option(cur, song, target, &cmd))
 }
 
 pub(super) fn read_command_pitch_bend_big(cur: &mut SourceCursor, song: &mut Song) -> Token {
