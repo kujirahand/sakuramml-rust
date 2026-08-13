@@ -534,21 +534,30 @@ mod test_issue_130 {
 
     #[test]
     fn test_operator_precedence() {
-        // & (45) has higher precedence than | (47): 1 | (2 & 4) = 1 | 0 = 1
+        // 旧サクラでは &、^、| は同じ優先順位で左から評価する
+        // (1 | 2) & 4 = 3 & 4 = 0
         let song = exec_easy("Int A = 1 | 2 & 4; PRINT(A)");
-        assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
-
-        // Parentheses override priority: (1 | 2) & 4 = 3 & 4 = 0
-        let song = exec_easy("Int B = (1 | 2) & 4; PRINT(B)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 0");
 
-        // ^ (46) has higher precedence than | (47): (3 ^ 1) | 4 = 2 | 4 = 6
-        let song = exec_easy("Int C = 3 ^ 1 | 4; PRINT(C)");
-        assert_eq!(song.get_logs_str(), "[PRINT](0) 6");
+        // 括弧は優先順位を上書きする: 1 | (2 & 4) = 1 | 0 = 1
+        let song = exec_easy("Int B = 1 | (2 & 4); PRINT(B)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 1");
 
-        // + (30) has higher precedence than & (45): (1 + 2) & 3 = 3 & 3 = 3
+        // (1 | 2) ^ 3 = 3 ^ 3 = 0
+        let song = exec_easy("Int C = 1 | 2 ^ 3; PRINT(C)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 0");
+
+        // + はビット演算より優先される: (1 + 2) & 3 = 3 & 3 = 3
         let song = exec_easy("Int D = 1 + 2 & 3; PRINT(D)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 3");
+
+        // 同じ優先順位の算術演算も左から評価する: (8 - 4) - 2 = 2
+        let song = exec_easy("Int E = 8 - 4 - 2; PRINT(E)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 2");
+
+        // 明示的な括弧は維持される: 8 - (4 - 2) = 6
+        let song = exec_easy("Int F = 8 - (4 - 2); PRINT(F)");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 6");
     }
 
     #[test]
