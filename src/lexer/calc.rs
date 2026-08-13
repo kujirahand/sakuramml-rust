@@ -217,7 +217,7 @@ fn is_noteno_func_name(name: &str) -> bool {
 /// それ以外(変数名など)は従来どおり計算式として解析する
 fn is_raw_mml_note(arg: &str) -> bool {
     match arg.chars().next() {
-        Some(c) => matches!(c, 'a'..='g' | 'n' | 'o' | '<' | '>'),
+        Some(c) => matches!(c, 'a'..='g' | 'n' | 'o' | '<' | '>' | '`'),
         None => false,
     }
 }

@@ -348,6 +348,14 @@ mod test_for_runner {
         // キーシフトを反映する
         let song = exec_easy("Key(2) PRINT(NoteNo(o5c))");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 62");
+        // 一度だけオクターブを変える「`」も反映する
+        let song = exec_easy("o5 PRINT(NoteNo(`c))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 72");
+        // オクターブは実行時と同じく0-10に丸める
+        let song = exec_easy("PRINT(NoteNo(o99c)) PRINT(NoteNo(o-5c))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 120\n[PRINT](0) 0");
+        let song = exec_easy("PRINT(NoteNo(>>>>>>>>>>>c)) PRINT(NoteNo(<<<<<<<<<<<c))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) 120\n[PRINT](0) 0");
         // 計算式の中でも使える / 変数に入れたMMLも使える
         let song = exec_easy("STR MMLA={o5e} PRINT(NoteNo(MMLA)) PRINT(NoteNo(o5c) + 1)");
         assert_eq!(song.get_logs_str(), "[PRINT](0) 64\n[PRINT](0) 61");

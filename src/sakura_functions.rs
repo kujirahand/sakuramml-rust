@@ -1,5 +1,6 @@
 use crate::lexer::lex;
 use crate::runner::note::{get_note_info_from_token, set_note_info_with_default_value};
+use crate::runner::value_range;
 use crate::song::{Song};
 use crate::svalue::{SValue};
 use crate::token::{Token, TokenType};
@@ -193,14 +194,17 @@ pub fn calc_mml(song: &mut Song, args: Vec<SValue>) -> SValue {
 }
 
 /// トークン列から最初の音符を探して音符番号を返す
-/// オクターブ指定(o5 や > <)は音符の直前までを反映する
+/// オクターブ指定(o5 や > < ` ")は音符の直前までを反映する
+/// オクターブの範囲は、実行時(runner)と同じく 0-10 に丸める
 fn find_note_no(song: &mut Song, tokens: &[Token]) -> Option<isize> {
     // 現在のトラックのオクターブを初期値にする
     let mut octave = song.tracks[song.cur_track].octave;
     for t in tokens.iter() {
         match t.ttype {
-            TokenType::Octave => { octave = t.value_i; },
-            TokenType::OctaveRel => { octave += t.value_i; },
+            TokenType::Octave => { octave = value_range(0, t.value_i, 10); },
+            TokenType::OctaveRel | TokenType::OctaveOnce => {
+                octave = value_range(0, octave + t.value_i, 10);
+            },
             TokenType::Note => {
                 let mut note = get_note_info_from_token(t);
                 // 音符自身にオクターブ指定(c,,,,5 など)がなければ、直前のオクターブを使う
