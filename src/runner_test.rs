@@ -517,6 +517,19 @@ mod test_issue_74 {
     }
 
     #[test]
+    fn test_cc_on_time_ignores_non_positive_lengths_without_shifting_following_section() {
+        let song = exec_easy("TimeBase=96 M.T(90,100,0,100,110,-4,10,20,8)");
+        let events = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::ControllChange && event.v1 == 1)
+            .map(|event| (event.time, event.v2))
+            .collect::<Vec<_>>();
+
+        assert_eq!(events, vec![(0, 10), (4, 15)]);
+    }
+
+    #[test]
     fn test_pitch_bend_on_time_sections_are_written_sequentially() {
         let song = exec_easy("TimeBase=96 PitchBend.T(-8192,0,6,0,8191,6)");
         let times = song.tracks[0]
@@ -527,5 +540,18 @@ mod test_issue_74 {
             .collect::<Vec<_>>();
 
         assert_eq!(times, vec![0, 3, 6, 9]);
+    }
+
+    #[test]
+    fn test_pitch_bend_on_time_ignores_non_positive_lengths_without_shifting_following_section() {
+        let song = exec_easy("TimeBase=96 PitchBend.T(-8192,0,0,0,8191,-6,100,200,6)");
+        let events = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::PitchBend)
+            .map(|event| (event.time, event.v1))
+            .collect::<Vec<_>>();
+
+        assert_eq!(events, vec![(0, 8292), (3, 8342)]);
     }
 }
