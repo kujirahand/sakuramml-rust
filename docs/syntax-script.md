@@ -196,6 +196,7 @@ Print(Add(1, 2))    // 3
 | `Mid` | `Mid(S, N, M)` | 文字列Sの位置NからM文字を取り出す。別名 `MID` |
 | `Replace` | `Replace(S, A, B)` | 文字列Sの中のAをBに置き換える。別名 `REPLACE` |
 | `SizeOf` | `SizeOf(A)` | 配列の要素数を返す。別名 `SIZEOF` |
+| `ArrayFlatten` | `ArrayFlatten(A)` | 入れ子の配列を再帰的に平坦化する。別名 `ARRAYFLATTEN` |
 | `StrLen` | `StrLen(S)` | 文字列の長さを返す。別名 `STRLEN` |
 | `MML` | `MML(C)` | `l` `v` `o` `q` `t` `@` `BR` `p%` `Key` `TimeKey` `Port` の現在値を返す |
 | `NoteNo` | `NoteNo(MML)` | MMLで書いた音符の音符番号を返す。別名 `NOTENO` |

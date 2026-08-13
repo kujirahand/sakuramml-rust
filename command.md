@@ -256,6 +256,8 @@ Function usable within an expression (計算式で使える関数)
 | REPLACE | REPLACE(S, A, B) | Replace A in string S with B (ex) REPLACE({abc}, {a}, {b}) // =>  bbc |
 | SizeOf | SizeOf(A) | return size of A |
 | SIZEOF | SIZEOF(A) | return size of A |
+| ArrayFlatten | ArrayFlatten(A) | flatten nested arrays |
+| ARRAYFLATTEN | ARRAYFLATTEN(A) | flatten nested arrays |
 | StrLen | StrLen(S) | return length of S (ex) StrLen({abc}) // => 3 |
 | STRLEN | STRLEN(S) | return length of S (ex) STRLEN({abc}) // => 3 |
 | MML | MML(C) | return C(o/v/q/t/@/BR) value (ex) MML({o}) |

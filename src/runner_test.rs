@@ -1314,3 +1314,84 @@ mod test_issue_65 {
         assert_eq!(values, vec![10, 0]);
     }
 }
+
+mod test_issue_129 {
+    use super::*;
+    use crate::song::{EventType, Song};
+
+    fn cc_events(song: &Song, no: isize) -> Vec<(isize, isize)> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::ControllChange && e.v1 == no)
+            .map(|e| (e.time, e.v2))
+            .collect()
+    }
+
+    fn note_qlens(song: &Song) -> Vec<isize> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::NoteOn)
+            .map(|e| e.v2)
+            .collect()
+    }
+
+    fn velocities(song: &Song) -> Vec<isize> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::NoteOn)
+            .map(|e| e.v3)
+            .collect()
+    }
+
+    #[test]
+    fn test_ontime_array_expansion() {
+        // Issue #129 講座の例: q.onTime(m, A, m, m, A, m, A, A)
+        let song = exec_easy(
+            "TimeBase=96 Array m=(10,10,!16); Array A=(100,100,!16); q.onTime(m,A); l16 o6 cdef",
+        );
+        let qlens = note_qlens(&song);
+        assert_eq!(qlens.len(), 4);
+        assert_eq!(qlens[0], 2);
+        assert_eq!(qlens[1], 24);
+
+        // v.onTime での配列変数展開
+        let song = exec_easy("TimeBase=96 Array low=(20,20,!4); Array high=(100,100,!4); v.onTime(low,high); l4 cdef");
+        let vels = velocities(&song);
+        assert_eq!(vels[0], 20);
+        assert_eq!(vels[1], 100);
+
+        // CC / Modulation での配列変数展開
+        let song = exec_easy(
+            "TimeBase=96 Array p1=(10,10,!4); Array p2=(80,80,!4); M.onTime(p1,p2); l4 cd",
+        );
+        let m_events = cc_events(&song, 1);
+        assert!(!m_events.is_empty());
+        assert_eq!(m_events[0].1, 10);
+    }
+
+    #[test]
+    fn test_array_flattening() {
+        // 通常の配列は入れ子を維持し、ArrayFlattenで明示的に平坦化する
+        let song = exec_easy("ARRAY A=(1,2); ARRAY B=(3,4); ARRAY C=(A,B,5); ARRAY D=ArrayFlatten(C); PRINT(C); PRINT(SizeOf(C)); PRINT(D); PRINT(SizeOf(D))");
+        assert_eq!(
+            song.get_logs_str(),
+            "[PRINT](0) ((1,2),(3,4),5)\n[PRINT](0) 3\n[PRINT](0) (1,2,3,4,5)\n[PRINT](0) 5"
+        );
+
+        // 空配列と深い入れ子を展開し、大文字の別名も利用できる
+        let song = exec_easy("ARRAY Empty=(); ARRAY A=(Empty, 1, (2, Empty, (3,4))); ARRAY B=ARRAYFLATTEN(A); PRINT(B); PRINT(SizeOf(B))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) (1,2,3,4)\n[PRINT](0) 4");
+    }
+
+    #[test]
+    fn test_array_edge_cases() {
+        // 文字列数値を含む配列の先行指定展開
+        let song = exec_easy("TimeBase=96 Array s=(\"50\",\"100\",!1); q.onTime(s); l4 cd");
+        let qlens = note_qlens(&song);
+        assert_eq!(qlens[0], 48);
+        assert_eq!(qlens[1], 59);
+    }
+}
