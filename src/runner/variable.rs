@@ -117,7 +117,7 @@ pub(super) fn exec_make_array(song: &mut Song, t: &Token) {
             let mut a: Vec<SValue> = vec![];
             for tok in tokens {
                 let v = exec_value(song, std::slice::from_ref(tok));
-                a.push(v);
+                a.extend(v.to_array_flatten());
             }
             song.stack.push(SValue::Array(a));
         }

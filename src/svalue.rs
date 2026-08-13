@@ -100,29 +100,17 @@ impl SValue {
     /// to int array (flatten)
     pub fn to_int_array(&self) -> Vec<isize> {
         match self {
-            // 配列をVec<isize>に変換
             Self::Array(a) => {
                 let mut res: Vec<isize> = vec![];
                 for v in a.iter() {
-                    // 配列の中に配列があれば再帰的に処理
-                    match v {
-                        SValue::Array(a2) => {
-                            for v2 in a2.iter() {
-                                let a3 = v2.to_int_array();
-                                res.extend(a3);
-                            }
-                        }
-                        _ => {
-                            res.push(v.to_i());
-                        }
-                    }
+                    res.extend(v.to_int_array());
                 }
                 res
             }
             Self::IntArray(a) => a.clone(),
-            _ => {
-                vec![self.to_i()]
-            }
+            Self::StrArray(a) => a.iter().map(|s| s.parse().unwrap_or(0)).collect(),
+            Self::None => vec![],
+            _ => vec![self.to_i()],
         }
     }
     pub fn to_array(&self) -> Vec<SValue> {
@@ -138,6 +126,22 @@ impl SValue {
             _ => {
                 vec![self.clone()]
             }
+        }
+    }
+    /// to array (flatten)
+    pub fn to_array_flatten(&self) -> Vec<SValue> {
+        match self {
+            Self::Array(a) => {
+                let mut res: Vec<SValue> = vec![];
+                for v in a.iter() {
+                    res.extend(v.to_array_flatten());
+                }
+                res
+            }
+            Self::IntArray(a) => a.iter().map(|v| SValue::from_i(*v)).collect(),
+            Self::StrArray(a) => a.iter().map(|s| SValue::from_s(s.clone())).collect(),
+            Self::None => vec![],
+            _ => vec![self.clone()],
         }
     }
     pub fn is_none(&self) -> bool {

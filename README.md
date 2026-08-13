@@ -194,6 +194,7 @@ control changes / pitch bend.
 
 ```mml
 v.onTime(0,127,!1)l8cccccccc
+Array m=(10,10,!16); Array A=(100,100,!16); q.onTime(m,A) // Array arguments in advance specifications
 v70 v__1.onCycle(!4,10,-10) cdef // velocities: 80,60,80,60
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^
 ```

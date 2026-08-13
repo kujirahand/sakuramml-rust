@@ -196,6 +196,7 @@ v127 c ( c ( c (( c )) c ) c ) c
 
 ```mml
 v.onTime(0,127,!1)l8cccccccc
+Array m=(10,10,!16); Array A=(100,100,!16); q.onTime(m,A) // 先行指定の配列引数展開
 v70 v__1.onCycle(!4,10,-10) cdef // ベロシティは80,60,80,60
 t.onCycle(!16,0,8) l16 cccc cccc // 16分音符ごとにハーフシャッフル
 BR(2) PB.onTime(-8192,0,!4) l4c PB(0) efg^

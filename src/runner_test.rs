@@ -325,9 +325,9 @@ mod test_for_runner {
         assert_eq!(song.get_logs_str(), "[PRINT](0) 3");
         // combine
         let song = exec_easy("ARRAY A=(1,1);ARRAY B=(2,2);ARRAY C=(3,3);PRINT((A,B,C))");
-        assert_eq!(song.get_logs_str(), "[PRINT](0) ((1,1),(2,2),(3,3))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) (1,1,2,2,3,3)");
         let song = exec_easy("ARRAY A=(1,);ARRAY B=(2,);ARRAY C=(3,);PRINT((A,B,C))");
-        assert_eq!(song.get_logs_str(), "[PRINT](0) ((1),(2),(3))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) (1,2,3)");
     }
     #[test]
     fn test_lex_neg_number() {
@@ -1312,5 +1312,79 @@ mod test_issue_65 {
         let song = exec_easy("TimeBase=96 M.onNote(10,20) l4 c M(0) d");
         let values: Vec<isize> = cc_events(&song, 1).iter().map(|(_, v)| *v).collect();
         assert_eq!(values, vec![10, 0]);
+    }
+}
+
+mod test_issue_129 {
+    use super::*;
+    use crate::song::{EventType, Song};
+
+    fn cc_events(song: &Song, no: isize) -> Vec<(isize, isize)> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::ControllChange && e.v1 == no)
+            .map(|e| (e.time, e.v2))
+            .collect()
+    }
+
+    fn note_qlens(song: &Song) -> Vec<isize> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::NoteOn)
+            .map(|e| e.v2)
+            .collect()
+    }
+
+    fn velocities(song: &Song) -> Vec<isize> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|e| e.etype == EventType::NoteOn)
+            .map(|e| e.v3)
+            .collect()
+    }
+
+    #[test]
+    fn test_ontime_array_expansion() {
+        // Issue #129 講座の例: q.onTime(m, A, m, m, A, m, A, A)
+        let song = exec_easy("TimeBase=96 Array m=(10,10,!16); Array A=(100,100,!16); q.onTime(m,A); l16 o6 cdef");
+        let qlens = note_qlens(&song);
+        assert_eq!(qlens.len(), 4);
+        assert_eq!(qlens[0], 2);
+        assert_eq!(qlens[1], 24);
+
+        // v.onTime での配列変数展開
+        let song = exec_easy("TimeBase=96 Array low=(20,20,!4); Array high=(100,100,!4); v.onTime(low,high); l4 cdef");
+        let vels = velocities(&song);
+        assert_eq!(vels[0], 20);
+        assert_eq!(vels[1], 100);
+
+        // CC / Modulation での配列変数展開
+        let song = exec_easy("TimeBase=96 Array p1=(10,10,!4); Array p2=(80,80,!4); M.onTime(p1,p2); l4 cd");
+        let m_events = cc_events(&song, 1);
+        assert!(!m_events.is_empty());
+        assert_eq!(m_events[0].1, 10);
+    }
+
+    #[test]
+    fn test_array_flattening() {
+        // A = (A, B, C) による配列の結合と平坦化
+        let song = exec_easy("ARRAY A=(1,2); ARRAY B=(3,4); ARRAY C=(A,B,5); PRINT(C); PRINT(SizeOf(C))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) (1,2,3,4,5)\n[PRINT](0) 5");
+
+        // 空配列とネスト構造の平坦化
+        let song = exec_easy("ARRAY Empty=(); ARRAY D=(Empty, 1, (2, Empty, 3)); PRINT(D); PRINT(SizeOf(D))");
+        assert_eq!(song.get_logs_str(), "[PRINT](0) (1,2,3)\n[PRINT](0) 3");
+    }
+
+    #[test]
+    fn test_array_edge_cases() {
+        // 文字列数値を含む配列の先行指定展開
+        let song = exec_easy("TimeBase=96 Array s=(\"50\",\"100\",!1); q.onTime(s); l4 cd");
+        let qlens = note_qlens(&song);
+        assert_eq!(qlens[0], 48);
+        assert_eq!(qlens[1], 59);
     }
 }

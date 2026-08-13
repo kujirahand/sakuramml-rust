@@ -30,7 +30,7 @@ pub(super) fn read_arg_value(cur: &mut SourceCursor, song: &mut Song) -> SValue 
     cur.skip_space();
     let ch = cur.peek_n(0);
     match ch {
-        'A'..='Z' | '_' => {
+        'A'..='Z' | 'a'..='z' | '_' => {
             let var_name = cur.get_word();
             SValue::from_s(format!("={}", var_name)) // ref: variable
         }
