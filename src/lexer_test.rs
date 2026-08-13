@@ -89,8 +89,14 @@ mod tests {
     #[test]
     fn test_lex_cc() {
         let mut song = Song::new();
-        assert_eq!(&tokens_to_str(&lex(&mut song, "P(10)", 0)), "[ControlChange,10]");
-        assert_eq!(&tokens_to_str(&lex(&mut song, "M(10)", 0)), "[ControlChange,1]");
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "P(10)", 0)),
+            "[ControlChange,10]"
+        );
+        assert_eq!(
+            &tokens_to_str(&lex(&mut song, "M(10)", 0)),
+            "[ControlChange,1]"
+        );
     }
 
     #[test]
@@ -99,14 +105,20 @@ mod tests {
         let mut song = Song::new();
         // 「///」だけデバッグ用コメントとして残る (「//」は消える)
         let tokens = lex(&mut song, "// aaa\ncd\n/// bbb\n", 0);
-        let comments: Vec<_> = tokens.iter().filter(|t| t.ttype == TokenType::Comment).collect();
+        let comments: Vec<_> = tokens
+            .iter()
+            .filter(|t| t.ttype == TokenType::Comment)
+            .collect();
         assert_eq!(comments.len(), 1);
         assert_eq!(comments[0].value_i, COMMENT_DEBUG);
         assert_eq!(comments[0].value_s.as_deref(), Some("bbb"));
         assert_eq!(comments[0].lineno, 2);
         // コメント記号「///」だけを除去する (本文先頭の「/」は残す)
         let tokens = lex(&mut song, "/// /path/to", 0);
-        let comments: Vec<_> = tokens.iter().filter(|t| t.ttype == TokenType::Comment).collect();
+        let comments: Vec<_> = tokens
+            .iter()
+            .filter(|t| t.ttype == TokenType::Comment)
+            .collect();
         assert_eq!(comments[0].value_s.as_deref(), Some("/path/to"));
     }
 

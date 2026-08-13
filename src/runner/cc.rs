@@ -7,7 +7,9 @@ pub(super) fn with_write_ctx<F>(song: &mut Song, f: F)
 where
     F: FnOnce(&mut Track, &mut WriteCtx),
 {
-    if song.event_limit_exceeded() { return; }
+    if song.event_limit_exceeded() {
+        return;
+    }
     let timebase = song.timebase;
     let mut seed = song.rand_seed;
     let max_event_bytes = song.max_event_bytes();
@@ -45,12 +47,22 @@ pub(super) fn exec_cc_rpn_nrpn(song: &mut Song, t: &Token, cc1: isize, cc2: isiz
     if cc1 == 101 && cc2 == 100 && msb == 0 && lsb == 0 {
         trk!(song).bend_range = val;
     }
-    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb)) { return; }
-    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb)) { return; }
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb)) {
+        return;
+    }
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb)) {
+        return;
+    }
     song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val));
 }
 
-pub(super) fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc2: isize, cc3: isize) {
+pub(super) fn exec_cc_rpn_nrpn_direct(
+    song: &mut Song,
+    t: &Token,
+    cc1: isize,
+    cc2: isize,
+    cc3: isize,
+) {
     let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() != 3 {
         runtime_error(song, "RPN/NRPN needs 3 arguments");
@@ -59,8 +71,12 @@ pub(super) fn exec_cc_rpn_nrpn_direct(song: &mut Song, t: &Token, cc1: isize, cc
     let msb = args[0].to_i();
     let lsb = args[1].to_i();
     let val = args[2].to_i();
-    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb)) { return; }
-    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb)) { return; }
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc1, msb)) {
+        return;
+    }
+    if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc2, lsb)) {
+        return;
+    }
     song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, cc3, val));
 }
 
@@ -118,8 +134,22 @@ pub(super) fn exec_voice(song: &mut Song, t: &Token) {
     if args.len() == 1 {
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
     } else {
-        if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x00, bank_msb)) { return; } // msb
-        if !song.add_event(Event::cc(trk!(song).timepos, trk!(song).channel, 0x20, bank_lsb)) { return; } // lsb
+        if !song.add_event(Event::cc(
+            trk!(song).timepos,
+            trk!(song).channel,
+            0x00,
+            bank_msb,
+        )) {
+            return;
+        } // msb
+        if !song.add_event(Event::cc(
+            trk!(song).timepos,
+            trk!(song).channel,
+            0x20,
+            bank_lsb,
+        )) {
+            return;
+        } // lsb
         song.add_event(Event::voice(trk!(song).timepos, trk!(song).channel, no));
         // println!("voice: no={}, bank_msb={}, bank_lsb={}", no, bank_msb, bank_lsb);
     }
@@ -127,7 +157,9 @@ pub(super) fn exec_voice(song: &mut Song, t: &Token) {
 
 pub(super) fn exec_decres(song: &mut Song, t: &Token) {
     let mut len_s = t.data[0].to_s();
-    if len_s == "" { len_s = "1".to_string(); }
+    if len_s == "" {
+        len_s = "1".to_string();
+    }
     let v1 = var_extract(&t.data[1], song).to_i();
     let v2 = var_extract(&t.data[2], song).to_i();
     let len = calc_length(&len_s, song.timebase, trk!(song).length);
@@ -138,7 +170,11 @@ pub(super) fn exec_decres(song: &mut Song, t: &Token) {
 
 /// フェードイン・フェードアウト
 pub(super) fn exec_fade_io(song: &mut Song, t: &Token) {
-    let measures = t.data.first().map(|v| var_extract(v, song).to_i()).unwrap_or(0);
+    let measures = t
+        .data
+        .first()
+        .map(|v| var_extract(v, song).to_i())
+        .unwrap_or(0);
     let len = song.timebase * 4 * measures;
     let values = if t.value_i >= 1 {
         vec![0, 127, len]
@@ -165,8 +201,16 @@ pub(super) fn exec_pitch_bend(song: &mut Song, t: &Token) {
     // 単発のピッチベンド指定で、先行指定を解除する
     trk!(song).remove_reserve(WriteTarget::PitchBend(1));
     let val = var_extract(&t.data[0], song).to_i();
-    trk!(song).pitch_bend = if t.value_i == 0 { val * 128 - 8192 } else { val };
-    let val = if t.value_i == 0 { val * 128 } else { val + 8192 };
+    trk!(song).pitch_bend = if t.value_i == 0 {
+        val * 128 - 8192
+    } else {
+        val
+    };
+    let val = if t.value_i == 0 {
+        val * 128
+    } else {
+        val + 8192
+    };
     song.add_event(Event::pitch_bend(
         trk!(song).timepos,
         trk!(song).channel,
@@ -264,7 +308,9 @@ pub(super) fn exec_cc_on_note_wave_r(song: &mut Song, t: &Token) {
 /// 音符や休符で時間が進んだあとに呼ぶ。呼ばないと、長い音符の途中や
 /// 曲の末尾で周期的な書き込みが止まってしまう
 pub(super) fn flush_cc_on_cycle(song: &mut Song) {
-    if trk!(song).cc_on_cycle.len() == 0 { return; }
+    if trk!(song).cc_on_cycle.len() == 0 {
+        return;
+    }
     // 現在位置ちょうどの書き込みは、次の音符の発音時に確定させる
     // (ここで書き込むと、曲の末尾に余分なイベントが増えてしまう)
     let until = trk!(song).timepos - 1;
@@ -310,7 +356,15 @@ pub(super) fn exec_cc_sine(song: &mut Song, t: &Token) {
     };
     trk!(song).remove_reserve(sine.target);
     with_write_ctx(song, |trk, ctx| {
-        trk.write_sine(sine.target, sine.stype, sine.low, sine.high, sine.len, sine.times, ctx)
+        trk.write_sine(
+            sine.target,
+            sine.stype,
+            sine.low,
+            sine.high,
+            sine.len,
+            sine.times,
+            ctx,
+        )
     });
 }
 

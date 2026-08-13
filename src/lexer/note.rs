@@ -110,11 +110,7 @@ pub(super) fn read_note_param_option(
         // .onNote などで値をくり返すかどうか
         "Repeat" => {
             let on = read_arg_on_off(cur, song);
-            Some(Token::new(
-                TokenType::NoteParamRepeat,
-                target,
-                vec![on],
-            ))
+            Some(Token::new(TokenType::NoteParamRepeat, target, vec![on]))
         }
         // 値の上限を変更する (v/q のみ)
         "Max" => {
@@ -259,7 +255,11 @@ pub(super) fn read_velocity(cur: &mut SourceCursor, song: &mut Song) -> Token {
     }
     // v(no)
     let value = read_arg_value(cur, song);
-    Token::new(TokenType::Velocity, value.to_i(), vec![value, SValue::from_i(ino)])
+    Token::new(
+        TokenType::Velocity,
+        value.to_i(),
+        vec![value, SValue::from_i(ino)],
+    )
 }
 
 pub(super) fn read_timing(cur: &mut SourceCursor, song: &mut Song) -> Token {

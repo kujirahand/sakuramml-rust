@@ -1,21 +1,21 @@
 //! "sakruamml-rust" is a MML/ABC to MIDI compier.
-//! This compiler that converts the text of "cde" into MIDI files. 
+//! This compiler that converts the text of "cde" into MIDI files.
 //! It is a tool that allows you to easily create music.
 
-pub mod sakura_version;
-pub mod sakura_message;
-pub mod source_cursor;
-pub mod sakura_functions;
-pub mod token;
 pub mod lexer;
-pub mod song;
-pub mod svalue;
 pub mod midi;
-pub mod sutoton;
-pub mod runner;
-pub mod note_length;
 pub mod mml_def;
+pub mod note_length;
+pub mod runner;
+pub mod sakura_functions;
+pub mod sakura_message;
+pub mod sakura_version;
+pub mod song;
 pub mod song_test;
+pub mod source_cursor;
+pub mod sutoton;
+pub mod svalue;
+pub mod token;
 
 #[cfg(test)]
 mod lexer_test;
@@ -179,10 +179,7 @@ pub fn compile(source: &str, debug_level: u32) -> SakuraResult {
     runner::exec(&mut song, &tokens);
     let bin = midi::generate(&mut song);
     let log_text = song.get_logs_str();
-    SakuraResult {
-        bin,
-        log: log_text
-    }
+    SakuraResult { bin, log: log_text }
 }
 
 #[cfg(test)]
@@ -216,7 +213,9 @@ mod public_api_tests {
 
         assert!(compiler.compile("cc").starts_with(b"MThd"));
         assert!(compiler.compile("ccc").is_empty());
-        assert!(compiler.get_log().contains("Input size exceeds max_input_size (3 > 2)"));
+        assert!(compiler
+            .get_log()
+            .contains("Input size exceeds max_input_size (3 > 2)"));
     }
 
     #[test]

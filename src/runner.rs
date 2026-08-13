@@ -1,18 +1,17 @@
 //! runner from tokens
-use crate::mml_def::TieMode;
-use crate::token::TokenValueType;
 use super::lexer::lex;
+use super::note_length::calc_length;
+use super::sakura_message::MessageKind;
 use super::song::{
     Event, NoteInfo, NoteParam, OnNoteSine, SineType, Song, Track, WaveMode, WriteCtx, WriteTarget,
 };
 use super::svalue::SValue;
 use super::token::{
-    Token, TokenType, COMMENT_DEBUG,
-    NOTE_PARAM_L, NOTE_PARAM_O, NOTE_PARAM_Q, NOTE_PARAM_T, NOTE_PARAM_V,
-    WRITE_TARGET_PB_BIG, WRITE_TARGET_PB_SMALL,
+    Token, TokenType, COMMENT_DEBUG, NOTE_PARAM_L, NOTE_PARAM_O, NOTE_PARAM_Q, NOTE_PARAM_T,
+    NOTE_PARAM_V, WRITE_TARGET_PB_BIG, WRITE_TARGET_PB_SMALL,
 };
-use super::sakura_message::MessageKind;
-use super::note_length::calc_length;
+use crate::mml_def::TieMode;
+use crate::token::TokenValueType;
 
 #[derive(Debug)]
 pub struct LoopItem {
@@ -102,25 +101,34 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
     let mut pos = 0;
     let mut loop_stack: Vec<LoopItem> = vec![];
     while pos < tokens.len() {
-        if song.event_limit_exceeded() { break; }
-        if song.flags.break_flag != 0 { break; }
+        if song.event_limit_exceeded() {
+            break;
+        }
+        if song.flags.break_flag != 0 {
+            break;
+        }
         let t = &tokens[pos];
         if song.debug {
-            println!("- exec({:03})(line:{}) {}", pos, song.lineno, t.to_debug_str(0));
+            println!(
+                "- exec({:03})(line:{}) {}",
+                pos,
+                song.lineno,
+                t.to_debug_str(0)
+            );
         }
         match t.ttype {
-            TokenType::Unimplemented => {},
-            TokenType::Empty => {},
+            TokenType::Unimplemented => {}
+            TokenType::Empty => {}
             TokenType::Comment => exec_comment(song, t),
             TokenType::LineNo => song.lineno = t.lineno,
             TokenType::Error => {
                 if song.debug {
                     println!("[RUNTIME.ERROR]");
                 }
-            },
-            TokenType::TimeBase => {}, // 構文解析の時に設定済み
-            TokenType::Include => {}, // 構文解析時
-            TokenType::SoundType => {}, // 現状意味なし
+            }
+            TokenType::TimeBase => {}  // 構文解析の時に設定済み
+            TokenType::Include => {}   // 構文解析時
+            TokenType::SoundType => {} // 現状意味なし
             TokenType::DeviceNumber => exec_device_number(song, t),
             TokenType::Print => exec_print(song, t),
             // Loop controll
@@ -139,7 +147,7 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
                 }
                 // println!("loop={}", it.count);
                 loop_stack.push(it);
-            },
+            }
             TokenType::LoopBreak => {
                 let mut it = match loop_stack.pop() {
                     None => {
@@ -167,7 +175,7 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
                 } else {
                     loop_stack.push(it);
                 }
-            },
+            }
             TokenType::LoopEnd => {
                 if loop_stack.len() > 0 {
                     let mut it = match loop_stack.pop() {
@@ -185,7 +193,7 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
                         continue;
                     }
                 }
-            },
+            }
             TokenType::Track => exec_track(song, t),
             TokenType::Channel => exec_channel(song, t),
             TokenType::Voice => exec_voice(song, t),
@@ -283,26 +291,32 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
             TokenType::TrackSync => song.track_sync(),
             TokenType::TieMode => exec_tie_mode(song, t),
             TokenType::UseKeyShift => exec_use_key_shift(song, t),
-            TokenType::If => { exec_if(song, t); },
-            TokenType::For => { exec_for(song, t); },
-            TokenType::While => { exec_while(song, t); },
+            TokenType::If => {
+                exec_if(song, t);
+            }
+            TokenType::For => {
+                exec_for(song, t);
+            }
+            TokenType::While => {
+                exec_while(song, t);
+            }
             TokenType::Break => {
                 song.flags.break_flag = 1;
                 break;
-            },
+            }
             TokenType::Continue => {
                 song.flags.break_flag = 2;
                 break;
-            },
+            }
             TokenType::Return => {
                 exec_return(song, t);
                 // set return
                 song.flags.break_flag = 3;
                 break;
-            },
+            }
             TokenType::DefUserFunction => {
                 // nop
-            },
+            }
             TokenType::CalcTree => exec_calc_tree(song, t),
             TokenType::ConstInt => exec_const_int(song, t),
             TokenType::ConstStr => exec_const_str(song, t),
@@ -310,12 +324,16 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
             TokenType::ValueInc => exec_value_inc(song, t),
             TokenType::MakeArray => exec_make_array(song, t),
             TokenType::SetConfig => exec_set_config(song, t),
-            TokenType::CallUserFunction => { exec_userfunc_or_array_or_macro(song, t); },
-            TokenType::Play => { exec_play(song, t); },
-            TokenType::Rhythm => {},
-            TokenType::ControlChangeCommand => {},
-            TokenType::Cresc => {}, // replaced CConTime
-            TokenType::SetRandomSeed => {}, // replace SetConfig
+            TokenType::CallUserFunction => {
+                exec_userfunc_or_array_or_macro(song, t);
+            }
+            TokenType::Play => {
+                exec_play(song, t);
+            }
+            TokenType::Rhythm => {}
+            TokenType::ControlChangeCommand => {}
+            TokenType::Cresc => {}         // replaced CConTime
+            TokenType::SetRandomSeed => {} // replace SetConfig
             TokenType::DirectSMF => exec_direct_smf(song, t),
             TokenType::NoteOn => exec_note_on(song, t),
             TokenType::NoteOff => exec_note_off(song, t),

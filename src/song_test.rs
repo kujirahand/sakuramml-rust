@@ -1,9 +1,9 @@
 //! test file
 #[cfg(test)]
 mod note_tests {
-    use crate::song::*;
     use crate::lexer::lex;
     use crate::runner::exec;
+    use crate::song::*;
 
     fn test_mml(mml: &str) -> Song {
         let mut song = Song::new();
@@ -85,8 +85,14 @@ mod note_tests {
         assert_eq!(test_mml_event1("STR AAA={o4c} AAA").v1, 48);
         // plus
         assert_eq!(&test_mml_log("STR A={c};STR B={d};PRINT(A+B)"), "cd");
-        assert_eq!(&test_mml_log("STR A={c};STR B={d};STR C=A+B; PRINT(C)"), "cd");
-        assert_eq!(&test_mml_log("STR A={c};INT B=4; STR C=A+B; PRINT(C)"), "c4");
+        assert_eq!(
+            &test_mml_log("STR A={c};STR B={d};STR C=A+B; PRINT(C)"),
+            "cd"
+        );
+        assert_eq!(
+            &test_mml_log("STR A={c};INT B=4; STR C=A+B; PRINT(C)"),
+            "c4"
+        );
     }
     #[test]
     fn calc_test() {
@@ -97,9 +103,18 @@ mod note_tests {
     }
     #[test]
     fn func_test() {
-        assert_eq!(&test_mml_log("FUNCTION ADD(INT A, INT B){ PRINT(A+B) }; ADD(3,5)"), "8");
-        assert_eq!(&test_mml_log("FUNCTION ADD(INT A, INT B){ Result=(A+B) }; PRINT(ADD(3,5))"), "8"); // Pascal Like Function
-        assert_eq!(&test_mml_log("FUNCTION ADD(INT A, INT B){ RETURN(A+B) }; PRINT(ADD(3,5))"), "8");
+        assert_eq!(
+            &test_mml_log("FUNCTION ADD(INT A, INT B){ PRINT(A+B) }; ADD(3,5)"),
+            "8"
+        );
+        assert_eq!(
+            &test_mml_log("FUNCTION ADD(INT A, INT B){ Result=(A+B) }; PRINT(ADD(3,5))"),
+            "8"
+        ); // Pascal Like Function
+        assert_eq!(
+            &test_mml_log("FUNCTION ADD(INT A, INT B){ RETURN(A+B) }; PRINT(ADD(3,5))"),
+            "8"
+        );
         // TODO: 引数の省略 (#37)
         // assert_eq!(&test_mml_log("FUNCTION ADD(INT A, INT B=0){ PRINT(A+B) }; ADD(3)"), "3"); // 値の省略
     }
@@ -130,11 +145,20 @@ mod note_tests {
 
         track.play_from(48);
 
-        assert!(track.events.iter().any(|e|
-            e.etype == EventType::Voice && e.time == 0 && e.channel == 2 && e.v1 == 10));
-        assert!(track.events.iter().any(|e|
-            e.etype == EventType::ControllChange && e.time == 0 && e.v1 == 7 && e.v2 == 80));
-        let notes: Vec<_> = track.events.iter()
+        assert!(track
+            .events
+            .iter()
+            .any(|e| e.etype == EventType::Voice && e.time == 0 && e.channel == 2 && e.v1 == 10));
+        assert!(track
+            .events
+            .iter()
+            .any(|e| e.etype == EventType::ControllChange
+                && e.time == 0
+                && e.v1 == 7
+                && e.v2 == 80));
+        let notes: Vec<_> = track
+            .events
+            .iter()
             .filter(|e| e.etype == EventType::NoteOn)
             .collect();
         assert_eq!(notes.len(), 1);

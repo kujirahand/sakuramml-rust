@@ -87,13 +87,13 @@ pub(super) fn read_arg_value_int_array(cur: &mut SourceCursor, song: &mut Song) 
         // println!("@@@read_arg_value_int_array:{}", cur.peek_n(0));
         let v = read_arg_value(cur, song);
         match v {
-            SValue::None => { break; }
+            SValue::None => {
+                break;
+            }
             SValue::Array(av) => {
                 a.extend(av);
-            },
-            _ => {
-                a.push(v)
             }
+            _ => a.push(v),
         }
         cur.skip_space();
         if !cur.eq_char(',') {
@@ -149,7 +149,11 @@ pub(super) fn read_arg_on_off(cur: &mut SourceCursor, song: &mut Song) -> SValue
         '-' | '0'..='9' | '$' => SValue::from_b(cur.get_int(0) != 0),
         _ => {
             let value = read_arg_value(cur, song);
-            if value.is_none() { SValue::from_b(true) } else { value }
+            if value.is_none() {
+                SValue::from_b(true)
+            } else {
+                value
+            }
         }
     };
     cur.skip_space();
@@ -164,14 +168,16 @@ pub(super) fn read_args_tokens(cur: &mut SourceCursor, song: &mut Song) -> Vec<T
     let skip_paren = if cur.eq_char('(') {
         cur.next(); // skip '('
         true
-    } else { false };
+    } else {
+        false
+    };
 
     let mut tokens = vec![];
     loop {
         cur.skip_space();
         let sub_tokens = read_calc_tokens(cur, song).unwrap_or(vec![]);
         tokens.push(Token::new_tokens(TokenType::Tokens, 0, sub_tokens));
-        
+
         // has next value?
         cur.skip_space();
         if cur.eq_char(',') || cur.eq_char(':') {
@@ -185,7 +191,11 @@ pub(super) fn read_args_tokens(cur: &mut SourceCursor, song: &mut Song) -> Vec<T
         if cur.eq_char(')') {
             cur.next(); // skip ')'
         } else {
-            song.add_log(format!("[ERROR]({}) {}", cur.line, song.get_message(MessageKind::MissingParenthesis)));
+            song.add_log(format!(
+                "[ERROR]({}) {}",
+                cur.line,
+                song.get_message(MessageKind::MissingParenthesis)
+            ));
         }
     }
     tokens

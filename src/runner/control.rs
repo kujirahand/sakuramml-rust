@@ -48,12 +48,15 @@ pub(super) fn exec_while(song: &mut Song, t: &Token) -> bool {
         // exec body
         let body = body_token.children.clone().unwrap();
         exec(song, &body);
-        if song.event_limit_exceeded() { break; }
+        if song.event_limit_exceeded() {
+            break;
+        }
         // check counter
         counter += 1;
         if counter > song.flags.max_loop {
             song.add_log(format!(
-                "[ERROR]({}) {} WHILE(>{})", t.lineno, 
+                "[ERROR]({}) {} WHILE(>{})",
+                t.lineno,
                 song.get_message(MessageKind::LoopTooManyTimes),
                 song.flags.max_loop
             ));
@@ -64,15 +67,15 @@ pub(super) fn exec_while(song: &mut Song, t: &Token) -> bool {
             1 => {
                 song.flags.break_flag = 0;
                 break;
-            },
+            }
             2 => {
                 song.flags.break_flag = 0;
                 continue;
-            },
+            }
             3 => {
                 break;
             }
-            _ => {},
+            _ => {}
         }
     }
     true
@@ -105,12 +108,15 @@ pub(super) fn exec_for(song: &mut Song, t: &Token) -> bool {
         // exec body
         let body = body_token.children.clone().unwrap();
         exec(song, &body);
-        if song.event_limit_exceeded() { break; }
+        if song.event_limit_exceeded() {
+            break;
+        }
         // check loop counter
         counter += 1;
         if counter > song.flags.max_loop {
             song.add_log(format!(
-                "[ERROR]({}) {} FOR(>{})", t.lineno, 
+                "[ERROR]({}) {} FOR(>{})",
+                t.lineno,
                 song.get_message(MessageKind::LoopTooManyTimes),
                 song.flags.max_loop
             ));
@@ -119,11 +125,13 @@ pub(super) fn exec_for(song: &mut Song, t: &Token) -> bool {
         // inc
         let inc_tokens = inc_token.children.clone().unwrap();
         // check break or continue
-        if song.flags.break_flag == 1 { // break
+        if song.flags.break_flag == 1 {
+            // break
             song.flags.break_flag = 0;
             break;
         }
-        if song.flags.break_flag == 2 { // continue
+        if song.flags.break_flag == 2 {
+            // continue
             song.flags.break_flag = 0;
             exec(song, &inc_tokens); // eval inc
             continue;

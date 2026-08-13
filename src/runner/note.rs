@@ -42,7 +42,8 @@ fn calc_note_param(song: &mut Song, target: isize, value: isize) -> isize {
 
 pub(crate) fn get_note_info_from_token(t: &Token) -> NoteInfo {
     let data = &t.data;
-    if data.len() < 8 { // broken note
+    if data.len() < 8 {
+        // broken note
         return NoteInfo {
             no: 0,
             flag: 0,
@@ -153,7 +154,8 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     let o_abs = trk!(song).calc_o_on_note(o_abs);
     // 実際に使うオクターブを求め、.Random と .Range/.Max を適用する
     let mut o_cur = if o_abs != -1 { o_abs } else { note.o };
-    if trk!(song).o_opt.random > 0 { // octave randomize
+    if trk!(song).o_opt.random > 0 {
+        // octave randomize
         o_cur = song.calc_rand_value(o_cur, trk!(song).o_opt.random);
     }
     let o_cur = trk!(song).o_opt.apply_limit(o_cur);
@@ -171,7 +173,8 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     // note len onTime / onNote / onCycle
     let notelen_on_note = trk!(song).calc_l_on_time(-1);
     let notelen_on_note = trk!(song).calc_l_on_note(notelen_on_note);
-    if notelen_on_note != -1 { // 先行指定の値があれば強制的に上書き
+    if notelen_on_note != -1 {
+        // 先行指定の値があれば強制的に上書き
         notelen = notelen_on_note;
     }
     // .Random / .Range / .Max は通常の音長にも適用する
@@ -180,7 +183,13 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
     // check range
     let v = value_range(0, v, trk!(song).v_opt.max_or(127));
     // event
-    let event = Event::note(timepos.saturating_add(t), trk!(song).channel, note.no, notelen_real, v);
+    let event = Event::note(
+        timepos.saturating_add(t),
+        trk!(song).channel,
+        note.no,
+        notelen_real,
+        v,
+    );
     if !song.reserve_event(&event) {
         finish_note_after_event_limit(song, notelen);
         return;
@@ -294,7 +303,9 @@ pub(super) fn exec_rest(song: &mut Song, t: &Token) {
     let trk = &mut song.tracks[song.cur_track];
     let data_note_len = t.data[0].to_s();
     let notelen = calc_length(&data_note_len, song.timebase, trk.length);
-    trk.timepos = trk.timepos.saturating_add(notelen.saturating_mul(t.value_i));
+    trk.timepos = trk
+        .timepos
+        .saturating_add(notelen.saturating_mul(t.value_i));
     // 休符の間にある .onCycle の書き込みを確定する
     flush_cc_on_cycle(song);
 }

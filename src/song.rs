@@ -10,14 +10,13 @@ pub use flags::*;
 pub use function::*;
 pub use track::*;
 
-
-use std::collections::HashMap;
+use crate::mml_def::{self, TieMode};
 use crate::runner::value_range;
 use crate::sakura_functions;
+use crate::sakura_message::{MessageData, MessageKind, MessageLang};
 use crate::svalue::SValue;
-use crate::mml_def::{self, TieMode};
-use crate::sakura_message::{MessageLang, MessageData, MessageKind};
 use crate::token::Tokens;
+use std::collections::HashMap;
 
 // const
 pub const SAKURA_MAX_LOGS: usize = 100; // lines
@@ -87,7 +86,7 @@ impl Song {
             variables_stack: vars_stack,
             functions: vec![],
             reserved_words: reserved,
-            key_flag: vec![0,0,0,0,0,0,0,0,0,0,0,0],
+            key_flag: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             key_shift: 0,
             play_from: -1,
             logs: vec![],
@@ -95,7 +94,7 @@ impl Song {
             q_add: 1,
             stack: vec![],
             rand_seed: SAKURA_DEFAULT_RANDOM_SEED, // Random Seed
-            device_number: 0x10, // default device number (0x10: General MIDI)
+            device_number: 0x10,                   // default device number (0x10: General MIDI)
             use_key_shift: true,
             lineno: 0,
             max_event_bytes: SAKURA_DEFAULT_MAX_EVENT_BYTES,
@@ -113,13 +112,17 @@ impl Song {
     pub fn get_logs_str(&self) -> String {
         let msg = self.logs.join("\n");
         let chars = msg.chars();
-        if chars.count() <= SAKURA_MAX_LOGS_CHARS { return msg; }
+        if chars.count() <= SAKURA_MAX_LOGS_CHARS {
+            return msg;
+        }
         let mut submsg: String = msg.chars().take(SAKURA_MAX_LOGS_CHARS).collect();
         submsg.push_str("...");
         submsg
     }
     pub fn add_log(&mut self, msg: String) {
-        if SAKURA_MAX_LOGS <= self.logs.len() { return; } // check max logs
+        if SAKURA_MAX_LOGS <= self.logs.len() {
+            return;
+        } // check max logs
         self.logs.push(msg);
     }
     pub fn get_logs_len(&self) -> usize {
@@ -139,17 +142,20 @@ impl Song {
         self.event_limit_exceeded
     }
     fn report_event_limit(&mut self) {
-        if self.event_limit_exceeded { return; }
+        if self.event_limit_exceeded {
+            return;
+        }
         self.event_limit_exceeded = true;
         self.add_log(format!(
             "[ERROR]({}) MIDI event data exceeds max_event_bytes ({})",
-            self.lineno,
-            self.max_event_bytes,
+            self.lineno, self.max_event_bytes,
         ));
     }
     /// イベント用の予算を確保する。和音やタイなど、一時領域へ置く場合にも使う。
     pub fn reserve_event(&mut self, e: &Event) -> bool {
-        if self.event_limit_exceeded { return false; }
+        if self.event_limit_exceeded {
+            return false;
+        }
         let size = e.estimated_midi_bytes();
         let next = self.event_bytes.saturating_add(size);
         if next > self.max_event_bytes {
@@ -160,7 +166,9 @@ impl Song {
         true
     }
     pub fn add_event(&mut self, e: Event) -> bool {
-        if !self.reserve_event(&e) { return false; }
+        if !self.reserve_event(&e) {
+            return false;
+        }
         self.tracks[self.cur_track].events.push(e);
         true
     }
@@ -171,7 +179,9 @@ impl Song {
     /// Track内の連続書き込みから予算超過を通知する。
     pub fn update_event_budget(&mut self, event_bytes: usize, exceeded: bool) {
         self.event_bytes = event_bytes;
-        if exceeded { self.report_event_limit(); }
+        if exceeded {
+            self.report_event_limit();
+        }
     }
     pub fn normalize_and_sort(&mut self) {
         for trk in self.tracks.iter_mut() {
@@ -180,8 +190,12 @@ impl Song {
         }
     }
     pub fn play_from_all_track(&mut self) {
-        if self.play_from < 0 { return; }
-        if self.debug { println!("PLAY_FROM={}", self.play_from); }
+        if self.play_from < 0 {
+            return;
+        }
+        if self.debug {
+            println!("PLAY_FROM={}", self.play_from);
+        }
         for trk in self.tracks.iter_mut() {
             trk.play_from(self.play_from);
         }
@@ -207,7 +221,6 @@ impl Song {
             let trk = Track::new(self.timebase, no as isize - 1);
             self.tracks.push(trk);
         }
-
     }
     pub fn track_sync(&mut self) {
         let timepos = self.tracks[self.cur_track].timepos;
@@ -228,7 +241,9 @@ impl Song {
     }
     pub fn variables_contains_key(&self, key: &str) -> bool {
         for vars in self.variables_stack.iter().rev() {
-            if vars.contains_key(key) { return true; }
+            if vars.contains_key(key) {
+                return true;
+            }
         }
         false
     }
@@ -257,7 +272,7 @@ impl Song {
         }
         None
     }
-    pub fn variables_modify<F: Fn(SValue)->SValue>(&mut self, key: &str, closure: F) {
+    pub fn variables_modify<F: Fn(SValue) -> SValue>(&mut self, key: &str, closure: F) {
         for vars in self.variables_stack.iter_mut().rev() {
             if let Some(val) = vars.get_mut(key) {
                 *val = closure(val.clone());
@@ -295,7 +310,9 @@ mod event_limit_tests {
         assert!(song.event_limit_exceeded());
         assert_eq!(song.event_bytes(), 64);
         assert_eq!(song.tracks[0].events.len(), 8);
-        assert!(song.get_logs_str().contains("MIDI event data exceeds max_event_bytes (64)"));
+        assert!(song
+            .get_logs_str()
+            .contains("MIDI event data exceeds max_event_bytes (64)"));
         assert!(crate::midi::generate(&mut song).starts_with(b"MThd"));
     }
 
@@ -333,10 +350,7 @@ mod event_limit_tests {
 
     #[test]
     fn event_limit_prevents_later_write_contexts_from_resuming() {
-        let song = exec_with_limit(
-            "P.onCycle(1,10,20) M.onNoteWaveR(0,0,1) l%100000000 c",
-            64,
-        );
+        let song = exec_with_limit("P.onCycle(1,10,20) M.onNoteWaveR(0,0,1) l%100000000 c", 64);
         assert!(song.event_limit_exceeded());
         assert_eq!(song.event_bytes(), 32);
         assert_eq!(song.tracks[0].events.len(), 3);

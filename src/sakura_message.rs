@@ -48,9 +48,7 @@ pub struct MessageData {
 
 impl MessageData {
     pub fn new(lang: MessageLang) -> Self {
-        MessageData {
-            lang,
-        }
+        MessageData { lang }
     }
     pub fn get(&self, kind: MessageKind) -> &'static str {
         get_message(&self.lang, kind)
@@ -59,113 +57,81 @@ impl MessageData {
 
 pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
     match kind {
-        MessageKind::UnknownChar => {
-            match lang {
-                MessageLang::EN => "Unknown Character",
-                MessageLang::JA => "未定義の文字",
+        MessageKind::UnknownChar => match lang {
+            MessageLang::EN => "Unknown Character",
+            MessageLang::JA => "未定義の文字",
+        },
+        MessageKind::UnknownCommand => match lang {
+            MessageLang::EN => "Unknown Command",
+            MessageLang::JA => "未定義のコマンド",
+        },
+        MessageKind::UnknownError => match lang {
+            MessageLang::EN => "Unknown Error",
+            MessageLang::JA => "未定義のエラー",
+        },
+        MessageKind::Near => match lang {
+            MessageLang::EN => "near",
+            MessageLang::JA => "続く部分",
+        },
+        MessageKind::TooManyErrorsInLexer => match lang {
+            MessageLang::EN => "Too many errors in Lexer",
+            MessageLang::JA => "字句解析でエラーが多いので省略します",
+        },
+        MessageKind::ScriptSyntaxError => match lang {
+            MessageLang::EN => "Syntax Error",
+            MessageLang::JA => "構文エラー",
+        },
+        MessageKind::ScriptSyntaxWarning => match lang {
+            MessageLang::EN => "Script Syntax Warning",
+            MessageLang::JA => "スクリプトの警告",
+        },
+        MessageKind::MissingParenthesis => match lang {
+            MessageLang::EN => "Missing Parenthesis",
+            MessageLang::JA => "括弧が閉じられていません",
+        },
+        MessageKind::LoopTooManyTimes => match lang {
+            MessageLang::EN => "Loop too many times",
+            MessageLang::JA => "ループが制限を超えました",
+        },
+        MessageKind::ErrorRedfineFnuction => match lang {
+            MessageLang::EN => "Redefine Function",
+            MessageLang::JA => "関数の再定義",
+        },
+        MessageKind::RuntimeError => match lang {
+            MessageLang::EN => "Runtime Error",
+            MessageLang::JA => "実行時エラー",
+        },
+        MessageKind::ErrorDefineVariableIsReserved => match lang {
+            MessageLang::EN => "Define Variable is Reserved",
+            MessageLang::JA => "変数の定義が予約語です",
+        },
+        MessageKind::ErrorWrongArguments => match lang {
+            MessageLang::EN => "Wrong number of arguments.",
+            MessageLang::JA => "引数の数が間違っています。",
+        },
+        MessageKind::ErrorTypeMismatch => match lang {
+            MessageLang::EN => "Type mismatch",
+            MessageLang::JA => "変数型の間違い",
+        },
+        MessageKind::ErrorMissingValue => match lang {
+            MessageLang::EN => "Missing value after operator",
+            MessageLang::JA => "演算子の後に値がありません",
+        },
+        MessageKind::InvalidArgument => match lang {
+            MessageLang::EN => "Invalid argument",
+            MessageLang::JA => "引数が無効です",
+        },
+        MessageKind::WarningChangeTimebaseAfterNote => match lang {
+            MessageLang::EN => {
+                "Changing TIMEBASE after writing notes may cause unexpected results."
+            }
+            MessageLang::JA => {
+                "音符の書き込み後にTIMEBASEを変更すると予期しない結果になる可能性があります。"
             }
         },
-        MessageKind::UnknownCommand => {
-            match lang {
-                MessageLang::EN => "Unknown Command",
-                MessageLang::JA => "未定義のコマンド",
-            }
-        },
-        MessageKind::UnknownError => {
-            match lang {
-                MessageLang::EN => "Unknown Error",
-                MessageLang::JA => "未定義のエラー",
-            }
-        },
-        MessageKind::Near => {
-            match lang {
-                MessageLang::EN => "near",
-                MessageLang::JA => "続く部分",
-            }
-        },
-        MessageKind::TooManyErrorsInLexer => {
-            match lang {
-                MessageLang::EN => "Too many errors in Lexer",
-                MessageLang::JA => "字句解析でエラーが多いので省略します",
-            }
-        },
-        MessageKind::ScriptSyntaxError => {
-            match lang {
-                MessageLang::EN => "Syntax Error",
-                MessageLang::JA => "構文エラー",
-            }
-        },
-        MessageKind::ScriptSyntaxWarning => {
-            match lang {
-                MessageLang::EN => "Script Syntax Warning",
-                MessageLang::JA => "スクリプトの警告",
-            }
-        },
-        MessageKind::MissingParenthesis => {
-            match lang {
-                MessageLang::EN => "Missing Parenthesis",
-                MessageLang::JA => "括弧が閉じられていません",
-            }
-        },
-        MessageKind::LoopTooManyTimes => {
-            match lang {
-                MessageLang::EN => "Loop too many times",
-                MessageLang::JA => "ループが制限を超えました",
-            }
-        },
-        MessageKind::ErrorRedfineFnuction => {
-            match lang {
-                MessageLang::EN => "Redefine Function",
-                MessageLang::JA => "関数の再定義",
-            }
-        },
-        MessageKind::RuntimeError => {
-            match lang {
-                MessageLang::EN => "Runtime Error",
-                MessageLang::JA => "実行時エラー",
-            }
-        },
-        MessageKind::ErrorDefineVariableIsReserved => {
-            match lang {
-                MessageLang::EN => "Define Variable is Reserved",
-                MessageLang::JA => "変数の定義が予約語です",
-            }
-        },
-        MessageKind::ErrorWrongArguments => {
-            match lang {
-                MessageLang::EN => "Wrong number of arguments.",
-                MessageLang::JA => "引数の数が間違っています。",
-            }
-        },
-        MessageKind::ErrorTypeMismatch => {
-            match lang {
-                MessageLang::EN => "Type mismatch",
-                MessageLang::JA => "変数型の間違い",
-            }
-        },
-        MessageKind::ErrorMissingValue => {
-            match lang {
-                MessageLang::EN => "Missing value after operator",
-                MessageLang::JA => "演算子の後に値がありません",
-            }
-        },
-        MessageKind::InvalidArgument => {
-            match lang {
-                MessageLang::EN => "Invalid argument",
-                MessageLang::JA => "引数が無効です",
-            }
-        },
-        MessageKind::WarningChangeTimebaseAfterNote => {
-            match lang {
-                MessageLang::EN => "Changing TIMEBASE after writing notes may cause unexpected results.",
-                MessageLang::JA => "音符の書き込み後にTIMEBASEを変更すると予期しない結果になる可能性があります。",
-            }
-        },
-        MessageKind::ShouldBeConstant => {
-            match lang {
-                MessageLang::EN => "The argument should be a constant value.",
-                MessageLang::JA => "引数は定数である必要があります。",
-            }
+        MessageKind::ShouldBeConstant => match lang {
+            MessageLang::EN => "The argument should be a constant value.",
+            MessageLang::JA => "引数は定数である必要があります。",
         },
     }
 }

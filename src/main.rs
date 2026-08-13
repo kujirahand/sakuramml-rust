@@ -1,20 +1,20 @@
 //! Command line interface
 
-use std::fs::{self, File, read_to_string};
-use std::io::{Write, Read};
+use std::fs::{self, read_to_string, File};
+use std::io::{Read, Write};
 
 use sakuramml::get_build_number;
-use sakuramml::sakura_version::SAKURA_VERSION;
 use sakuramml::lexer::lex;
-use sakuramml::song::{Song, SAKURA_DEFAULT_RANDOM_SEED, SAKURA_DEFAULT_MAX_EVENT_BYTES};
-use sakuramml::midi::{generate, dump_midi};
+use sakuramml::midi::{dump_midi, generate};
 use sakuramml::runner::exec;
+use sakuramml::sakura_version::SAKURA_VERSION;
+use sakuramml::song::{Song, SAKURA_DEFAULT_MAX_EVENT_BYTES, SAKURA_DEFAULT_RANDOM_SEED};
 
 // for randomize
-use std::time::SystemTime;
-use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use std::thread;
+use std::time::SystemTime;
 
 fn thread_id_to_u64() -> u64 {
     let thread_id = thread::current().id();
@@ -25,8 +25,10 @@ fn thread_id_to_u64() -> u64 {
 
 fn time_to_u64() -> u64 {
     let now = SystemTime::now();
-    let duration = now.duration_since(SystemTime::UNIX_EPOCH).expect("Time went backwards");
-    duration.as_millis() as u64  // または as_secs() などを使用
+    let duration = now
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .expect("Time went backwards");
+    duration.as_millis() as u64 // または as_secs() などを使用
 }
 
 fn version_label() -> String {
@@ -40,7 +42,8 @@ fn version_label() -> String {
 
 /// show usage
 fn usage() {
-    println!("=== sakuramml {} ===\n{}{}{}{}{}{}{}{}{}",
+    println!(
+        "=== sakuramml {} ===\n{}{}{}{}{}{}{}{}{}",
         version_label(),
         "USAGE:\n",
         "  sakuramml (mmlfile) (midifile)\n",
@@ -92,15 +95,12 @@ fn main() {
         if arg == "--help" || arg == "-h" || arg == "help" {
             usage();
             return;
-        }
-        else if arg == "--version" || arg == "-v" || arg == "version" {
+        } else if arg == "--version" || arg == "-v" || arg == "version" {
             version();
             return;
-        }
-        else if arg == "--debug" || arg == "-d" || arg == "debug" || arg == "d" {
+        } else if arg == "--debug" || arg == "-d" || arg == "debug" || arg == "d" {
             debug = true;
-        }
-        else if arg == "--eval" || arg == "-e" || arg == "eval" || arg == "e" {
+        } else if arg == "--eval" || arg == "-e" || arg == "eval" || arg == "e" {
             i += 1;
             if i >= args.len() {
                 eprintln!("[ERROR](0): --eval requires MML text");
@@ -108,11 +108,9 @@ fn main() {
             }
             eval_mml = String::from(&args[i]);
             outfile = String::from("eval.mid");
-        }
-        else if arg == "--dump" || arg == "dump" || arg == "-m" {
+        } else if arg == "--dump" || arg == "dump" || arg == "-m" {
             mode = String::from("dump");
-        }
-        else if arg == "--max-event-bytes" {
+        } else if arg == "--max-event-bytes" {
             i += 1;
             if i >= args.len() {
                 eprintln!("[ERROR](0): --max-event-bytes requires a non-negative integer");
@@ -125,11 +123,9 @@ fn main() {
                     std::process::exit(1);
                 }
             };
-        }
-        else if filename == "" {
+        } else if filename == "" {
             filename = arg.clone();
-        }
-        else if outfile == "" {
+        } else if outfile == "" {
             outfile = arg.clone();
         }
         i += 1;
@@ -151,7 +147,7 @@ fn main() {
                 f.read_to_end(&mut buf).unwrap();
                 dump_midi(&buf, true);
                 return;
-            },
+            }
             Err(_e) => {
                 println!("[ERROR](0): File not found : {}", filename);
                 std::process::exit(1);
@@ -233,18 +229,16 @@ mod tests {
 
     #[test]
     fn event_limit_failure_creates_a_partial_midi_file() {
-        let unique = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let path = std::env::temp_dir().join(format!(
             "sakuramml-event-limit-{}-{}.mid",
             std::process::id(),
             unique,
         ));
-        let ok = compile_to_midi(
-            "[1000000 y1,64]",
-            path.to_str().unwrap(),
-            false,
-            64,
-        );
+        let ok = compile_to_midi("[1000000 y1,64]", path.to_str().unwrap(), false, 64);
         assert!(!ok);
         assert!(fs::read(&path).unwrap().starts_with(b"MThd"));
         fs::remove_file(path).unwrap();
@@ -346,7 +340,9 @@ mod tests {
         assert!(log.contains("SysEx$=F0,/*len:0A*/41,10,42,12,40,01,30,00,0F,F7;"));
         // GSScaleTuning
         let log = mml_dump("GSScaleTuning(0,1,2,3,4,5,6,7,8,9,10,11);");
-        assert!(log.contains("SysEx$=F0,/*len:15*/41,10,42,12,40,11,40,00,01,02,03,04,05,06,07,08,09,0A,0B,2D,F7;"));
+        assert!(log.contains(
+            "SysEx$=F0,/*len:15*/41,10,42,12,40,11,40,00,01,02,03,04,05,06,07,08,09,0A,0B,2D,F7;"
+        ));
     }
     #[test]
     fn test_keyflag_fmt1() {

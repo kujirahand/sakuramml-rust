@@ -4,8 +4,15 @@ use super::*;
 pub(super) fn read_sysex(cur: &mut SourceCursor, _song: &mut Song) -> Token {
     // read sysex
     let lineno = cur.line;
-    let hex_mode = if cur.eq_char('$') { cur.next(); true} else { false };
-    if cur.eq_char('=') { cur.next(); } // skip '='
+    let hex_mode = if cur.eq_char('$') {
+        cur.next();
+        true
+    } else {
+        false
+    };
+    if cur.eq_char('=') {
+        cur.next();
+    } // skip '='
     let mut data_vec: Vec<Token> = vec![];
     let mut flag_calc_checksum = 0; // 0:none, 1:check_sum_mode
     loop {
@@ -34,7 +41,11 @@ pub(super) fn read_sysex(cur: &mut SourceCursor, _song: &mut Song) -> Token {
                 }
                 'A'..='Z' | '_' => {
                     let var_name = cur.get_word();
-                    let mut t = Token::new(TokenType::Value, 0, vec![SValue::from_s(format!("={}", var_name))]);
+                    let mut t = Token::new(
+                        TokenType::Value,
+                        0,
+                        vec![SValue::from_s(format!("={}", var_name))],
+                    );
                     t.value_type = TokenValueType::VARIABLE;
                     t.lineno = lineno;
                     data_vec.push(t);
@@ -43,7 +54,8 @@ pub(super) fn read_sysex(cur: &mut SourceCursor, _song: &mut Song) -> Token {
             }
         }
         cur.skip_space();
-        if cur.eq_char('}') { // 数値の後に'}'がある場合を考慮
+        if cur.eq_char('}') {
+            // 数値の後に'}'がある場合を考慮
             cur.next(); // skip '}'
             let t = Token::new(TokenType::ConstInt, -2, vec![]); // end checksum
             data_vec.push(t);
@@ -66,26 +78,28 @@ pub(super) fn read_fadein(cur: &mut SourceCursor, song: &mut Song, dir: isize) -
 }
 
 pub(super) fn read_decres(cur: &mut SourceCursor, song: &mut Song, dir: isize) -> Token {
-    let mut v1 = SValue::from_i(if dir < 0 { 127 } else {  40 });
-    let mut v2 = SValue::from_i(if dir < 0 {  40 } else { 127 });
+    let mut v1 = SValue::from_i(if dir < 0 { 127 } else { 40 });
+    let mut v2 = SValue::from_i(if dir < 0 { 40 } else { 127 });
     // skip =
     cur.skip_space();
-    if cur.eq_char('=') { cur.next(); }
+    if cur.eq_char('=') {
+        cur.next();
+    }
     // length
     let len_s = cur.get_note_length();
     cur.skip_space();
     if cur.eq_char(',') {
-        cur.next(); cur.skip_space();
+        cur.next();
+        cur.skip_space();
         v1 = read_arg_value(cur, song);
         cur.skip_space();
         if cur.eq_char(',') {
-            cur.next(); cur.skip_space();
+            cur.next();
+            cur.skip_space();
             v2 = read_arg_value(cur, song);
         }
     }
-    return Token::new(TokenType::Decresc, 0, vec![
-        SValue::from_s(len_s), v1, v2
-    ]);
+    return Token::new(TokenType::Decresc, 0, vec![SValue::from_s(len_s), v1, v2]);
 }
 
 /// 先行指定の書き込み先(CC番号 / ピッチベンド)
@@ -103,7 +117,11 @@ impl CCTarget {
         match self {
             CCTarget::CC(no) => *no,
             CCTarget::PitchBend(is_big) => {
-                if *is_big == 0 { WRITE_TARGET_PB_SMALL } else { WRITE_TARGET_PB_BIG }
+                if *is_big == 0 {
+                    WRITE_TARGET_PB_SMALL
+                } else {
+                    WRITE_TARGET_PB_BIG
+                }
             }
         }
     }
@@ -111,9 +129,7 @@ impl CCTarget {
     fn name(&self) -> String {
         match self {
             CCTarget::CC(no) => format!("CC({})", no),
-            CCTarget::PitchBend(is_big) => {
-                String::from(if *is_big == 0 { "p" } else { "PB" })
-            }
+            CCTarget::PitchBend(is_big) => String::from(if *is_big == 0 { "p" } else { "PB" }),
         }
     }
 }
@@ -202,11 +218,7 @@ pub(super) fn read_cc_option(
         // .onNote などで値をくり返すかどうか
         "Repeat" => {
             let on = read_arg_on_off(cur, song);
-            Some(Token::new(
-                TokenType::CCRepeat,
-                tv,
-                vec![on],
-            ))
+            Some(Token::new(TokenType::CCRepeat, tv, vec![on]))
         }
         _ => None,
     }
@@ -238,21 +250,43 @@ pub(super) fn read_command_cc(cur: &mut SourceCursor, no: isize, song: &mut Song
         // 解釈できない指定を、無言で `CC(値)` に化けさせない
         return read_cc_unknown_option(cur, song, target, &cmd);
     }
-    if cur.eq_char('=') { cur.next(); }
+    if cur.eq_char('=') {
+        cur.next();
+    }
     let value_tokens = read_args_tokens(cur, song);
 
     return Token::new_tokens(TokenType::ControlChange, no, value_tokens);
 }
 
-pub(super) fn read_rpn_command(cur: &mut SourceCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
+pub(super) fn read_rpn_command(
+    cur: &mut SourceCursor,
+    msb: isize,
+    lsb: isize,
+    song: &mut Song,
+) -> Token {
     let args = read_args_tokens(cur, song);
-    let token = Token::new_data_tokens(TokenType::RPNCommand, 0, vec![SValue::Int(msb), SValue::Int(lsb)], args);
+    let token = Token::new_data_tokens(
+        TokenType::RPNCommand,
+        0,
+        vec![SValue::Int(msb), SValue::Int(lsb)],
+        args,
+    );
     token
 }
 
-pub(super) fn read_nrpn_command(cur: &mut SourceCursor, msb: isize, lsb: isize, song: &mut Song) -> Token {
+pub(super) fn read_nrpn_command(
+    cur: &mut SourceCursor,
+    msb: isize,
+    lsb: isize,
+    song: &mut Song,
+) -> Token {
     let args = read_args_tokens(cur, song);
-    let token = Token::new_data_tokens(TokenType::NRPNCommand, 0, vec![SValue::Int(msb), SValue::Int(lsb)], args);
+    let token = Token::new_data_tokens(
+        TokenType::NRPNCommand,
+        0,
+        vec![SValue::Int(msb), SValue::Int(lsb)],
+        args,
+    );
     token
 }
 
@@ -263,7 +297,11 @@ pub(super) fn read_voice(cur: &mut SourceCursor, song: &mut Song) -> Token {
 
 /// ピッチベンドの先行指定を読み取る
 /// is_big: 1=PB(-8192〜8191) / 0=p(0〜127)
-fn read_command_pitch_bend(cur: &mut SourceCursor, song: &mut Song, is_big: isize) -> Option<Token> {
+fn read_command_pitch_bend(
+    cur: &mut SourceCursor,
+    song: &mut Song,
+    is_big: isize,
+) -> Option<Token> {
     if !cur.eq_char('.') {
         return None;
     }

@@ -18,7 +18,9 @@ pub(super) fn exec_play(song: &mut Song, t: &Token) -> bool {
         let tokens = lex(song, &src, lineno);
         exec(song, &tokens);
         // check lastpos
-        if trk!(song).timepos > time_ptr_last { time_ptr_last = trk!(song).timepos; }
+        if trk!(song).timepos > time_ptr_last {
+            time_ptr_last = trk!(song).timepos;
+        }
     }
     song.track_sync();
     song.cur_track = tmp_cur_track;
@@ -109,7 +111,7 @@ pub(super) fn exec_harmony(song: &mut Song, t: &Token, flag_begin: bool) {
     }
 }
 
-pub(super) fn exec_get_time(song: &mut Song, t: &Token, cmd: &str) -> isize{
+pub(super) fn exec_get_time(song: &mut Song, t: &Token, cmd: &str) -> isize {
     // Calc Time (SakuraObj_time2step)
     // (ref) https://github.com/kujirahand/sakuramml-c/blob/68b62cbc101669211c511258ae1cf830616f238e/src/k_main.c#L473
     let args = exec_args(song, t.children.as_ref().unwrap_or(&Vec::new()));
@@ -172,7 +174,11 @@ pub(super) fn exec_track_key(song: &mut Song, t: &Token) {
 
 /// キーシフトを使うかどうかの指定
 pub(super) fn exec_use_key_shift(song: &mut Song, t: &Token) {
-    song.use_key_shift = t.data.first().map(|v| var_extract(v, song).to_b()).unwrap_or(t.value_i != 0);
+    song.use_key_shift = t
+        .data
+        .first()
+        .map(|v| var_extract(v, song).to_b())
+        .unwrap_or(t.value_i != 0);
 }
 
 /// 現在位置を演奏開始位置にする
