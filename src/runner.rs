@@ -43,7 +43,7 @@ mod cc;
 mod control;
 mod function;
 mod meta;
-mod note;
+pub(crate) mod note;
 mod structure;
 mod sysex;
 mod tie;
