@@ -132,10 +132,10 @@ S_LISTを改行で区切って反復
 SYSTEM_CALC_FUNCTION=RES
 
 # ------------------------------------------
-# 参照できるシステムの値 - runner.rs
+# 参照できるシステムの値 - runner/function.rs
 # ------------------------------------------
 RES=""
-L=「{SCRIPT_DIR}/runner.rs」を開く。
+L=「{SCRIPT_DIR}/runner/function.rs」を開く。
 Lの「<SYSTEM_REF>」から「</SYSTEM_REF>」を範囲切り取る。S_LISTに代入。
 S_LISTを改行で区切って反復
 　　対象で「if cmd ==」が何文字目。
@@ -181,7 +181,7 @@ RES_REF=RES
 RES_1CHARを「<CHAR_COMMANDS> (src/lexer.rs)」で抽出検査処理。
 RES_UPを「<SYSTEM_FUNCTION> (src/mml_def/system_functions.rs)」で抽出検査処理。
 SYSTEM_CALC_FUNCTIONを「<SYSTEM_CALC_FUNCTION> (src/mml_def/system_functions.rs)」で抽出検査処理。
-RES_REFを「<SYSTEM_REF> (src/runner.rs)」で抽出検査処理。
+RES_REFを「<SYSTEM_REF> (src/runner/function.rs)」で抽出検査処理。
 RES_VOICEを「<VARIABLES> (src/mml_def/variables.rs)」で抽出検査処理。
 RES_RHYTHM_MACROを「<RHYTHM_MACRO> (src/mml_def/rhythm.rs)」で抽出検査処理。
 RES_SUTOTON_RAWを「<SUTOTON> (src/sutoton.rs)」で抽出検査処理。
