@@ -155,7 +155,7 @@ pub struct OnCycleValues {
     /// 書き込みの周期(ステップ数)
     pub len: isize,
     pub data: Vec<isize>,
-    /// 次に書き込む時刻
+    /// 次に書き込む時刻 (.Delay を含まない基準時刻)
     pub next_time: isize,
     pub index: usize,
 }
@@ -809,7 +809,10 @@ impl Track {
     /// 時間経過による値の変化を書き込む (.onTime の本体)
     pub fn write_on_time(&mut self, target: WriteTarget, ia: Vec<isize>, ctx: &mut WriteCtx) {
         let freq = self.target_freq(target, ctx.timebase);
-        let delay = self.get_write_opt(target).delay;
+        let opt = self.get_write_opt(target);
+        let delay = opt.delay;
+        // .Random を使うときは、同じ基準値でも書き込む値が変わるので重複を抑制しない
+        let skip_same = opt.random <= 0;
         // 重なった古い書き込みを削除する (#78)
         let total = Self::calc_on_time_length(&ia);
         let cc_no = match target { WriteTarget::CC(no) => no, _ => 0 };
@@ -827,7 +830,7 @@ impl Track {
                     let v = (high - low) as f32 * (j as f32 / len as f32) + low as f32;
                     let v = v as isize;
                     // 直前と同じ値なら書き込まない (#78)
-                    if last_v == Some(v) { continue; }
+                    if skip_same && last_v == Some(v) { continue; }
                     last_v = Some(v);
                     let time = self.timepos + elapsed + j;
                     self.push_value_event(target, time, v, ctx);
@@ -851,7 +854,10 @@ impl Track {
         if len <= 0 { return; }
         let times = if times <= 0 { 1 } else { times };
         let freq = self.target_freq(target, ctx.timebase);
-        let delay = self.get_write_opt(target).delay;
+        let opt = self.get_write_opt(target);
+        let delay = opt.delay;
+        // .Random を使うときは、同じ基準値でも書き込む値が変わるので重複を抑制しない
+        let skip_same = opt.random <= 0;
         let total = len * times;
         let cc_no = match target { WriteTarget::CC(no) => no, _ => 0 };
         let start = self.timepos + delay;
@@ -877,7 +883,7 @@ impl Track {
                 }
             };
             let v = v.round() as isize;
-            if last_v == Some(v) { continue; }
+            if skip_same && last_v == Some(v) { continue; }
             last_v = Some(v);
             self.push_value_event(target, self.timepos + j, v, ctx);
         }
@@ -897,6 +903,16 @@ impl Track {
         self.cc_on_note_wave.retain(|it| !it.target.is_same(&target));
         self.cc_on_note_sine.retain(|it| !it.target.is_same(&target));
         self.cc_on_cycle.retain(|it| !it.target.is_same(&target));
+    }
+    /// .onNote の値をくり返すかどうかを設定する (.Repeat)
+    /// すでに予約されている同じ書き込み先の .onNote にも反映する
+    pub fn set_repeat(&mut self, target: WriteTarget, on: bool) {
+        self.update_write_opt(target, |opt| opt.repeat = on);
+        for it in self.cc_on_note.iter_mut() {
+            if it.target.is_same(&target) {
+                it.is_cycle = on;
+            }
+        }
     }
     /// 音符ごとの値の先行指定を予約する (.onNote/.N)
     pub fn set_on_note(&mut self, target: WriteTarget, ia: Vec<isize>) {
@@ -918,7 +934,8 @@ impl Track {
     pub fn set_on_cycle(&mut self, target: WriteTarget, len: isize, data: Vec<isize>) {
         self.remove_reserve(target);
         if len <= 0 || data.len() == 0 { return; }
-        let next_time = self.timepos + self.get_write_opt(target).delay;
+        // .Delay は書き込み時に push_value_event が適用するので、ここでは足さない
+        let next_time = self.timepos;
         self.cc_on_cycle.push(OnCycleValues { target, len, data, next_time, index: 0 });
     }
 

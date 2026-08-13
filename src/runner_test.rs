@@ -1010,6 +1010,39 @@ mod test_issue_65 {
     }
 
     #[test]
+    fn test_cc_delay_is_not_applied_twice_on_cycle() {
+        // .onCycle の書き込み位置に .Delay が二重に足されないこと
+        let song = exec_easy("TimeBase=96 M.Delay(12) M.onCycle(!4,0,127) l4 cdcd");
+        let times: Vec<isize> = cc_events(&song, 1).iter().map(|(t, _)| *t).collect();
+        assert_eq!(times, vec![12, 108, 204, 300]);
+    }
+
+    #[test]
+    fn test_cc_random_does_not_skip_same_base_value() {
+        // .Random 有効時は、基準値が同じ区間でも書き込みが省略されないこと
+        // (low==high の区間は基準値が一定なので、重複抑制が効くと1つしか出ない)
+        let song = exec_easy("TimeBase=96 CC.Frequency(24) M.onTime(60,60,!1) c1");
+        assert_eq!(cc_events(&song, 1).len(), 1);
+        // 24ステップおきに、全音符(384ステップ)の間で16回書き込まれる
+        let song = exec_easy("TimeBase=96 CC.Frequency(24) M.Random(20) M.onTime(60,60,!1) c1");
+        assert_eq!(cc_events(&song, 1).len(), 16);
+    }
+
+    #[test]
+    fn test_cc_repeat_affects_only_its_own_target() {
+        // M.Repeat(on) が他のCCやピッチベンドの .onNote をループ化しないこと
+        let song = exec_easy(
+            "TimeBase=96 M.onNote(1,2) P.onNote(10,20) PB.onNote(-8192,0) M.Repeat(on) l4 cdef",
+        );
+        let modulation: Vec<isize> = cc_events(&song, 1).iter().map(|(_, v)| *v).collect();
+        let panpot: Vec<isize> = cc_events(&song, 10).iter().map(|(_, v)| *v).collect();
+        let bends: Vec<isize> = pitch_bends(&song).iter().map(|(_, v)| *v).collect();
+        assert_eq!(modulation, vec![1, 2, 1, 2]);
+        assert_eq!(panpot, vec![10, 20]);
+        assert_eq!(bends, vec![0, 8192]);
+    }
+
+    #[test]
     fn test_direct_value_clears_reserve() {
         // 値を直接指定すると先行指定は解除される
         let song = exec_easy("TimeBase=96 M.onNote(10,20) l4 c M(0) d");

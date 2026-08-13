@@ -313,9 +313,5 @@ pub(super) fn exec_cc_range(song: &mut Song, t: &Token) {
 pub(super) fn exec_cc_repeat(song: &mut Song, t: &Token) {
     let target = write_target_from_value(t.value_i);
     let on = t.data[0].to_i() != 0;
-    trk!(song).update_write_opt(target, |opt| opt.repeat = on);
-    // すでに予約されている .onNote にも反映する
-    for it in trk!(song).cc_on_note.iter_mut() {
-        it.is_cycle = on;
-    }
+    trk!(song).set_repeat(target, on);
 }
