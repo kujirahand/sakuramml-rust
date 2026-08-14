@@ -104,8 +104,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     sysfunc_add!(sf, "MEASURE_SHIFT", TokenType::MeasureShift, 'I'); // set measure shift for time pointer (ex) MeasureShift(1)
     sysfunc_add!(sf, "TrackSync", TokenType::TrackSync, '_'); // synchronize time pointers for all tracks (ex) TrackSync
     sysfunc_add!(sf, "TRACK_SYNC", TokenType::TrackSync, '_'); // synchronize time pointers for all tracks (ex) TrackSync
-    sysfunc_add!(sf, "Slur", TokenType::TieMode, 'A'); // set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1)
-    sysfunc_add!(sf, "SLUR", TokenType::TieMode, 'A'); // set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1)
+    sysfunc_add!(sf, "Slur", TokenType::TieMode, 'A'); // set slur/tie(&) mode - Slur(モード[,値[,レンジ]]) (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(0,!8,2)
+    sysfunc_add!(sf, "SLUR", TokenType::TieMode, 'A'); // set slur/tie(&) mode - Slur(モード[,値[,レンジ]]) (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(0,!8,2)
     sysfunc_add!(sf, "System.vAdd", TokenType::SongVelocityAdd, 'I'); // set relative velocity '(' or ')' or 'v++' or 'v--' command increment value / 小文字始まりの vAdd は v コマンドと解釈されるため System.vAdd と書く (ex) System.vAdd(3)
     sysfunc_add!(sf, "vAdd", TokenType::SongVelocityAdd, 'I'); // set relative velocity '(' or ')' or 'v++' or 'v--' command increment value / 小文字始まりの vAdd は v コマンドと解釈されるため System.vAdd と書く (ex) System.vAdd(3)
     sysfunc_add!(sf, "System.qAdd", TokenType::SongQAdd, 'I'); // set q++ command value / 小文字始まりの qAdd は q コマンドと解釈されるため System.qAdd と書く (ex) System.qAdd(3)

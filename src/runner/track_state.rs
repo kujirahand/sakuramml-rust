@@ -195,7 +195,8 @@ pub(super) fn exec_note_param_max(song: &mut Song, t: &Token) {
     note_param(song, target).max = v;
 }
 
-/// タイ(&)の動作モードの指定
+/// タイ(&)の動作モードの指定 --- Slur(type[, value[, range]])
+/// 省略した引数は、オリジナル実装(mml_base.pas の scriptTieMode)と同じく、以前の値を保持する
 pub(super) fn exec_tie_mode(song: &mut Song, t: &Token) {
     let args = exec_args(song, t.children.as_deref().unwrap_or(&[]));
     if args.len() >= 1 {
@@ -203,5 +204,14 @@ pub(super) fn exec_tie_mode(song: &mut Song, t: &Token) {
     }
     if args.len() >= 2 {
         trk!(song).tie_value = var_extract(&args[1], song).to_i();
+    }
+    // 第3引数(range)はベンドレンジの強制指定。指定された時点で即座に反映する
+    if args.len() >= 3 {
+        let range = var_extract(&args[2], song).to_i();
+        if range > 0 && trk!(song).bend_range != range {
+            trk!(song).bend_range = range;
+            let event = Event::pitch_bend_range(trk!(song).timepos, trk!(song).channel, range);
+            song.add_event(event);
+        }
     }
 }

@@ -182,12 +182,26 @@ pub(super) fn tie_mode_gate(song: &mut Song) {
 }
 
 /// alpeggio mode
+/// Slur(3, value) の value に最大発音音数を指定できる。
+/// オリジナル実装(mml_base.pas の subAlp)と同じく、
+/// (value-1)個あとの音符のゲートの終わりまで伸ばす。
+/// こうすることで、同時に鳴る音を value 個に抑えつつ、音符ごとのゲート比率(q)を保てる。
 pub(super) fn tie_mode_alpe(song: &mut Song) {
-    let last_note = &trk!(song).tie_notes[trk!(song).tie_notes.len() - 1];
-    let last_pos = last_note.time + last_note.v2;
     let tie_notes = trk!(song).tie_notes.clone();
-    for mut event in tie_notes.into_iter() {
-        event.v2 = last_pos - event.time;
+    let len = tie_notes.len();
+    let last_note = &tie_notes[len - 1];
+    let last_pos = last_note.time + last_note.v2;
+    let max_notes = trk!(song).tie_value;
+    for (i, mut event) in tie_notes.iter().cloned().enumerate() {
+        // 最大発音音数の指定がなければ、従来どおり最後の音符の終わりまで伸ばす
+        let end_pos = if max_notes > 0 {
+            let j = std::cmp::min(i + (max_notes as usize) - 1, len - 1);
+            tie_notes[j].time + tie_notes[j].v2
+        } else {
+            last_pos
+        };
+        let gate = end_pos - event.time;
+        event.v2 = if gate < 1 { 1 } else { gate };
         song.add_reserved_event(event);
     }
 }
