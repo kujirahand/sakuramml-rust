@@ -94,8 +94,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | MEASURE_SHIFT | set measure shift for time pointer (ex) MeasureShift(1) |
 | TrackSync | synchronize time pointers for all tracks (ex) TrackSync |
 | TRACK_SYNC | synchronize time pointers for all tracks (ex) TrackSync |
-| Slur | set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1) |
-| SLUR | set slur/tie(&) mode (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(1) |
+| Slur | set slur/tie(&) mode - Slur(モード[,値[,レンジ]]) (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(0,!8,2) |
+| SLUR | set slur/tie(&) mode - Slur(モード[,値[,レンジ]]) (0:グリッサンド/1:ベンド/2:ゲート/3:アルペジオ) (ex) Slur(0,!8,2) |
 | System.vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value / 小文字始まりの vAdd は v コマンドと解釈されるため System.vAdd と書く (ex) System.vAdd(3) |
 | vAdd | set relative velocity '(' or ')' or 'v++' or 'v--' command increment value / 小文字始まりの vAdd は v コマンドと解釈されるため System.vAdd と書く (ex) System.vAdd(3) |
 | System.qAdd | set q++ command value / 小文字始まりの qAdd は q コマンドと解釈されるため System.qAdd と書く (ex) System.qAdd(3) |

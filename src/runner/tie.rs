@@ -26,11 +26,29 @@ fn has_different_note_no(song: &Song) -> bool {
     false
 }
 
+/// Slur(0, value, range) の第3引数(range)でベンドレンジが指定されていれば設定する
+/// 戻り値: 設定できたら true / イベント追加に失敗したら false
+fn apply_tie_bend_range(song: &mut Song, timepos: isize) -> bool {
+    let tie_range = trk!(song).tie_range;
+    if tie_range <= 0 || trk!(song).bend_range == tie_range {
+        return true;
+    }
+    let timepos = if timepos <= 0 { 0 } else { timepos - 1 };
+    trk!(song).bend_range = tie_range;
+    let bend_range_event = Event::pitch_bend_range(timepos, trk!(song).channel, tie_range);
+    song.add_event(bend_range_event)
+}
+
 /// TieMode::Port
 pub(super) fn tie_mode_port(song: &mut Song) {
     // 異音程をベンドでつなぐときだけ、重なった古いピッチベンドを削除する (#78)
     if has_different_note_no(song) {
         remove_pitch_bend_on_tie_notes(song);
+    }
+    // Slur(0, value, range) の range でベンドレンジを指定できる
+    let first_time = trk!(song).tie_notes[0].time;
+    if !apply_tie_bend_range(song, first_time) {
+        return;
     }
     let mut last_note = trk!(song).tie_notes.remove(0);
     let mut tie_value = trk!(song).tie_value;
@@ -182,12 +200,23 @@ pub(super) fn tie_mode_gate(song: &mut Song) {
 }
 
 /// alpeggio mode
+/// Slur(3, value) の value に最大発音音数を指定できる。
+/// value音を超えて重なるときは、value個あとの音符が鳴り始める位置でゲートを切る。
 pub(super) fn tie_mode_alpe(song: &mut Song) {
     let last_note = &trk!(song).tie_notes[trk!(song).tie_notes.len() - 1];
     let last_pos = last_note.time + last_note.v2;
+    let max_notes = trk!(song).tie_value;
     let tie_notes = trk!(song).tie_notes.clone();
-    for mut event in tie_notes.into_iter() {
-        event.v2 = last_pos - event.time;
+    let len = tie_notes.len();
+    for (i, mut event) in tie_notes.iter().cloned().enumerate() {
+        // 最大発音音数の指定があれば、max_notes個あとの音符の開始位置まででゲートを止める
+        let end_pos = if max_notes > 0 && i + (max_notes as usize) < len {
+            tie_notes[i + max_notes as usize].time
+        } else {
+            last_pos
+        };
+        let gate = end_pos - event.time;
+        event.v2 = if gate < 1 { 1 } else { gate };
         song.add_reserved_event(event);
     }
 }

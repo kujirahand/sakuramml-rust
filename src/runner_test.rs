@@ -987,6 +987,65 @@ mod test_issue_78 {
         // 最初に書き込まれるイベントは49ステップ目になる
         assert_eq!(bends.first().unwrap().0, 49);
     }
+
+    #[test]
+    fn test_slur_third_arg_sets_bend_range() {
+        // Slur(0, value, range) の第3引数でベンドレンジを指定できること (#7)
+        let song = exec_easy("TimeBase=96 Slur(0,48,2) l4 c&d");
+        assert_eq!(song.get_logs_str(), "");
+        // ベンドレンジ(RPN)が2に設定される
+        let ranges = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::PitchBendRange)
+            .map(|event| event.v1)
+            .collect::<Vec<_>>();
+        assert_eq!(ranges, vec![2]);
+        // BR(2) を明示した場合と同じピッチベンドになる
+        let expected = pitch_bends(&exec_easy("TimeBase=96 BR(2) Slur(0,48) l4 c&d"));
+        assert_eq!(pitch_bends(&song), expected);
+        // range 未指定なら既定の12が使われる (BR指定なしのとき)
+        let song = exec_easy("TimeBase=96 Slur(0,48) l4 c&d");
+        let expected = pitch_bends(&exec_easy("TimeBase=96 BR(12) Slur(0,48) l4 c&d"));
+        assert_eq!(pitch_bends(&song), expected);
+    }
+
+    /// ノートオンの (時間, 音程, ゲート) を取り出す
+    fn note_events(song: &crate::song::Song) -> Vec<(isize, isize, isize)> {
+        let mut notes = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| (event.time, event.v1, event.v2))
+            .collect::<Vec<_>>();
+        notes.sort();
+        notes
+    }
+
+    #[test]
+    fn test_slur_alpe_max_notes() {
+        // Slur(3, value) の value で最大発音音数を指定できること (#7)
+        // 4音を16分音符(24ステップ)でつなぎ、同時発音数を2音に制限する
+        let song = exec_easy("TimeBase=96 Slur(3,2) l16 c&e&g&>c");
+        assert_eq!(song.get_logs_str(), "");
+        let notes = note_events(&song);
+        assert_eq!(notes.len(), 4);
+        // 1音目(0)は2つあとの音符(48)で切れる。2音目(24)は72で切れる
+        assert_eq!(notes[0].2, 48);
+        assert_eq!(notes[1].2, 48);
+        // 残り2音は最後の音符の終わり(72+ゲート21=93)まで伸びる
+        assert_eq!(notes[2].0 + notes[2].2, 93);
+        assert_eq!(notes[3].0 + notes[3].2, 93);
+    }
+
+    #[test]
+    fn test_slur_alpe_without_max_notes() {
+        // value 未指定なら、従来どおり全ての音が最後まで伸びる
+        let song = exec_easy("TimeBase=96 Slur(3) l16 c&e&g&>c");
+        for (time, _, gate) in note_events(&song) {
+            assert_eq!(time + gate, 93);
+        }
+    }
 }
 
 /// 先行指定(mml_const.pas の OPTION_*)のテスト (#65)
