@@ -13,6 +13,74 @@ fn read_gate_arg(cur: &mut SourceCursor, def: isize) -> (isize, bool) {
     (cur.get_int(def), false)
 }
 
+/// 音符属性(v/q/t/o)の相対指定 `+n` `++` `--` を読み取る
+/// (オリジナル(Pascal版)の SetNoteInfo.subSoutai を参考にした動作)
+/// - 符号がなければ None を返す(絶対値指定として読み直す)
+/// - 続けて数値があれば、その数値が増減幅になる (ex) v+10 → ベロシティを10上げる
+/// - 数値がなければ、コマンドごとの既定の増減幅(vAdd/qAdd/1)を使う (ex) v++ o--
+/// - 符号は増減の向きだけを表す。`v++` は従来通り vAdd だけ上げる(オリジナルは符号の数だけ増える)
+/// - `v-10` `o-5` のように「マイナス符号 + 数値」は、従来通り負の絶対値指定として扱う
+///   (これまでのMMLとの互換性を保つため。相対的に下げるには `v-` または `v--` と書く)
+///   戻り値: (増減の向き(+1/-1), 増減幅の指定 / 省略時は SValue::None)
+fn read_note_param_rel(cur: &mut SourceCursor, song: &mut Song) -> Option<(isize, SValue)> {
+    let start = cur.index;
+    let mut sign: isize = 0;
+    let mut found = false;
+    loop {
+        if cur.eq_char('+') {
+            sign += 1;
+        } else if cur.eq_char('-') {
+            sign -= 1;
+        } else {
+            break;
+        }
+        found = true;
+        cur.next();
+    }
+    if !found {
+        return None;
+    }
+    // 増減幅の数値指定があるか
+    let value = match cur.peek_n(0) {
+        '$' | '(' | '!' | '0'..='9' => {
+            if sign < 0 {
+                // 負の絶対値指定 (ex) v-10 なので、読み戻して絶対値指定に任せる
+                cur.index = start;
+                return None;
+            }
+            read_arg_value(cur, song)
+        }
+        _ => SValue::None,
+    };
+    Some((sign.signum(), value))
+}
+
+/// 音符属性(v/q/t/o)の引数を読み取る
+/// 引数がない場合はエラーにして None を返す (ex) `vf+4` は `f+4` の書き間違い (#78)
+/// 引数を読み飛ばさないので、続く `f+4` は音符として演奏される
+/// 変数を指定する場合、定義済みの変数名か、`v=A` `v(A)` のように書く必要がある
+fn read_note_param_value(cur: &mut SourceCursor, song: &mut Song, cmd: &str) -> Option<SValue> {
+    cur.skip_space();
+    match cur.peek_n(0) {
+        'A'..='Z' | 'a'..='z' | '_' => {
+            // 未定義の単語なら、音符などの書き間違いの可能性が高いのでエラーとする
+            let index = cur.index;
+            let word = cur.get_word();
+            cur.index = index; // 読み戻す
+            if !song.variables_contains_key(&word) {
+                lex_error_missing_arg(cur, song, cmd);
+                return None;
+            }
+        }
+        '=' | '(' | '{' | '$' | '!' | '-' | '0'..='9' => {}
+        _ => {
+            lex_error_missing_arg(cur, song, cmd);
+            return None;
+        }
+    }
+    Some(read_arg_value(cur, song))
+}
+
 pub(super) fn read_harmony_flag(cur: &mut SourceCursor, flag_harmony: &mut bool) -> Token {
     // begin
     if !*flag_harmony {
@@ -222,18 +290,21 @@ pub(super) fn read_octave(cur: &mut SourceCursor, song: &mut Song) -> Token {
             return t;
         }
     }
-    let value = read_arg_value(cur, song);
+    // 相対指定 (ex) o++ o+1
+    if let Some((sign, value)) = read_note_param_rel(cur, song) {
+        return Token::new(TokenType::OctaveRel, sign, vec![value]);
+    }
+    let value = match read_note_param_value(cur, song, "o") {
+        Some(value) => value,
+        None => return Token::new_empty("o", cur.line), // 引数がなければ何もしない
+    };
     Token::new(TokenType::Octave, value.to_i(), vec![value])
 }
 
 pub(super) fn read_qlen(cur: &mut SourceCursor, song: &mut Song) -> Token {
-    if cur.eq("++") {
-        cur.next_n(2);
-        return Token::new(TokenType::QLenRel, 1, vec![]);
-    }
-    if cur.eq("--") {
-        cur.next_n(2);
-        return Token::new(TokenType::QLenRel, -1, vec![]);
+    // 相対指定 (ex) q++ q+10
+    if let Some((sign, value)) = read_note_param_rel(cur, song) {
+        return Token::new(TokenType::QLenRel, sign, vec![value]);
     }
     if cur.eq("__") {
         // dummy
@@ -264,7 +335,10 @@ pub(super) fn read_qlen(cur: &mut SourceCursor, song: &mut Song) -> Token {
             vec![value, SValue::from_i(1)],
         );
     }
-    let value = read_arg_value(cur, song);
+    let value = match read_note_param_value(cur, song, "q") {
+        Some(value) => value,
+        None => return Token::new_empty("q", cur.line), // 引数がなければ何もしない
+    };
     Token::new(
         TokenType::QLen,
         value.to_i(),
@@ -273,13 +347,9 @@ pub(super) fn read_qlen(cur: &mut SourceCursor, song: &mut Song) -> Token {
 }
 
 pub(super) fn read_velocity(cur: &mut SourceCursor, song: &mut Song) -> Token {
-    if cur.eq("++") {
-        cur.next_n(2);
-        return Token::new(TokenType::VelocityRel, 1, vec![]);
-    }
-    if cur.eq("--") {
-        cur.next_n(2);
-        return Token::new(TokenType::VelocityRel, -1, vec![]);
+    // 相対指定 (ex) v++ v+10
+    if let Some((sign, value)) = read_note_param_rel(cur, song) {
+        return Token::new(TokenType::VelocityRel, sign, vec![value]);
     }
     let mut ino = -1;
     if cur.eq("__") {
@@ -302,7 +372,10 @@ pub(super) fn read_velocity(cur: &mut SourceCursor, song: &mut Song) -> Token {
         }
     }
     // v(no)
-    let value = read_arg_value(cur, song);
+    let value = match read_note_param_value(cur, song, "v") {
+        Some(value) => value,
+        None => return Token::new_empty("v", cur.line), // 引数がなければ何もしない
+    };
     Token::new(
         TokenType::Velocity,
         value.to_i(),
@@ -329,8 +402,15 @@ pub(super) fn read_timing(cur: &mut SourceCursor, song: &mut Song) -> Token {
             return t;
         }
     }
+    // 相対指定 (ex) t++ t+10
+    if let Some((sign, value)) = read_note_param_rel(cur, song) {
+        return Token::new(TokenType::TimingRel, sign, vec![value]);
+    }
     // t(no)
-    let value = read_arg_value(cur, song);
+    let value = match read_note_param_value(cur, song, "t") {
+        Some(value) => value,
+        None => return Token::new_empty("t", cur.line), // 引数がなければ何もしない
+    };
     Token::new(TokenType::Timing, value.to_i(), vec![value])
 }
 

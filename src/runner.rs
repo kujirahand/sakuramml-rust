@@ -217,6 +217,7 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
             TokenType::QLen => exec_qlen(song, t),
             TokenType::Velocity => exec_velocity(song, t),
             TokenType::Timing => exec_timing(song, t),
+            TokenType::TimingRel => exec_timing_rel(song, t),
             TokenType::ControlChange => exec_control_change(song, t),
             TokenType::RPN => exec_cc_rpn_nrpn_direct(song, t, 101, 100, 6),
             TokenType::RPNCommand => exec_cc_rpn_nrpn(song, t, 101, 100, 6),

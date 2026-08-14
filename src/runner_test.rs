@@ -1816,3 +1816,64 @@ mod test_issue_127 {
         assert_eq!(note_gates(&song), vec![48, 48, 48]);
     }
 }
+
+#[cfg(test)]
+mod test_note_param_arg {
+    use super::exec_easy;
+    use crate::song::EventType;
+
+    /// 引数のないv/q/o/tはエラーにする (書き間違いの検出)
+    #[test]
+    fn test_missing_argument_error() {
+        // `vf+4` は `f+4` の書き間違い。vの引数として f を読み飛ばさない
+        let song = exec_easy("o5 v100 vf+4");
+        assert!(song.get_logs_str().contains("\"v\""));
+        assert!(song.get_logs_str().contains("[ERROR]"));
+        // エラーになってもベロシティは変更しない
+        assert_eq!(song.tracks[0].velocity, 100);
+        // 音符 f+ は演奏される
+        let notes: Vec<isize> = song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v1)
+            .collect();
+        assert_eq!(notes, vec![66]);
+        // q/o/t も同様
+        assert!(exec_easy("q c").get_logs_str().contains("[ERROR]"));
+        assert!(exec_easy("o c").get_logs_str().contains("[ERROR]"));
+        assert!(exec_easy("t c").get_logs_str().contains("[ERROR]"));
+        // 定義済みの変数や、= や () を使った指定はエラーにしない
+        let song = exec_easy("Int A=60 vA q=50 o(3) c");
+        assert_eq!(song.get_logs_str(), "");
+        assert_eq!(song.tracks[0].velocity, 60);
+        assert_eq!(song.tracks[0].qlen, 50);
+        assert_eq!(song.tracks[0].octave, 3);
+    }
+
+    /// 相対指定 (v+n, q+n, o+n, t+n, v++, o--)
+    #[test]
+    fn test_relative_value() {
+        // 数値を指定すると、その値だけ増える
+        let song = exec_easy("v40 v+10 q80 q+10 o5 o+2 t0 t+3 c");
+        assert_eq!(song.tracks[0].velocity, 50);
+        assert_eq!(song.tracks[0].qlen, 90);
+        assert_eq!(song.tracks[0].octave, 7);
+        assert_eq!(song.tracks[0].timing, 3);
+        // 数値がなければ、既定の増減幅(v=vAdd, q=qAdd, o/t=1)だけ増減する
+        let song = exec_easy("v40 v++ o5 o-- t0 t- c");
+        assert_eq!(song.tracks[0].velocity, 48);
+        assert_eq!(song.tracks[0].octave, 4);
+        assert_eq!(song.tracks[0].timing, -1);
+        // System.vAdd の変更が反映される
+        let song = exec_easy("System.vAdd(3) v40 v++ v+ c");
+        assert_eq!(song.tracks[0].velocity, 46);
+        // '(' ')' はvAddの値だけ増減する
+        let song = exec_easy("System.vAdd(5) v40 ) ) ( c");
+        assert_eq!(song.tracks[0].velocity, 45);
+        // マイナス符号と数値は、これまで通り負の絶対値指定
+        let song = exec_easy("t0 t-10 v100 v-10 c");
+        assert_eq!(song.tracks[0].timing, -10);
+        assert_eq!(song.tracks[0].velocity, 0);
+    }
+}
