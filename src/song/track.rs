@@ -428,8 +428,6 @@ pub struct Track {
     pub track_key: isize,
     pub tie_mode: TieMode, // Slur(#7)
     pub tie_value: isize,
-    /// Slur(type, value, range) の第3引数。モード0(グリッサンド)でベンドレンジを指定する。0なら未指定
-    pub tie_range: isize,
     pub bend_range: isize,
     pub pitch_bend: isize,
     pub program_change: isize,
@@ -478,7 +476,6 @@ impl Track {
             port: 0,
             tie_mode: TieMode::Port,
             tie_value: 0,
-            tie_range: 0,
             v_sub: vec![0],
             v_sub_rand: vec![0],
             v_sub_on_time: vec![None],

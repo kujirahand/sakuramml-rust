@@ -988,26 +988,14 @@ mod test_issue_78 {
         assert_eq!(bends.first().unwrap().0, 49);
     }
 
-    #[test]
-    fn test_slur_third_arg_sets_bend_range() {
-        // Slur(0, value, range) の第3引数でベンドレンジを指定できること (#7)
-        let song = exec_easy("TimeBase=96 Slur(0,48,2) l4 c&d");
-        assert_eq!(song.get_logs_str(), "");
-        // ベンドレンジ(RPN)が2に設定される
-        let ranges = song.tracks[0]
+    /// ベンドレンジ(RPN)の (時間, 値) を取り出す
+    fn bend_ranges(song: &crate::song::Song) -> Vec<(isize, isize)> {
+        song.tracks[0]
             .events
             .iter()
             .filter(|event| event.etype == EventType::PitchBendRange)
-            .map(|event| event.v1)
-            .collect::<Vec<_>>();
-        assert_eq!(ranges, vec![2]);
-        // BR(2) を明示した場合と同じピッチベンドになる
-        let expected = pitch_bends(&exec_easy("TimeBase=96 BR(2) Slur(0,48) l4 c&d"));
-        assert_eq!(pitch_bends(&song), expected);
-        // range 未指定なら既定の12が使われる (BR指定なしのとき)
-        let song = exec_easy("TimeBase=96 Slur(0,48) l4 c&d");
-        let expected = pitch_bends(&exec_easy("TimeBase=96 BR(12) Slur(0,48) l4 c&d"));
-        assert_eq!(pitch_bends(&song), expected);
+            .map(|event| (event.time, event.v1))
+            .collect::<Vec<_>>()
     }
 
     /// ノートオンの (時間, 音程, ゲート) を取り出す
@@ -1023,6 +1011,59 @@ mod test_issue_78 {
     }
 
     #[test]
+    fn test_slur_third_arg_sets_bend_range() {
+        // Slur(0, value, range) の第3引数でベンドレンジを指定できること (#7)
+        let song = exec_easy("TimeBase=96 Slur(0,48,2) l4 c&d");
+        assert_eq!(song.get_logs_str(), "");
+        // Slur を書いた位置(0)でベンドレンジが2に設定される
+        assert_eq!(bend_ranges(&song), vec![(0, 2)]);
+        // BR(2) を明示した場合と同じピッチベンドになる
+        let expected = pitch_bends(&exec_easy("TimeBase=96 BR(2) Slur(0,48) l4 c&d"));
+        assert_eq!(pitch_bends(&song), expected);
+        // range 未指定なら既定の12が使われる (BR指定なしのとき)
+        let song = exec_easy("TimeBase=96 Slur(0,48) l4 c&d");
+        let expected = pitch_bends(&exec_easy("TimeBase=96 BR(12) Slur(0,48) l4 c&d"));
+        assert_eq!(pitch_bends(&song), expected);
+    }
+
+    #[test]
+    fn test_slur_third_arg_does_not_override_later_br() {
+        // Slur(0,…,range) の指定は Slur を書いた位置だけに効き、
+        // あとから BR() で変更したベンドレンジを壊さないこと (#7)
+        let song = exec_easy("TimeBase=96 Slur(0,48,2) l4 c&d BR(6) e&f");
+        // タイの処理でベンドレンジを書き込まないこと
+        // (Slur(…,2) の1回だけ。BR(6) は RPN の CC として書き込まれる)
+        assert_eq!(bend_ranges(&song), vec![(0, 2)]);
+        // 2回目のスラーは BR(6) のレンジで計算される
+        let expected = pitch_bends(&exec_easy("TimeBase=96 BR(6) Slur(0,48) l4 e&f"));
+        let actual = pitch_bends(&song)
+            .into_iter()
+            .filter(|(time, _)| *time >= 96 * 2)
+            .map(|(time, value)| (time - 96 * 2, value))
+            .collect::<Vec<_>>();
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_slur_does_not_write_bend_range_for_same_note_tie() {
+        // 同じ音程のタイ(c&c)はベンドを書き込まないので、
+        // タイの処理でベンドレンジを書き込まないこと (#7)
+        let song = exec_easy("TimeBase=96 Slur(0,48,2) l4 c&c");
+        // Slur(…,2) を書いた位置の1回だけで、タイの位置には増えない
+        assert_eq!(bend_ranges(&song), vec![(0, 2)]);
+        // ピッチベンドも書き込まれない
+        assert_eq!(pitch_bends(&song), vec![]);
+    }
+
+    #[test]
+    fn test_slur_omitted_args_keep_previous_value() {
+        // 省略した引数は以前の値を保持する (オリジナル実装と同じ)
+        let song = exec_easy("TimeBase=96 Slur(3,2) l16 Slur(3) c&e&g&>c");
+        let expected = exec_easy("TimeBase=96 Slur(3,2) l16 c&e&g&>c");
+        assert_eq!(note_events(&song), note_events(&expected));
+    }
+
+    #[test]
     fn test_slur_alpe_max_notes() {
         // Slur(3, value) の value で最大発音音数を指定できること (#7)
         // 4音を16分音符(24ステップ)でつなぎ、同時発音数を2音に制限する
@@ -1030,12 +1071,52 @@ mod test_issue_78 {
         assert_eq!(song.get_logs_str(), "");
         let notes = note_events(&song);
         assert_eq!(notes.len(), 4);
-        // 1音目(0)は2つあとの音符(48)で切れる。2音目(24)は72で切れる
-        assert_eq!(notes[0].2, 48);
-        assert_eq!(notes[1].2, 48);
-        // 残り2音は最後の音符の終わり(72+ゲート21=93)まで伸びる
-        assert_eq!(notes[2].0 + notes[2].2, 93);
-        assert_eq!(notes[3].0 + notes[3].2, 93);
+        // 各音は「1つあとの音符のゲートの終わり」まで伸びる (16分音符のゲートは21)
+        // 1音目(0) → 2音目の終わり(24+21=45)
+        assert_eq!(notes[0].0 + notes[0].2, 24 + 21);
+        assert_eq!(notes[1].0 + notes[1].2, 48 + 21);
+        assert_eq!(notes[2].0 + notes[2].2, 72 + 21);
+        // 最後の音はそれ以上つながる音がないので、自身のゲートのまま
+        assert_eq!(notes[3].0 + notes[3].2, 72 + 21);
+        // 同時に鳴るのは2音まで (3音目が鳴り始める48の時点で1音目は終わっている)
+        assert!(notes[0].0 + notes[0].2 <= notes[2].0);
+    }
+
+    #[test]
+    fn test_slur_alpe_keeps_gate_rate() {
+        // q50 のように短いゲートでも、伸ばした音のゲート比率が保たれること (#7)
+        // (音符の開始位置ではなく、対象の音符のゲートの終わりまで伸ばす)
+        let song = exec_easy("TimeBase=96 q50 Slur(3,2) l16 c&e&g&>c");
+        let notes = note_events(&song);
+        // 16分音符(24ステップ)のゲートは12。1音目は2音目の終わり(24+12=36)まで
+        assert_eq!(notes[0].0 + notes[0].2, 36);
+        // 3音目が鳴り始める48より前に1音目が終わり、レガートになりきらない
+        assert!(notes[0].0 + notes[0].2 < notes[2].0);
+    }
+
+    #[test]
+    fn test_slur_alpe_max_notes_boundary() {
+        // value=1 なら音を伸ばさない(単音ずつ)
+        let notes = note_events(&exec_easy("TimeBase=96 Slur(3,1) l16 c&e&g&>c"));
+        for (_, _, gate) in notes.iter() {
+            assert_eq!(*gate, 21); // 16分音符のゲートのまま
+        }
+        // value が音符数以上なら、全ての音が最後まで伸びる
+        let notes = note_events(&exec_easy("TimeBase=96 Slur(3,10) l16 c&e&g&>c"));
+        for (time, _, gate) in notes.iter() {
+            assert_eq!(time + gate, 93);
+        }
+        // 0や負数は未指定として扱い、全ての音が最後まで伸びる
+        for src in [
+            "TimeBase=96 Slur(3,0) l16 c&e&g&>c",
+            "TimeBase=96 Slur(3,-1) l16 c&e&g&>c",
+        ] {
+            let song = exec_easy(src);
+            assert_eq!(song.get_logs_str(), "");
+            for (time, _, gate) in note_events(&song) {
+                assert_eq!(time + gate, 93);
+            }
+        }
     }
 
     #[test]
