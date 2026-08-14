@@ -33,6 +33,7 @@ pub enum TokenType {
     Velocity,
     VelocityRel,
     Timing,
+    TimingRel,
     ControlChange,
     CConTime,
     CConNote,

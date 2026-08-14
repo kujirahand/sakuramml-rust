@@ -18,6 +18,7 @@ pub enum MessageKind {
     ErrorWrongArguments,
     ErrorTypeMismatch,
     ErrorMissingValue,
+    ErrorMissingArgument,
     InvalidArgument,
     WarningChangeTimebaseAfterNote,
     ShouldBeConstant,
@@ -116,6 +117,10 @@ pub fn get_message(lang: &MessageLang, kind: MessageKind) -> &'static str {
         MessageKind::ErrorMissingValue => match lang {
             MessageLang::EN => "Missing value after operator",
             MessageLang::JA => "演算子の後に値がありません",
+        },
+        MessageKind::ErrorMissingArgument => match lang {
+            MessageLang::EN => "Missing argument for the command",
+            MessageLang::JA => "コマンドに引数がありません",
         },
         MessageKind::InvalidArgument => match lang {
             MessageLang::EN => "Invalid argument",

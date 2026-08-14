@@ -149,8 +149,8 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             '@' => result.push(read_voice(&mut cur, song)), // @ Voice select(音色の指定) range:1-128 (format) @(no),(Bank_MSB),(Bank_LSB)
             '>' => result.push(Token::new_value(TokenType::OctaveRel, 1)), // @ Octave up (音階を1つ上げる)
             '<' => result.push(Token::new_value(TokenType::OctaveRel, -1)), // @ Octave down (音階を1つ下げる)
-            ')' => result.push(Token::new_value(TokenType::VelocityRel, song.v_add)), // @ velocity up - 音量をvAddの値だけ上げる
-            '(' => result.push(Token::new_value(TokenType::VelocityRel, -1 * song.v_add)), // @ velocity down - 音量をvAddの値だけ下げる
+            ')' => result.push(Token::new_value(TokenType::VelocityRel, 1)), // @ velocity up - 音量をvAddの値だけ上げる
+            '(' => result.push(Token::new_value(TokenType::VelocityRel, -1)), // @ velocity down - 音量をvAddの値だけ下げる
             // comment
             /*
             "\/\*" ... "\*\/" => // @ range comment (範囲コメント)

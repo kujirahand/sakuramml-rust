@@ -62,6 +62,27 @@ pub(super) fn read_error(cur: &mut SourceCursor, song: &mut Song, msg: &str) -> 
     return Token::new_empty("ERROR", cur.line);
 }
 
+/// 引数が必要なコマンドに引数がないときのエラーを記録する
+/// (ex) `vf+4` のように書き間違えて v の引数が省略された場合
+pub(super) fn lex_error_missing_arg(cur: &mut SourceCursor, song: &mut Song, cmd: &str) {
+    let mut near = cur.peek_str_n(8).replace('\n', "↵");
+    if near.len() == 0 {
+        near = "[EOS]".to_string();
+    }
+    let log = format!(
+        "[ERROR]({}) {}: \"{}\" {} \"{}\"",
+        cur.line,
+        song.get_message(MessageKind::ErrorMissingArgument),
+        cmd,
+        song.get_message(MessageKind::Near),
+        near,
+    );
+    if song.debug {
+        println!("{}", log);
+    }
+    song.add_log(log);
+}
+
 pub(super) fn read_warning(
     cur: &mut SourceCursor,
     song: &mut Song,

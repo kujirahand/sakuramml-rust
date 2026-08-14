@@ -30,9 +30,20 @@ pub(super) fn exec_octave(song: &mut Song, t: &Token) {
     trk!(song).octave = value_range(0, value, 10);
 }
 
-/// オクターブの相対変更 (> <)
+/// 音符属性の相対指定の増減値を求める (ex) v+10 / v++
+/// value_i が符号の合計、data[0] が増減幅(省略時は既定値 def_add)
+fn rel_value(song: &mut Song, t: &Token, def_add: isize) -> isize {
+    let add = match t.data.first() {
+        Some(SValue::None) | None => def_add,
+        Some(v) => var_extract(v, song).to_i(),
+    };
+    t.value_i * add
+}
+
+/// オクターブの相対変更 (> < o++ o+1)
 pub(super) fn exec_octave_rel(song: &mut Song, t: &Token) {
-    trk!(song).octave = value_range(0, trk!(song).octave + t.value_i, 10);
+    let add = rel_value(song, t, 1);
+    trk!(song).octave = value_range(0, trk!(song).octave + add, 10);
 }
 
 /// 1音だけオクターブを変更する (` ")
@@ -60,10 +71,11 @@ pub(super) fn exec_velocity(song: &mut Song, t: &Token) {
     }
 }
 
-/// ベロシティの相対変更 ()( )
+/// ベロシティの相対変更 ( ) v++ v+10
 pub(super) fn exec_velocity_rel(song: &mut Song, t: &Token) {
+    let add = rel_value(song, t, song.v_add);
     let max = trk!(song).v_opt.max_or(127);
-    trk!(song).velocity = value_range(0, trk!(song).velocity + (song.v_add * t.value_i), max);
+    trk!(song).velocity = value_range(0, trk!(song).velocity + add, max);
 }
 
 /// ゲートの指定 (q)
@@ -94,9 +106,10 @@ pub(super) fn exec_qlen(song: &mut Song, t: &Token) {
     trk!(song).qlen = value_range(0, value, max);
 }
 
-/// ゲートの相対変更
+/// ゲートの相対変更 (q++ q+10)
 pub(super) fn exec_qlen_rel(song: &mut Song, t: &Token) {
-    trk!(song).qlen = trk!(song).qlen + (song.q_add * t.value_i);
+    let add = rel_value(song, t, song.q_add);
+    trk!(song).qlen = trk!(song).qlen + add;
 }
 
 /// 発音タイミングの指定 (t)
@@ -107,6 +120,12 @@ pub(super) fn exec_timing(song: &mut Song, t: &Token) {
         .first()
         .map(|v| var_extract(v, song).to_i())
         .unwrap_or(t.value_i);
+}
+
+/// 発音タイミングの相対変更 (t++ t+10)
+pub(super) fn exec_timing_rel(song: &mut Song, t: &Token) {
+    let add = rel_value(song, t, 1);
+    trk!(song).timing = trk!(song).timing + add;
 }
 
 /// 音符属性のランダム変化 (.Random)
