@@ -329,6 +329,15 @@ pub(super) fn read_command_pitch_bend_big(cur: &mut SourceCursor, song: &mut Son
 }
 
 pub(super) fn read_pitch_bend_small(cur: &mut SourceCursor, song: &mut Song) -> Token {
+    // p%n --- 詳細な範囲(-8192〜8191)でのピッチベンド指定。PB(n) と同じ意味
+    if cur.eq_char('%') {
+        cur.next(); // skip '%'
+        if let Some(t) = read_command_pitch_bend(cur, song, 1) {
+            return t;
+        }
+        let value = read_arg_value(cur, song);
+        return Token::new(TokenType::PitchBend, 1, vec![value]);
+    }
     if let Some(t) = read_command_pitch_bend(cur, song, 0) {
         return t;
     }

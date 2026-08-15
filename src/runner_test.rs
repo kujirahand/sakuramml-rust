@@ -916,6 +916,23 @@ mod test_issue_78 {
         assert_eq!(at_note2.v1, -8000 + 8192);
     }
 
+    #[test]
+    fn test_pitch_bend_percent_is_same_as_pb() {
+        // p%n は PB(n) と同じく -8192〜8191 の範囲で指定できる
+        let song = exec_easy("p%=0 c");
+        assert_eq!(pitch_bends(&song), vec![(0, 8192)]);
+        assert_eq!(song.tracks[0].pitch_bend, 0);
+        // 負の値や変数・式も指定できる
+        let song = exec_easy("Int A=-4096; p%(A) c p%8191 d");
+        assert_eq!(pitch_bends(&song), vec![(0, -4096 + 8192), (96, 8191 + 8192)]);
+        assert_eq!(song.tracks[0].pitch_bend, 8191);
+        // p%.onTime も PB.onTime と同じ扱いになる
+        let song1 = exec_easy("TimeBase=96 p%.onTime(-8192,0,6,0,8191,6)");
+        let song2 = exec_easy("TimeBase=96 PB.onTime(-8192,0,6,0,8191,6)");
+        assert_eq!(pitch_bends(&song1), pitch_bends(&song2));
+        assert!(!pitch_bends(&song1).is_empty());
+    }
+
     /// ピッチベンドのイベントを時刻順に取り出す
     fn pitch_bends(song: &crate::song::Song) -> Vec<(isize, isize)> {
         song.tracks[0]

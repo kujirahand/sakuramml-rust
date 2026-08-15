@@ -19,7 +19,7 @@
 | `q` | ゲートタイム | [音符](syntax-note.md#ゲートタイム-q) |
 | `t` | 発音タイミング | [音符](syntax-note.md#発音タイミング-t) |
 | `&` | タイ・スラー | [音符](syntax-note.md#タイスラー--) |
-| `p` | ピッチベンド(0-127) | [音色とMIDI制御](syntax-voice.md#ピッチベンド) |
+| `p` | ピッチベンド(0-127) / `p%n` で -8192～8191 の指定 | [音色とMIDI制御](syntax-voice.md#ピッチベンド) |
 | `y` | コントロールチェンジ | [音色とMIDI制御](syntax-voice.md#コントロールチェンジ) |
 | `@` | 音色 | [音色とMIDI制御](syntax-voice.md#音色---voice) |
 | `[` `:` `]` | 繰り返し | [マクロ](syntax-macro.md#繰り返し---) |

@@ -12,7 +12,7 @@ Single-character(lower case) command list. (1文字小文字コマンド)
 | r | rest - 休符 |
 | l | length - 音長の指定 (ex) l4 c |
 | o | octave - 音階の指定 range:0-10 (ex) o6 c |
-| p | pitch bend - ピッチベンドの指定 range:0-127 (center:64) (ex) p64 / p.onTime(low,high,len) / p.onNoteWave(low,high,len) / (ref) PB(n) は -8192~0~8191 |
+| p | pitch bend - ピッチベンドの指定 range:0-127 (center:64) (ex) p64 / p.onTime(low,high,len) / p.onNoteWave(low,high,len) / p%n で -8192~0~8191 の指定 (ex) p%=0 / (ref) PB(n) は -8192~0~8191 |
 | q | gate rate - ゲートの指定 range:0-100 (ex) q90 / q%n でステップ単位の指定 (ex) q%48 |
 | v | velocity - ベロシティ音量の指定 range:0-127 (ex) v100 / v.Random=n |
 | t | timing - 発音タイミングの指定 (例 t-1) / t.Random=n |
