@@ -13,6 +13,7 @@ Cargo.lock
 .DS_Store
 **/.DS_Store
 samples/*.mid
+eval.mid
 
 # original sakura repo
 /sakuramml/
