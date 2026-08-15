@@ -1,6 +1,6 @@
 [package]
 name = "sakuramml"
-version = "0.1.45"
+version = "0.2.1"
 edition = "2021"
 authors = ["kujirahand <web@kujirahand.com>"]
 description = "MML(Music Macro Language) compiler, MML to MIDI"
@@ -20,4 +20,4 @@ crate-type = ["cdylib", "rlib"]
 wasm-bindgen = "0.2"
 
 [dev-dependencies]
-sha2 = "0.10"
+sha2 = "0.11"

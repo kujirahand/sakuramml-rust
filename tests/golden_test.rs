@@ -13,7 +13,11 @@ fn assert_midi_golden(name: &str, source: &str, expected_sha256: &str) {
         "{name}: compiler did not produce a MIDI file"
     );
 
-    let actual_sha256 = format!("{:x}", Sha256::digest(&result.bin));
+    // sha2 0.11でdigest()の戻り値がLowerHexを実装しなくなったため、自前で16進文字列へ変換する
+    let actual_sha256: String = Sha256::digest(&result.bin)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
     assert_eq!(
         actual_sha256,
         expected_sha256,
