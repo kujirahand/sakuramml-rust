@@ -12,6 +12,8 @@ pub struct Flags {
     pub octave_once: isize,
     pub measure_shift: isize,
     pub break_flag: isize, // 0: none 1: break 2: continue 3: return
+    /// End命令が実行されたか --- 立つと以降のMMLの実行をすべて中断する
+    pub end_flag: bool,
     pub max_loop: isize,
     pub function_needs_return_value: bool,
 }
@@ -26,6 +28,7 @@ impl Flags {
             octave_once: 0,
             measure_shift: 0,
             break_flag: 0,
+            end_flag: false,
             max_loop: 10000,
             function_needs_return_value: false,
         }

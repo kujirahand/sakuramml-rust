@@ -157,6 +157,8 @@ pub enum TokenType {
     NoteOn,
     NoteOff,
     StrVarReplace,
+    /// End --- これ以降のMMLの実行を中断する
+    End,
 }
 
 /// CC・ピッチベンドの先行指定の書き込み先を value_i で表す

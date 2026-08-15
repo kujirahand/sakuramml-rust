@@ -138,6 +138,26 @@ mod tests {
         }
     }
 
+    /// End/END命令 (issue #141)
+    #[test]
+    fn test_end_command() {
+        let mut song = Song::new();
+        // End以降はコンパイルしない。Endトークンを出力して実行を中断する
+        let tokens = lex(&mut song, "cd End efg", 0);
+        let s = tokens_to_str(&tokens);
+        assert!(s.starts_with("[Note,0][Note,2][End,0]"), "{}", s);
+        assert!(!s.contains("[Note,4]"), "{}", s);
+        // ENDも同じ
+        let tokens = lex(&mut song, "cd END efg", 0);
+        let s = tokens_to_str(&tokens);
+        assert!(s.starts_with("[Note,0][Note,2][End,0]"), "{}", s);
+        // 英数字が続く場合はEnd命令ではない
+        let tokens = lex(&mut song, "Int ENDTIME=1;TR(ENDTIME)c", 0);
+        let s = tokens_to_str(&tokens);
+        assert!(!s.contains("[End,0]"), "{}", s);
+        assert!(s.contains("[Note,0]"), "{}", s);
+    }
+
     #[test]
     fn test_timebase() {
         let mut song = Song::new();

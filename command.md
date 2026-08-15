@@ -47,8 +47,8 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 
 | Command | Description |
 |---------|--------|
-| End | end of song |
-| END | end of song |
+| End | stop compiling MML / これ以降の実行を中断する (ex) End |
+| END | stop compiling MML / これ以降の実行を中断する (ex) END |
 | Track | change current track [range:0 to 999] (ex) Track(1) |
 | TRACK | change current track [range:0 to 999] (ex) TRACK(1) |
 | TR | change current track [range:0 to 999] (ex) TR(1) |

@@ -57,8 +57,8 @@ pub fn init_system_functions() -> HashMap<String, SystemFunction> {
     let mut sf = HashMap::new();
     //<SYSTEM_FUNCTION>
     //@ Basic command
-    // sysfunc_add!(sf, "End", TokenType::End, '_'); // end of song
-    // sysfunc_add!(sf, "END", TokenType::End, '_'); // end of song
+    sysfunc_add!(sf, "End", TokenType::End, '_'); // stop compiling MML / これ以降の実行を中断する (ex) End
+    sysfunc_add!(sf, "END", TokenType::End, '_'); // stop compiling MML / これ以降の実行を中断する (ex) END
     sysfunc_add!(sf, "Track", TokenType::Track, 'I'); // change current track [range:0 to 999] (ex) Track(1)
     sysfunc_add!(sf, "TRACK", TokenType::Track, 'I'); // change current track [range:0 to 999] (ex) TRACK(1)
     sysfunc_add!(sf, "TR", TokenType::Track, 'I'); // change current track [range:0 to 999] (ex) TR(1)
