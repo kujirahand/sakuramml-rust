@@ -12,6 +12,7 @@ Cargo.lock
 *.py[cod]
 .DS_Store
 **/.DS_Store
+samples/*.mid
 
 # original sakura repo
 /sakuramml/
