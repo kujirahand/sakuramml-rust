@@ -112,6 +112,10 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
         if song.event_limit_exceeded() {
             break;
         }
+        // End命令が実行されたら、入れ子になった実行もすべて中断する
+        if song.flags.end_flag {
+            break;
+        }
         if song.flags.break_flag != 0 {
             break;
         }
@@ -308,6 +312,11 @@ pub fn exec(song: &mut Song, tokens: &[Token]) -> bool {
             }
             TokenType::While => {
                 exec_while(song, t);
+            }
+            TokenType::End => {
+                // 以降の実行をすべて中断する
+                song.flags.end_flag = true;
+                break;
             }
             TokenType::Break => {
                 song.flags.break_flag = 1;

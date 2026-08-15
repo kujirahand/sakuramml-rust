@@ -1893,4 +1893,50 @@ mod test_note_param_arg {
         assert_eq!(song.tracks[0].timing, -10);
         assert_eq!(song.tracks[0].velocity, 0);
     }
+
+    /// End/END命令 - 以降の実行を中断する (issue #141)
+    fn note_numbers(song: &crate::song::Song, track: usize) -> Vec<isize> {
+        song.tracks[track]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v1)
+            .collect()
+    }
+
+    #[test]
+    fn test_end_command() {
+        // End以降の音符は演奏されない
+        let song = exec_easy("o5 cd End ef");
+        assert_eq!(note_numbers(&song, 0), vec![60, 62]);
+        // 大文字のENDも同じ
+        let song = exec_easy("o5 cd END ef");
+        assert_eq!(note_numbers(&song, 0), vec![60, 62]);
+        // Endがなければ全部演奏される
+        let song = exec_easy("o5 cd ef");
+        assert_eq!(note_numbers(&song, 0), vec![60, 62, 64, 65]);
+    }
+
+    #[test]
+    fn test_end_command_in_block() {
+        // ループの中のEnd
+        let song = exec_easy("o5 [4 c End d] e");
+        assert_eq!(note_numbers(&song, 0), vec![60]);
+        // FOR文の中のEnd
+        let song = exec_easy("o5 Int I; FOR(I=0; I<4; I++){ c End } e");
+        assert_eq!(note_numbers(&song, 0), vec![60]);
+        // WHILE文の中のEnd
+        let song = exec_easy("o5 Int I=0; WHILE(I<4){ c End I=I+1 } e");
+        assert_eq!(note_numbers(&song, 0), vec![60]);
+        // IF文の中のEnd
+        let song = exec_easy("o5 c IF(1){ End } d");
+        assert_eq!(note_numbers(&song, 0), vec![60]);
+        // ユーザー定義関数の中のEnd
+        let song = exec_easy("o5 Function TEST(){ c End } TEST() d");
+        assert_eq!(note_numbers(&song, 0), vec![60]);
+        // 他のトラックもEnd以降は演奏されない
+        let song = exec_easy("TR(1) o5 c End TR(2) o5 d");
+        assert_eq!(note_numbers(&song, 1), vec![60]);
+        assert_eq!(song.tracks.len(), 2);
+    }
 }

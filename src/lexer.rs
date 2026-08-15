@@ -26,6 +26,18 @@ use error::*;
 use note::*;
 use variable::*;
 
+/// カーソル位置が End/END 命令かどうかを調べる
+/// 「EndPoint」のように単語が続く場合はEnd命令ではない
+fn is_end_command(cur: &SourceCursor) -> bool {
+    if !cur.eq("End") && !cur.eq("END") {
+        return false;
+    }
+    match cur.peek_n(3) {
+        'A'..='Z' | 'a'..='z' | '0'..='9' | '_' | '.' => false,
+        _ => true,
+    }
+}
+
 /// preprocess ... check user function
 fn lex_preprocess(song: &mut Song, cur: &mut SourceCursor) -> bool {
     let tmp_lineno = cur.line;
@@ -125,10 +137,18 @@ pub fn lex(song: &mut Song, src: &str, lineno: isize) -> Vec<Token> {
             // Upper command
             'A'..='Z' | '_' => {
                 cur.prev();
-                if cur.eq("End") || cur.eq("END") {
-                    // それ移行をコンパイルしない
+                if is_end_command(&cur) {
+                    // End命令 - これ以降をコンパイルせず、演奏も中断する (ex) cde End fga
+                    // Endトークンを出力して、以降の実行を中断する
+                    result.push(Token::new_tokens_lineno(
+                        TokenType::End,
+                        0,
+                        vec![],
+                        cur.line,
+                    ));
+                    // 残りのテキストはコンパイルせずコメント扱いにする
                     let last_comment = cur.cur2end();
-                    cur.next_n(last_comment.len());
+                    cur.next_n(last_comment.chars().count());
                     result.push(Token::new_empty(&last_comment, cur.line));
                     continue;
                 }
