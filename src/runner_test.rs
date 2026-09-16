@@ -2036,3 +2036,49 @@ mod test_issue_144 {
         assert!(notes.iter().all(|&(_, time)| time == first_time));
     }
 }
+
+#[cfg(test)]
+mod test_issue_149 {
+    use super::exec_easy;
+    use crate::song::EventType;
+
+    fn tempo_mpq(song: &crate::song::Song) -> isize {
+        let e = song.tracks[0]
+            .events
+            .iter()
+            .find(|e| e.etype == EventType::Meta && e.v2 == 0x51)
+            .expect("テンポのメタイベントがない");
+        let data = e.data.as_ref().expect("テンポのデータがない");
+        ((data[0] as isize) << 16) | ((data[1] as isize) << 8) | (data[2] as isize)
+    }
+
+    #[test]
+    fn test_tempo_accepts_decimal_value() {
+        // Tempo={120.34} のように {} で文字列として小数を渡せること (#149)
+        let song = exec_easy("Tempo={120.34} c");
+        let mpq = tempo_mpq(&song);
+        assert_eq!(mpq, (60000000.0f64 / 120.34).floor() as isize);
+        // song.tempo は表示・TempoChange用に四捨五入した整数を保持する
+        assert_eq!(song.tempo, 120);
+    }
+
+    #[test]
+    fn test_tempo_still_accepts_integer_value() {
+        // 従来通り整数指定でも動作すること
+        let song = exec_easy("Tempo(140) c");
+        let mpq = tempo_mpq(&song);
+        assert_eq!(mpq, 60000000 / 140);
+        assert_eq!(song.tempo, 140);
+    }
+
+    #[test]
+    fn test_tempo_non_finite_value_falls_back_to_lower_bound() {
+        // Tempo={NaN} のような非有限値は clamp を素通りしてしまうため、
+        // MPQ=0 の不正なテンポイベントを生成しないこと
+        let song = exec_easy("Tempo={NaN} c");
+        let mpq = tempo_mpq(&song);
+        assert!(mpq > 0);
+        assert_eq!(mpq, 60000000 / 10);
+        assert_eq!(song.tempo, 10);
+    }
+}
