@@ -1997,3 +1997,42 @@ mod test_issue_145 {
         assert_eq!(notes[1], 64);
     }
 }
+
+#[cfg(test)]
+mod test_issue_144 {
+    use super::exec_easy;
+    use crate::song::EventType;
+
+    /// NoteOnイベントの (ノート番号, 発音時刻) の一覧を取得する
+    fn note_on_positions(song: &crate::song::Song) -> Vec<(isize, isize)> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| (event.v1, event.time))
+            .collect()
+    }
+
+    #[test]
+    fn test_note_n_chord_plays_at_the_same_time() {
+        // 'n70 n74 n77' のように n を和音に含めたら同時発音になること (#144)
+        let song = exec_easy("'n70 n74 n77'");
+        let notes = note_on_positions(&song);
+        assert_eq!(notes.len(), 3);
+        let first_time = notes[0].1;
+        assert!(notes.iter().all(|&(_, time)| time == first_time));
+        let mut note_nos = notes.iter().map(|&(no, _)| no).collect::<Vec<_>>();
+        note_nos.sort();
+        assert_eq!(note_nos, vec![70, 74, 77]);
+    }
+
+    #[test]
+    fn test_note_n_and_regular_note_chord_plays_at_the_same_time() {
+        // n と通常の音符が混在する和音でも同時発音になること (#144)
+        let song = exec_easy("o5'cn74g'");
+        let notes = note_on_positions(&song);
+        assert_eq!(notes.len(), 3);
+        let first_time = notes[0].1;
+        assert!(notes.iter().all(|&(_, time)| time == first_time));
+    }
+}
