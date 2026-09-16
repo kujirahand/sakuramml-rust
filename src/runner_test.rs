@@ -1940,3 +1940,60 @@ mod test_note_param_arg {
         assert_eq!(song.tracks.len(), 2);
     }
 }
+
+#[cfg(test)]
+mod test_issue_145 {
+    use super::exec_easy;
+    use crate::song::EventType;
+
+    fn note_numbers(song: &crate::song::Song) -> Vec<isize> {
+        song.tracks[0]
+            .events
+            .iter()
+            .filter(|event| event.etype == EventType::NoteOn)
+            .map(|event| event.v1)
+            .collect()
+    }
+
+    #[test]
+    fn test_note_no_supports_function_call() {
+        // n(...) の音符番号に Random(...) のような関数呼び出しを指定できる (#145)
+        let song = exec_easy("[12 n(Random(60,72))]");
+        let notes = note_numbers(&song);
+        assert_eq!(notes.len(), 12);
+        assert!(notes.iter().all(|&no| (60..=72).contains(&no)));
+        // 12回とも同じ値になるのは実質あり得ないので、毎回評価されていることを確認する
+        assert!(notes.iter().any(|&no| no != notes[0]));
+    }
+
+    #[test]
+    fn test_note_no_still_supports_plain_values() {
+        // 従来どおりの数値・変数指定も動作すること (#145)
+        let song = exec_easy("n60 n(62)");
+        assert_eq!(note_numbers(&song), vec![60, 62]);
+        let song = exec_easy("Int A=64 n(A)");
+        assert_eq!(note_numbers(&song), vec![64]);
+    }
+
+    #[test]
+    fn test_note_no_still_supports_equal_prefix() {
+        // `n=60` のような従来の等号付き指定も動作すること (#145 レビュー指摘)
+        let song = exec_easy("n=60 n=62");
+        assert_eq!(note_numbers(&song), vec![60, 62]);
+        let song = exec_easy("Int A=64 n=(A)");
+        assert_eq!(note_numbers(&song), vec![64]);
+    }
+
+    #[test]
+    fn test_note_no_tie_is_not_consumed_as_operator() {
+        // `&` は式の演算子(AND)ではなく、タイ・スラーの区切りとして扱われること (#145 レビュー指摘)
+        // 巻き込まれると n60 が `60 & n62` という1つの式になり、2音目が消えてしまう
+        let song = exec_easy("n60&n62");
+        assert_eq!(note_numbers(&song), vec![60, 62]);
+        let song = exec_easy("n(Random(60,72))&n64");
+        let notes = note_numbers(&song);
+        assert_eq!(notes.len(), 2);
+        assert!((60..=72).contains(&notes[0]));
+        assert_eq!(notes[1], 64);
+    }
+}
