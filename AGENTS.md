@@ -15,6 +15,15 @@
 - 実装で迷ったらオリジナル実装のPascal/Delphi版を参考にしてください。`sakuramml/`ディレクトリにソースコードがあります。
 - `command.md`は、コマンドの一覧をまとめたもので、`make doc`コマンドで`scripts/extract_command.py`から自動生成されます。手動で編集せず、ソースコードにコメントを追加して、`make doc`で更新してください。
 
+## リファレンス
+
+`pascal/csakura` には、以前実装したリファレンス処理系があります。
+これと同じ動作にする必要はありませんが、バグの修正などの参考にしてください。以下のようにMIDIファイルを生成できます。
+
+```sh
+./pascal/csakura -e "l8 cdefg" -o output.mid
+```
+
 ### 技術スタック
 
 - **言語**: Rust (Edition 2021)
