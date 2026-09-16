@@ -230,7 +230,12 @@ pub(super) fn exec_tempo(song: &mut Song, t: &Token) {
     let empty_tokens = vec![];
     let tokens = t.children.as_ref().unwrap_or(&empty_tokens);
     let tempo = exec_value(song, tokens).to_f64();
-    let tempo = tempo.clamp(10.0, 300.0);
+    // Tempo={NaN} のような非有限値は clamp を素通りするため、明示的に既定の下限へ丸める
+    let tempo = if tempo.is_finite() {
+        tempo.clamp(10.0, 300.0)
+    } else {
+        10.0
+    };
     tempo_change_f64(song, tempo);
 }
 

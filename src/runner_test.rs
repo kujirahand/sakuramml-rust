@@ -2070,4 +2070,15 @@ mod test_issue_149 {
         assert_eq!(mpq, 60000000 / 140);
         assert_eq!(song.tempo, 140);
     }
+
+    #[test]
+    fn test_tempo_non_finite_value_falls_back_to_lower_bound() {
+        // Tempo={NaN} のような非有限値は clamp を素通りしてしまうため、
+        // MPQ=0 の不正なテンポイベントを生成しないこと
+        let song = exec_easy("Tempo={NaN} c");
+        let mpq = tempo_mpq(&song);
+        assert!(mpq > 0);
+        assert_eq!(mpq, 60000000 / 10);
+        assert_eq!(song.tempo, 10);
+    }
 }
