@@ -156,7 +156,7 @@ Multiple-character(upper case) command list. (複数文字/大文字コマンド
 | ResetXG | ResetXG |
 | MasterVolume | master volume (range: 0-127) (ex) MasterVolume(100) |
 | MasterBalance | master balance (range: -8192 to 8191) (ex) MasterBalance(0) |
-| Tempo | set tempo (ex) Tempo(120) |
+| Tempo | set tempo / decimal value can be given as string (ex) Tempo(120) Tempo={120.34} |
 | TEMPO | set tempo (ex) TEMPO(120) |
 | T | set tempo (ex) T(120) |
 | BPM | set tempo (ex) BPM(120) |

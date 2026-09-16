@@ -103,11 +103,17 @@ pub(super) fn tempo_change_a_to_b(song: &mut Song, a: isize, b: isize, len: isiz
 const DEFAULT_TEMPO: isize = 120;
 
 pub(super) fn tempo_change(song: &mut Song, tempo: isize) {
+    tempo_change_f64(song, tempo as f64);
+}
+
+/// テンポを小数値で変更する(例: Tempo={120.34})
+pub(super) fn tempo_change_f64(song: &mut Song, tempo: f64) {
     // TempoChange は Tempo と違い範囲チェックがないため 0 以下が渡り得る。
     // そのままだと MIDI のテンポ(μsec/四分音符)が不正な値になるので既定値に戻す #94
-    let tempo = if tempo > 0 { tempo } else { DEFAULT_TEMPO };
-    song.tempo = tempo;
-    let mpq = 60000000 / tempo;
+    let tempo = if tempo > 0.0 { tempo } else { DEFAULT_TEMPO as f64 };
+    song.tempo = tempo.round() as isize;
+    // 従来の整数指定(60000000 / tempo の切り捨て)と互換性を保つため floor を使う
+    let mpq = (60000000.0 / tempo).floor() as isize;
     let e = Event::meta(
         trk!(song).timepos,
         0xFF,
@@ -219,10 +225,13 @@ pub(super) fn exec_pitch_bend(song: &mut Song, t: &Token) {
 }
 
 /// テンポの指定
+/// 小数を指定したい場合は文字列で与える (ex) Tempo={120.34}
 pub(super) fn exec_tempo(song: &mut Song, t: &Token) {
-    let tempo = exec_value_int_by_token(song, t);
-    let tempo = value_range(10, tempo, 300);
-    tempo_change(song, tempo);
+    let empty_tokens = vec![];
+    let tokens = t.children.as_ref().unwrap_or(&empty_tokens);
+    let tempo = exec_value(song, tokens).to_f64();
+    let tempo = tempo.clamp(10.0, 300.0);
+    tempo_change_f64(song, tempo);
 }
 
 /// テンポの変化 (TempoChange)

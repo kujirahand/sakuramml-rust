@@ -66,6 +66,21 @@ impl SValue {
             _ => 0,
         }
     }
+    /// 小数を含む値を取得する(例: Tempo={120.34})
+    pub fn to_f64(&self) -> f64 {
+        match self {
+            Self::Int(i) => *i as f64,
+            Self::Str(s, _) => s.trim().parse().unwrap_or_else(|_| self.to_i() as f64),
+            Self::Bool(b) => {
+                if *b {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+            _ => self.to_i() as f64,
+        }
+    }
     pub fn to_s(&self) -> String {
         match self {
             Self::Int(i) => i.to_string(),
