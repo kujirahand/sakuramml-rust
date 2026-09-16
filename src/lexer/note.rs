@@ -441,8 +441,8 @@ pub(super) fn read_rest(cur: &mut SourceCursor) -> Token {
 }
 
 pub(super) fn read_note_n(cur: &mut SourceCursor, song: &mut Song) -> Token {
-    // note no
-    let note_no = read_arg_value(cur, song);
+    // note no --- Random(60,72) のような関数呼び出しにも対応するため式として読み取る (#145)
+    let note_no_tokens = read_calc_tokens(cur, song).unwrap_or_default();
     cur.skip_space();
     if cur.eq_char(',') {
         cur.next();
@@ -488,11 +488,11 @@ pub(super) fn read_note_n(cur: &mut SourceCursor, song: &mut Song) -> Token {
         cur.skip_space();
         slur = SValue::Int(1);
     }
-    Token::new(
+    let mut tok = Token::new(
         TokenType::NoteN,
         0,
         vec![
-            note_no,
+            SValue::None, // note no は children に式として保持する (#145)
             SValue::from_s(note_len),
             SValue::from_i(qlen),
             SValue::from_i(vel),
@@ -500,7 +500,9 @@ pub(super) fn read_note_n(cur: &mut SourceCursor, song: &mut Song) -> Token {
             slur,
             SValue::from_i(qlen_is_step as isize),
         ],
-    )
+    );
+    tok.children = Some(note_no_tokens);
+    tok
 }
 
 pub(super) fn read_note(cur: &mut SourceCursor, ch: char) -> Token {

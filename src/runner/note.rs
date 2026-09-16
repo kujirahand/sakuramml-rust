@@ -280,7 +280,8 @@ pub(super) fn exec_note(song: &mut Song, t: &Token) {
 
 pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     // parameters
-    let data_note_no = var_extract(&t.data[0], song).to_i();
+    // note_no は式として読み取っており、Random(60,72) のような関数呼び出しも含まれる (#145)
+    let data_note_no = exec_value_int_by_token(song, t);
     let data_note_len = var_extract(&t.data[1], song).to_s();
     let data_note_qlen = var_extract(&t.data[2], song).to_i(); // 0
     let data_note_vel = var_extract(&t.data[3], song).to_i(); // -1

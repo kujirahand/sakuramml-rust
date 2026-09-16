@@ -1,7 +1,7 @@
 use crate::lexer::lex;
 use crate::runner::function::var_extract;
 use crate::runner::note::{get_note_info_from_token, set_note_info_with_default_value};
-use crate::runner::value_range;
+use crate::runner::{exec_value_int_by_token, value_range};
 use crate::song::Song;
 use crate::svalue::SValue;
 use crate::token::{Token, TokenType};
@@ -243,11 +243,8 @@ fn find_note_no(song: &mut Song, tokens: &[Token]) -> Option<isize> {
                 return Some(note.no);
             }
             TokenType::NoteN => {
-                // n コマンドは音符番号を直接指定する
-                if t.data.is_empty() {
-                    return Some(0);
-                }
-                return Some(var_extract(&t.data[0], song).to_i());
+                // n コマンドは音符番号を直接指定する(Random(60,72)のような式にも対応 #145)
+                return Some(exec_value_int_by_token(song, t));
             }
             _ => {}
         }
