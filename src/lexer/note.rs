@@ -442,7 +442,16 @@ pub(super) fn read_rest(cur: &mut SourceCursor) -> Token {
 
 pub(super) fn read_note_n(cur: &mut SourceCursor, song: &mut Song) -> Token {
     // note no --- Random(60,72) のような関数呼び出しにも対応するため式として読み取る (#145)
-    let note_no_tokens = read_calc_tokens(cur, song).unwrap_or_default();
+    // read_calc(演算子ループあり)だと `n60&n62` の `&`(タイ)を二項演算子として
+    // 巻き込んでしまうため、単一の値だけを読む read_value を使う
+    cur.skip_space();
+    if cur.eq_char('=') {
+        cur.next(); // `n=60` 形式との互換
+    }
+    let note_no_tokens = match read_value(cur, song) {
+        Some(tok) => vec![tok],
+        None => vec![],
+    };
     cur.skip_space();
     if cur.eq_char(',') {
         cur.next();
