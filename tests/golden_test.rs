@@ -43,8 +43,8 @@ fn sample_midi_is_unchanged() {
         (
             "seija.mml",
             include_str!("../samples/seija.mml"),
-            // #121: 日本語リズムマクロ内のn(Kick1)なども正しい音程へ変化
-            "ba098b354e642f767187831e850bc059a3ac10df62e73f202d5098829ed69c0d",
+            // #144: 「ずぱ」(和音内のn)が同時発音になるよう修正したため変化
+            "8f9ff7806734125f53d018a8bb55c4ad220aadf7361640afd51a20a0b07b3fe8",
         ),
     ];
 

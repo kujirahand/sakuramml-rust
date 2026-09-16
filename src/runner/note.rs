@@ -323,7 +323,8 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
     let qlen = trk!(song).calc_qlen_on_note(qlen);
     // ゲートの先行指定は割合指定なので、有効ならステップ指定より優先する (#127)
     // 予約が終わったかどうかは、値を求めたあとでなければ分からない
-    let qlen_is_step = qlen_is_step && !trk!(song).q_opt.has_reserve();
+    let q_reserved = trk!(song).q_opt.has_reserve();
+    let qlen_is_step = qlen_is_step && !q_reserved;
     // Random / Range / Max
     let v = calc_note_param(song, NOTE_PARAM_V, v);
     let t = calc_note_param(song, NOTE_PARAM_T, t);
@@ -351,11 +352,21 @@ pub(super) fn exec_note_n(song: &mut Song, t: &Token) {
         return;
     }
     // println!("- {}: note(no={},len={},qlen={},v={},t={})", trk!(song).timepos, notelen_real, notelen, qlen, v, t);
+    trk!(song).timepos = trk!(song).timepos.saturating_add(notelen);
+
+    // harmony? --- 'n70n74n77' のように n を和音に含めたときも同時発音にする (#144)
+    if song.flags.harmony_flag {
+        trk!(song).timepos = song.flags.harmony_time;
+        if song.flags.harmony_qlen.is_none() {
+            song.flags.harmony_qlen = Some((qlen, qlen_is_step, q_reserved));
+        }
+        song.flags.harmony_events.push(event);
+        return;
+    }
     // onNote / onNoteWave event
     write_on_note_events(song, start_pos);
     // write event
     song.add_reserved_event(event);
-    trk!(song).timepos = trk!(song).timepos.saturating_add(notelen);
     // 音符の中にある .onCycle の書き込みを確定する
     flush_cc_on_cycle(song);
 }
